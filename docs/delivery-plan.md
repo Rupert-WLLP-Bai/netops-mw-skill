@@ -1,6 +1,6 @@
 # Implementation and Delivery Plan
 
-Updated on 2026-11-12. The engineering configuration and discovery checks are complete. v0.1 implementation and candidate package checks are complete; independent final re-review is pending. Actual results and limitations are in [the validation record](validation-v0.1-review-fixes-2026-11-12.md).
+Updated on 2026-11-12. The engineering configuration and discovery checks are complete. The scoped independent final re-review passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`, with 68 tests passing and package SHA-256 `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. See the [review](review-v0.1-2026-11-12.md) and [validation record](validation-v0.1-review-fixes-2026-11-12.md) for results and limitations.
 
 ## Delivery Goal
 
@@ -99,7 +99,7 @@ These are task definitions, not published GitHub issues or automatic triage deci
 | T10: path and Globalping | After M2 | One bounded path adapter, total round90sec, external time shared; actual probe location/ASN/IP/protocol/time; permission/truncation counterevidence |
 | T11: application evidence and thirty cases | T10 or an explicit business need | HAR resources/privacy, same-session media stats, protocol/family/proxy cases, actual platform support matrix |
 
-T01-T07 and the release-building portion of T09 have implementation and local checks recorded in [v0.1 validation](validation-v0.1-review-fixes-2026-11-12.md); independent final re-review is pending. Track T08 and actual client/native-Windows checks as outstanding. Native output parsing tests do not count as running that operating system.
+T01-T07 and the release-building portion of T09 passed the [scoped independent final re-review](review-v0.1-2026-11-12.md), with implementation and local checks recorded in [v0.1 validation](validation-v0.1-review-fixes-2026-11-12.md). Track T08 and actual client/native-Windows checks as outstanding. Native output parsing tests do not count as running that operating system.
 
 ## Twelve Core Diagnosis Cases
 

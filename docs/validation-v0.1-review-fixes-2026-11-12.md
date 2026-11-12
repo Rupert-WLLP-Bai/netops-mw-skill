@@ -1,6 +1,6 @@
 # v0.1 review-fix validation — 2026-11-12
 
-This record supersedes the candidate package and results in [the earlier validation record](validation-v0.1-2026-11-12.md). The independent review of commit `984674be71ec2bac369c704d40ef980ad4a54019` found five issues; the changes below address them. A scoped independent final re-review is pending. The candidate package must be rebuilt and checked again if review changes any packaged file.
+This record supersedes the candidate package and results in [the earlier validation record](validation-v0.1-2026-11-12.md). The independent review of commit `984674be71ec2bac369c704d40ef980ad4a54019` found five issues; the changes below address them. The [scoped independent final re-review](review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`; all 68 tests passed, and the independently rebuilt package matched SHA-256 `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. Any later change to a packaged file requires rebuilding and checking the package again.
 
 ## Review fixes and checks
 

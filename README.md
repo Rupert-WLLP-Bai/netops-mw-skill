@@ -2,7 +2,7 @@
 
 A runnable Skill for one target and symptom: bounded local collection, explicit counterevidence, and at most two supported investigation directions. It also analyzes an existing PCAP independently of live probing.
 
-Version 0.1.0 implementation and candidate package checks are recorded in the [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md). Independent final re-review remains pending; the original discovery checks remain separate.
+The [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 
 ## Run
 
@@ -54,6 +54,7 @@ The initial validation platform is Linux/WSL. Native Windows, actual MobileWork 
 | --- | --- |
 | [Implementation plan](docs/delivery-plan.md) | Scope, tasks, twelve core cases, release criteria |
 | [v0.1 validation](docs/validation-v0.1-review-fixes-2026-11-12.md) | Test, candidate package, extraction checks, and outstanding work |
+| [Final scoped review](docs/review-v0.1-2026-11-12.md) | Independent review verdict and exclusions |
 | [Project baseline](docs/research/current-state.md) | Existing assets and discovery/publication gaps |
 | [TShark integration](docs/research/tshark-integration.md) | Offline interfaces and interpretation boundaries |
 | [Upstream pattern review](docs/research/upstream-patterns.md) | Pinned sources and verified reuse patterns |
