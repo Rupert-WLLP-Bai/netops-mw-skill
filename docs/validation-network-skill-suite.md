@@ -1,5 +1,7 @@
 # Network skill suite validation
 
+> **Final review: changes required.** The later [Sol review](review-network-skill-suite-2026-11-13.md) identified one P1 false-recovery path and three P2 enforcement/input-handling defects not covered by these passing tests. They remain open in [issue #1](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/1). This record describes earlier checks and does not establish release readiness. Use the [checkpoint handoff](HANDOFF-2026-11-13.md) to restore the evidence and continue the work.
+
 This record covers local implementation checks for the version `0.1.0` suite. The tested runtime and package source is commit `fbe1f88d3ad20673f2d2066a70667a9a8cb0e6ed`; this documentation was prepared afterward. These checks do not establish production incident accuracy, host installation, or operational acceptance. No public target, production device, external message, live capture, or automated repair was used.
 
 ## Tests and structural checks

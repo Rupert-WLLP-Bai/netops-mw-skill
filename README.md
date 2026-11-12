@@ -1,5 +1,7 @@
 # Internet Access Triage and Evidence Localization
 
+> **Unfinished checkpoint:** The final suite review found one P1 and three P2 controller defects. See [the handoff](docs/HANDOFF-2026-11-13.md), [the review](docs/review-network-skill-suite-2026-11-13.md), and [issue #1](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/1) before using or continuing this work. Existing passing checks do not constitute release approval.
+
 A runnable Skill for one target and symptom: bounded local collection, explicit counterevidence, and at most two supported investigation directions. It also analyzes an existing PCAP independently of live probing.
 
 ## Network skill suite
