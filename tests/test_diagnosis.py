@@ -1,6 +1,7 @@
 """Independent diagnosis replay inputs and expected conclusion boundaries."""
 from __future__ import annotations
 
+import copy
 import sys
 import unittest
 from pathlib import Path
@@ -69,24 +70,74 @@ class DiagnosisReplayTests(unittest.TestCase):
         self.assertLessEqual(len(result["candidates"]), 2)
         return result
 
-    def test_inet_01_dns_stage_without_cpu_attribution(self):
-        requests = [http(n) for n in (4, 5, 6)]
-        for item in requests:
-            item["observation"]["connected_ip"] = "192.0.2.10"
-            item["measurements"].append({"name": "dns_ms", "value": 4, "unit": "ms", "sample_count": 1})
-        r = self.check([dns(1, 200), dns(2, 210), dns(3, 220), *requests], "not_reproduced",
-                       ["name_resolution_latency"], max_dns_ms=100)
-        self.assertIn("does not identify recursive-server CPU", r["candidates"][0]["basis"])
-        self.assertEqual(r["candidates"][0]["evidence_ids"], ["ev-000000000001", "ev-000000000002", "ev-000000000003"])
+    def test_inet_01_normal_pinned_same_ip_comparison(self):
+        records = []
+        for pair in range(3):
+            for pinned in (False, True):
+                item = http(1 + 2 * pair + int(pinned))
+                item["observation"].update({"comparison_id": f"pair-{pair}",
+                    "resolve_mode": "pinned" if pinned else "normal", "method": "GET",
+                    "host_header": "service.example", "sni": "service.example", "certificate_verified": True,
+                    "connected_ip": "192.0.2.10", "proxy_path": "direct", "vantage": "workstation",
+                    "fresh_connection": True,
+                    "pinned_ip": "192.0.2.10" if pinned else None})
+                item["measurements"].append({"name": "dns_ms", "value": 4 if pinned else 210,
+                                             "unit": "ms", "sample_count": 1})
+                records.append(item)
+        r = self.check(records, "not_reproduced", ["name_resolution_latency"], max_dns_ms=50)
+        self.assertEqual(r["candidates"][0]["evidence_ids"], [f"ev-{n:012x}" for n in range(1, 7)])
+        self.assertIn("does not identify", r["candidates"][0]["basis"])
+        for field, value in (("host_header", "other.example"), ("sni", "other.example"),
+                             ("certificate_verified", False), ("connected_ip", "192.0.2.11"),
+                             ("method", "POST"), ("proxy_path", "proxy"), ("vantage", "other"),
+                             ("fresh_connection", False), ("pinned_ip", "192.0.2.11"),
+                             ("address_family", "IPv6"), ("resolve_mode", "normal")):
+            with self.subTest(mismatched_field=field):
+                altered = copy.deepcopy(records)
+                altered[1]["observation"][field] = value
+                self.check(altered, "not_reproduced", [], max_dns_ms=50)
+        for field, value in (("target", "https://other.example/status"), ("run_id", "another-run")):
+            with self.subTest(mismatched_scope=field):
+                altered = copy.deepcopy(records)
+                altered[1]["scope"][field] = value
+                self.check(altered, "not_reproduced", [], max_dns_ms=50)
+        altered = copy.deepcopy(records)
+        altered[1]["started_at_utc"] = "2026-11-12T00:02:00Z"
+        self.check(altered, "not_reproduced", [], max_dns_ms=50)
 
     def test_inet_05_target_timeout_with_control(self):
         r = self.check([http(1, outcome="timeout", code=28), http(2, target=CONTROL)], "fault_observed", ["request_timeout"])
         self.assertIn("ev-000000000002", r["candidates"][0]["counterevidence_ids"])
         self.assertIn("not classified", r["candidates"][0]["basis"])
 
-    def test_inet_06_tls_validation_failure(self):
-        r = self.check([http(1, family=None, outcome="tls_error", code=60), http(2, target=CONTROL)], "fault_observed", ["tls_validation"])
+    def test_inet_06_tls_validation_failure_and_independent_target_check(self):
+        failed = http(1, family=None, outcome="tls_error", code=60)
+        independent = record(2, "tls_observation", {"hostname": "service.example", "sni": "service.example",
+                             "verification_enabled": True, "certificate_verified": False})
+        independent["tool"]["name"] = "independent-tls-check"
+        r = self.check([failed, independent], "fault_observed", ["tls_validation"])
+        self.assertEqual(r["candidates"][0]["evidence_ids"], ["ev-000000000001", "ev-000000000002"])
         self.assertIn("retain certificate validation", r["candidates"][0]["next_step"])
+        self.assertIn("does not establish", r["candidates"][0]["basis"])
+        independent["observation"]["certificate_verified"] = True
+        r = self.check([failed, independent], "fault_observed", ["tls_validation"])
+        self.assertEqual(r["candidates"][0]["evidence_ids"], ["ev-000000000001"])
+        self.assertEqual(r["candidates"][0]["counterevidence_ids"], ["ev-000000000002"])
+        for change in ("other_target", "no_verification", "wrong_sni", "same_tool", "old_window"):
+            with self.subTest(change=change):
+                altered = copy.deepcopy(independent)
+                if change == "other_target":
+                    altered["scope"]["target"] = CONTROL
+                elif change == "no_verification":
+                    altered["observation"]["verification_enabled"] = False
+                elif change == "wrong_sni":
+                    altered["observation"]["sni"] = "other.example"
+                elif change == "same_tool":
+                    altered["tool"]["name"] = "curl"
+                else:
+                    altered["started_at_utc"] = "2026-11-12T00:02:00Z"
+                r = self.check([failed, altered], "fault_observed", ["tls_validation"])
+                self.assertEqual(r["candidates"][0]["counterevidence_ids"], [])
 
     def test_inet_07_response_wait_not_proxy_handshake_attribution(self):
         records = [http(i, 250) for i in (1, 2, 3)]

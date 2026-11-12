@@ -188,6 +188,54 @@ def _windows_route(box: ToolBox) -> dict[str, Any]:
             "missing_reason": "default route row was not recognized"}
 
 
+def _interface_counters(interface: str | None, deadline: Deadline,
+                        source: Path = Path("/proc/net/dev")) -> dict[str, Any]:
+    snapshot: dict[str, Any] = {"interface": interface, "source": str(source),
+                                "collected_at_utc": None, "status": "unavailable",
+                                "counters": None, "missing_reason": None}
+    if deadline.remaining() <= 0:
+        snapshot.update(status="budget_exhausted", missing_reason="shared live budget exhausted")
+        return snapshot
+    if not interface:
+        snapshot["missing_reason"] = "default route interface is unavailable"
+        return snapshot
+    try:
+        with source.open("r", encoding="ascii", errors="replace") as stream:
+            text = stream.read(65537)
+    except OSError:
+        snapshot["missing_reason"] = "interface counter source is unreadable"
+        return snapshot
+    if deadline.remaining() <= 0:
+        snapshot.update(status="budget_exhausted", missing_reason="shared live budget exhausted while reading counters")
+        return snapshot
+    if len(text) > 65536:
+        snapshot["missing_reason"] = "interface counter source exceeded the read limit"
+        return snapshot
+    for line in text.splitlines():
+        name, separator, values = line.partition(":")
+        if not separator or name.strip() != interface:
+            continue
+        fields = values.split()
+        try:
+            if len(fields) < 16:
+                raise ValueError
+            indices = {"rx_bytes": (0, "bytes"), "rx_packets": (1, "packets"),
+                       "rx_errors": (2, "errors"), "rx_drops": (3, "packets"),
+                       "tx_bytes": (8, "bytes"), "tx_packets": (9, "packets"),
+                       "tx_errors": (10, "errors"), "tx_drops": (11, "packets")}
+            counters = {key: {"value": int(fields[index]), "unit": unit}
+                        for key, (index, unit) in indices.items()}
+            if any(item["value"] < 0 for item in counters.values()):
+                raise ValueError
+        except (ValueError, IndexError):
+            snapshot["missing_reason"] = "interface counter row is malformed"
+            return snapshot
+        snapshot.update(status="complete", counters=counters, collected_at_utc=utc_now())
+        return snapshot
+    snapshot["missing_reason"] = "default route interface was not present in counter source"
+    return snapshot
+
+
 def collect_context(box: ToolBox, evidence: list[dict[str, Any]], proxy: dict[str, Any]) -> dict[str, Any]:
     started, mono = utc_now(), time.monotonic()
     system = platform.system() or "unknown"
@@ -200,6 +248,10 @@ def collect_context(box: ToolBox, evidence: list[dict[str, Any]], proxy: dict[st
         "default_route": route,
         "proxy": proxy,
         "vpn_state": "unknown",
+        "interface_counters": (_interface_counters(route.get("interface"), box.deadline) if system == "Linux" else
+                               {"interface": route.get("interface"), "source": None, "collected_at_utc": None,
+                                "status": "unavailable", "counters": None,
+                                "missing_reason": "interface counter reader is unsupported on this platform"}),
     }
     _new_evidence(evidence, "local_context", "python-standard-library", platform.python_version(), "complete",
                   {"target": None, "protocol": None, "address_family": None, "window": None},
@@ -212,6 +264,11 @@ def _curl_env(url: str) -> tuple[dict[str, str], dict[str, Any]]:
     context = _proxy_context()
     env["NO_COLOR"] = "1"
     return env, context
+
+
+def _proxy_has_credentials(env: dict[str, str]) -> bool:
+    return any(key.lower() in {"http_proxy", "https_proxy", "all_proxy"} and "@" in value
+               for key, value in env.items())
 
 
 def _parse_writeout(stderr: bytes) -> dict[str, str] | None:
@@ -247,7 +304,7 @@ def _curl_command(executable: str, url: str, http_allowed: bool, attempt_timeout
         "%{time_connect}\t%{time_appconnect}\t%{time_pretransfer}\t%{time_starttransfer}\t%{time_total}\t"
         "%{size_download}\t%{num_connects}\t%{http_version}\n"
     )
-    return [executable, "-q", "--silent", "--show-error", "--request", "GET", "--output", "-",
+    return [executable, "-q", "--globoff", "--silent", "--show-error", "--request", "GET", "--output", "-",
             "--write-out", writeout, "--connect-timeout", "3", "--max-time", str(attempt_timeout),
             "--max-filesize", str(BODY_LIMIT), "--max-redirs", "0", "--retry", "0",
             "--proto", "=http,https", "--url", url]
@@ -593,7 +650,7 @@ def _probe_target(box: ToolBox, evidence: list[dict[str, Any]], target: dict[str
         timeout = max(1, min(6, int(box.deadline.remaining())))
         args = _curl_command(executable, str(target["url"]), http_allowed, timeout)
         env, _ = _curl_env(str(target["url"]))
-        safe = [Path(executable).name, "-q", "--silent", "--show-error", "--request", "GET",
+        safe = [Path(executable).name, "-q", "--globoff", "--silent", "--show-error", "--request", "GET",
                 "--connect-timeout", "3", "--max-time", str(timeout), "--max-filesize", str(BODY_LIMIT),
                 "--max-redirs", "0", "--retry", "0", "--url", safe_target]
         result = box.run("curl", args, f"HTTP attempt {attempt}", BODY_LIMIT, 16384,
@@ -601,7 +658,11 @@ def _probe_target(box: ToolBox, evidence: list[dict[str, Any]], target: dict[str
         body_path = output / "raw" / f"http_target_{target_index}_attempt_{attempt}.body"
         body_path.write_bytes(result.stdout)
         body_source = relative_artifact(output, body_path)
-        safe_stderr = redact_text(result.stderr.decode("utf-8", "replace"), [str(target["url"])])
+        # Curl may echo a malformed or truncated proxy value in arbitrary forms.
+        # Retain its structured exit status while withholding the diagnostic text.
+        safe_stderr = (f"curl diagnostic text withheld because proxy credentials are configured (exit {result.returncode})"
+                       if _proxy_has_credentials(env) else
+                       redact_text(result.stderr.decode("utf-8", "replace"), [str(target["url"])]))
         stderr_path = output / "raw" / f"http_target_{target_index}_attempt_{attempt}.stderr.txt"
         stderr_path.write_text(safe_stderr[:16384], encoding="utf-8")
         stderr_source = relative_artifact(output, stderr_path)
@@ -619,9 +680,9 @@ def _probe_target(box: ToolBox, evidence: list[dict[str, Any]], target: dict[str
                     roles = {ping_role}
                     future = ping_pool.submit(_collect_ping, box, evidence, connected_ip, roles, output)
                     ping_jobs[connected_ip] = {"future": future, "roles": roles}
-        if meta and http_code is not None and http_code >= 500:
+        if outcome == "response" and meta and http_code is not None and http_code >= 500:
             outcome = "http_5xx"
-        elif meta and http_code is not None and 300 <= http_code < 400:
+        elif outcome == "response" and meta and http_code is not None and 300 <= http_code < 400:
             outcome = "redirect_response_not_followed"
         new_connections = _int(meta.get("new_connections")) if meta else None
         http_version = meta.get("http_version") if meta else None

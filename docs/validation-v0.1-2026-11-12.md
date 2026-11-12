@@ -1,3 +1,5 @@
+> **Superseded candidate:** The independent review found defects in this candidate. See [review-fix validation](validation-v0.1-review-fixes-2026-11-12.md) for the updated results and package hash.
+
 # v0.1 implementation validation — 2026-11-12
 
 This record covers the implementation and candidate package built from base commit `6dad363bd3e0c5aff73a064a100e2be9578187f5` with the v0.1 implementation changes in this branch. The independent final review is pending. If review changes any packaged file, rebuild and repeat package validation before relying on these hashes. These results do not constitute M2 or publication acceptance.

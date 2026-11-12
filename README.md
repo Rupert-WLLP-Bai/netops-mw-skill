@@ -2,7 +2,7 @@
 
 A runnable Skill for one target and symptom: bounded local collection, explicit counterevidence, and at most two supported investigation directions. It also analyzes an existing PCAP independently of live probing.
 
-Version 0.1.0 implementation and candidate package checks are recorded in the [validation record](docs/validation-v0.1-2026-11-12.md). Independent final review remains pending; the original discovery checks remain separate.
+Version 0.1.0 implementation and candidate package checks are recorded in the [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md). Independent final re-review remains pending; the original discovery checks remain separate.
 
 ## Run
 
@@ -53,7 +53,7 @@ The initial validation platform is Linux/WSL. Native Windows, actual MobileWork 
 | Document | Purpose |
 | --- | --- |
 | [Implementation plan](docs/delivery-plan.md) | Scope, tasks, twelve core cases, release criteria |
-| [v0.1 validation](docs/validation-v0.1-2026-11-12.md) | Test, candidate package, extraction checks, and outstanding work |
+| [v0.1 validation](docs/validation-v0.1-review-fixes-2026-11-12.md) | Test, candidate package, extraction checks, and outstanding work |
 | [Project baseline](docs/research/current-state.md) | Existing assets and discovery/publication gaps |
 | [TShark integration](docs/research/tshark-integration.md) | Offline interfaces and interpretation boundaries |
 | [Upstream pattern review](docs/research/upstream-patterns.md) | Pinned sources and verified reuse patterns |

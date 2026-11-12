@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import math
 import statistics
+import ipaddress
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import urlsplit
 
 from .contract import DIAGNOSIS_STATUSES, EVIDENCE_ID
 
@@ -378,6 +380,100 @@ def _dns_latency_groups(records: list[dict[str, Any]], target_url: str | None,
     return groups
 
 
+def _same_ip_dns_candidate(records: list[dict[str, Any]], target_url: str | None,
+                           run_scope: dict[str, Any], bounds: tuple[datetime, datetime, str] | None,
+                           threshold: float | None) -> dict[str, Any] | None:
+    """Compare replayed normal/pinned requests only when their connection context is explicit."""
+    if target_url is None or bounds is None or threshold is None:
+        return None
+    try:
+        url = urlsplit(target_url)
+        hostname = url.hostname
+    except ValueError:
+        return None
+    if url.scheme.lower() != "https" or not hostname:
+        return None
+    pairs: dict[str, dict[str, dict[str, Any]]] = {}
+    for record in records:
+        if record.get("kind") != "http_probe" or not _safe_id(record) or not _http_success(record):
+            continue
+        if not _in_run_window(record, run_scope, bounds):
+            continue
+        scope = _mapping(record.get("scope"))
+        obs = _mapping(record.get("observation"))
+        mode, pair_id = obs.get("resolve_mode"), _string(obs.get("comparison_id"))
+        if mode not in ("normal", "pinned") or pair_id is None:
+            continue
+        if scope.get("target") != target_url or _protocol(scope.get("protocol")) != "HTTPS":
+            continue
+        family = _record_family(record)
+        try:
+            address = ipaddress.ip_address(obs.get("connected_ip"))
+        except ValueError:
+            continue
+        if (family != ("IPv4" if address.version == 4 else "IPv6")
+                or obs.get("host_header") != url.netloc or obs.get("sni") != hostname
+                or obs.get("certificate_verified") is not True or obs.get("method") != "GET"
+                or obs.get("proxy_path") != "direct" or not _string(obs.get("vantage"))
+                or obs.get("fresh_connection") is not True
+                or (mode == "pinned" and obs.get("pinned_ip") != obs.get("connected_ip"))
+                or (mode == "normal" and obs.get("pinned_ip") is not None)
+                or _measurement_value(record, "dns_ms") is None):
+            continue
+        pair = pairs.setdefault(pair_id, {})
+        if mode in pair:
+            return None
+        pair[mode] = record
+    complete_pairs = []
+    contexts = set()
+    for pair in pairs.values():
+        if set(pair) != {"normal", "pinned"}:
+            continue
+        normal, pinned = pair["normal"], pair["pinned"]
+        normal_obs, pinned_obs = _mapping(normal.get("observation")), _mapping(pinned.get("observation"))
+        context = (normal_obs.get("connected_ip"), _record_family(normal), normal_obs.get("vantage"))
+        if context != (pinned_obs.get("connected_ip"), _record_family(pinned), pinned_obs.get("vantage")):
+            continue
+        contexts.add(context)
+        complete_pairs.append((normal, pinned))
+    if len(complete_pairs) < 3 or len(contexts) != 1:
+        return None
+    normal_values = [_measurement_value(normal, "dns_ms") for normal, _ in complete_pairs]
+    pinned_values = [_measurement_value(pinned, "dns_ms") for _, pinned in complete_pairs]
+    if statistics.median(normal_values) - statistics.median(pinned_values) <= threshold:
+        return None
+    used = [record for pair in complete_pairs for record in pair]
+    return _candidate("name_resolution_latency",
+        "Matched normal and pinned same-IP replay requests show a DNS-stage timing difference above the configured limit. "
+        "This does not identify resolver CPU, prove causation, or assign responsibility.", used, [],
+        "Repeat matched normal and pinned requests in the same window and corroborate resolver timing independently.")
+
+
+def _independent_tls_records(records: list[dict[str, Any]], target_url: str | None,
+                             run_scope: dict[str, Any], bounds: tuple[datetime, datetime, str] | None
+                             ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if target_url is None:
+        return [], []
+    try:
+        url = urlsplit(target_url)
+        hostname = url.hostname
+    except ValueError:
+        return [], []
+    if url.scheme.lower() != "https" or not hostname:
+        return [], []
+    failed, passed = [], []
+    for record in records:
+        obs, scope, tool = _mapping(record.get("observation")), _mapping(record.get("scope")), _mapping(record.get("tool"))
+        if (record.get("kind") != "tls_observation" or _status(record) != "complete" or not _safe_id(record)
+                or not _in_run_window(record, run_scope, bounds) or scope.get("target") != target_url
+                or _protocol(scope.get("protocol")) != "HTTPS" or not _string(tool.get("name"))
+                or tool.get("name") == "curl" or obs.get("hostname") != hostname or obs.get("sni") != hostname
+                or obs.get("verification_enabled") is not True or not isinstance(obs.get("certificate_verified"), bool)):
+            continue
+        (passed if obs["certificate_verified"] else failed).append(record)
+    return failed, passed
+
+
 def _timestamp_field(phase: dict[str, Any], name: str) -> datetime | None:
     return _parse_utc(phase.get(name))
 
@@ -605,6 +701,8 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
     next_steps: list[str] = []
     limitations: list[str] = []
     counterevidence: list[dict[str, str]] = []
+    tls_failed, tls_passed = (_independent_tls_records(records, target_url, run_scope, bounds)
+                              if mode_name == "replay" else ([], []))
 
     for (domain, key), fault_records in fault_groups.items():
         outcome = _outcome(fault_records[0])
@@ -627,7 +725,12 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
         target_counters = [record for record in target_successes
                            if _context_key(record, run_window_id) == key]
         control_counters = _same_context_controls(control_successes, first, run_window_id)
-        candidate = _candidate(domain, basis, fault_records, target_counters + control_counters, step)
+        support = fault_records
+        if domain == "tls_validation" and (tls_failed or tls_passed):
+            support = fault_records + tls_failed
+            target_counters += tls_passed
+            basis += " An independent same-target TLS check is included; it does not establish the same path or responsibility."
+        candidate = _candidate(domain, basis, support, target_counters + control_counters, step)
         if candidate is not None:
             candidates.append(candidate)
             next_steps.append(step)
@@ -697,6 +800,16 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
             if candidate is not None:
                 candidates.append(candidate)
                 next_steps.append(step)
+    comparison = (_same_ip_dns_candidate(target_http, target_url, run_scope, bounds, dns_limit)
+                  if mode_name == "replay" else None)
+    if comparison is not None:
+        existing = next((item for item in candidates if item["domain"] == "name_resolution_latency"), None)
+        if existing is None:
+            candidates.append(comparison)
+        else:
+            existing["basis"] += " " + comparison["basis"]
+            existing["evidence_ids"] = list(dict.fromkeys(existing["evidence_ids"] + comparison["evidence_ids"]))
+        next_steps.append(comparison["next_step"])
     if dns_limit is not None and not dns_comparable_groups:
         limitations.append("A DNS query-time baseline was configured, but fewer than three complete same-target, resolver, transport, address-family, and collection-window queries had finite timings.")
     elif dns_limit is None and max_dns_ms is not None:

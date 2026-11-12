@@ -5,6 +5,7 @@ import concurrent.futures
 import hashlib
 import os
 import shutil
+import socket
 import ssl
 import subprocess
 import sys
@@ -63,6 +64,18 @@ class ProbeHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(2 * 1024 * 1024))
             self.end_headers()
             return
+        if path in ("/stalled-500", "/stalled-302"):
+            self.send_response(500 if path.endswith("500") else 302)
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            try:
+                self.wfile.write(b"x")
+                self.wfile.flush()
+                time.sleep(7)
+                self.wfile.write(b"y")
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
+            return
         if path == "/stalled":
             self.send_response(200)
             self.send_header("Transfer-Encoding", "chunked")
@@ -95,6 +108,47 @@ class ProbeServer(ThreadingHTTPServer):
 
 
 class CurlParsingTests(unittest.TestCase):
+    def test_interface_counter_snapshot_uses_relevant_interface_and_units(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "net-dev"
+            path.write_text("header\nheader\n  eth0: 100 2 3 4 5 6 7 8 200 9 10 11 12 13 14 15\n  eth1: 999 9 9 9 9 9 9 9 999 9 9 9 9 9 9 9\n")
+            snapshot = live._interface_counters("eth0", Deadline(1), path)
+            self.assertEqual(snapshot["status"], "complete")
+            self.assertEqual(snapshot["interface"], "eth0")
+            self.assertEqual(snapshot["source"], str(path))
+            self.assertTrue(snapshot["collected_at_utc"].endswith("Z"))
+            self.assertEqual(snapshot["counters"]["rx_bytes"], {"value": 100, "unit": "bytes"})
+            self.assertEqual(snapshot["counters"]["tx_packets"], {"value": 9, "unit": "packets"})
+            self.assertEqual(snapshot["counters"]["tx_drops"], {"value": 11, "unit": "packets"})
+
+    def test_interface_counter_missing_and_budget_are_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "missing"
+            missing = live._interface_counters("eth0", Deadline(1), path)
+            self.assertEqual(missing["status"], "unavailable")
+            self.assertIsNone(missing["counters"])
+            self.assertTrue(missing["missing_reason"])
+            exhausted = live._interface_counters("eth0", Deadline(0), path)
+            self.assertEqual(exhausted["status"], "budget_exhausted")
+            self.assertIsNone(exhausted["counters"])
+            self.assertTrue(exhausted["missing_reason"])
+
+    def test_local_context_includes_snapshot_without_rate_inference(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "net-dev"
+            path.write_text("eth0: 100 2 3 4 5 6 7 8 200 9 10 11 12 13 14 15\n")
+            box = ToolBox(Deadline(1))
+            evidence = []
+            counter_reader = live._interface_counters
+            with mock.patch.object(live.platform, "system", return_value="Linux"), \
+                 mock.patch.object(live, "_linux_route", return_value={"default_gateway": None, "interface": "eth0"}), \
+                 mock.patch.object(live, "_interface_counters", side_effect=lambda name, deadline: counter_reader(name, deadline, path)):
+                context = live.collect_context(box, evidence, {"configured": False})
+            snapshot = context["interface_counters"]
+            self.assertEqual(snapshot["counters"]["rx_bytes"]["value"], 100)
+            self.assertEqual(evidence[0]["observation"]["interface_counters"], snapshot)
+            self.assertNotIn("rate", json.dumps(snapshot).lower())
+
     def test_proxy_failures_are_distinct_from_target_dns_or_connection_failure(self) -> None:
         for code in (5, 97):
             with self.subTest(code=code):
@@ -220,6 +274,84 @@ class CliTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(body).hexdigest(), source["sha256"])
 
     @unittest.skipUnless(shutil.which("curl"), "curl is required for local HTTP integration checks")
+    def test_proxy_credentials_are_absent_from_visible_and_redacted_artifacts(self) -> None:
+        base_env = self._curl_only_env(self.root)
+        for index, prefix in enumerate(("socks4://", "socks4a://", "socks5://", "socks5h://", "http://", "https://", "")):
+            with self.subTest(proxy_form=prefix or "scheme-less"):
+                env = base_env.copy()
+                env["ALL_PROXY"] = prefix + "case-user-719:case-secret-719@127.0.0.1:bad"
+                out = self.root / f"proxy-bad-{index}"
+                result = self._run_live("/ok", out, env)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                records = [json.loads(line) for line in (out / "evidence.jsonl").read_text().splitlines()]
+                probes = [record for record in records if record["kind"] == "http_probe"]
+                self.assertTrue(probes)
+                self.assertTrue(all(record["observation"]["outcome"] == "proxy_error" for record in probes))
+                files = [out / name for name in ("manifest.json", "diagnosis.json", "evidence.jsonl", "report.md")]
+                files.extend((out / "raw").glob("*.stderr.txt"))
+                for path in files:
+                    contents = path.read_text()
+                    self.assertNotIn("case-user-719", contents, str(path))
+                    self.assertNotIn("case-secret-719", contents, str(path))
+
+    @unittest.skipUnless(shutil.which("curl"), "curl is required for local HTTP integration checks")
+    def test_url_braces_and_ranges_are_literal_and_request_counts_match(self) -> None:
+        env = self._curl_only_env(self.root)
+        state = self.server.probe_state
+        for index, path in enumerate(("/sample/{one,two,three,four}", "/sample/[1-4]")):
+            with self.subTest(path=path):
+                before = len(state.requests)
+                out = self.root / f"literal-{index}"
+                result = self._run_live(path, out, env)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                manifest = json.loads((out / "manifest.json").read_text())
+                seen = state.requests[before:]
+                self.assertEqual(len(seen), manifest["call_counts"]["http_requests"])
+                self.assertEqual(len(seen), 3)
+                self.assertEqual(seen, [path] * 3)
+
+    @unittest.skipUnless(shutil.which("curl"), "curl is required for local HTTP integration checks")
+    def test_two_literal_targets_never_exceed_six_requests(self) -> None:
+        env = self._curl_only_env(self.root)
+        state = self.server.probe_state
+        before = len(state.requests)
+        out = self.root / "two-targets"
+        control = f"http://127.0.0.1:{self.port}/control/[1-5]"
+        result = self._run_live("/target/{a,b,c}", out, env, ["--control-url", control])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        seen = state.requests[before:]
+        self.assertEqual(seen.count("/target/{a,b,c}"), 3)
+        self.assertEqual(seen.count("/control/[1-5]"), 3)
+        self.assertEqual(len(seen), 6)
+        manifest = json.loads((out / "manifest.json").read_text())
+        self.assertEqual(manifest["call_counts"]["http_requests"], 6)
+
+    @unittest.skipUnless(shutil.which("curl") and socket.has_ipv6, "curl and IPv6 are required")
+    def test_literal_ipv6_loopback_url_remains_supported(self) -> None:
+        class IPv6Server(ProbeServer):
+            address_family = socket.AF_INET6
+        try:
+            server = IPv6Server(("::1", 0), ProbeHandler)
+        except OSError:
+            self.skipTest("IPv6 loopback is unavailable")
+        server.probe_state = ProbeState()
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            env = self._curl_only_env(self.root)
+            out = self.root / "ipv6-run"
+            url = f"http://[::1]:{server.server_address[1]}/ipv6"
+            result = subprocess.run([sys.executable, str(CLI), "--url", url, "--allow-http", "--symptom", "local", "--out", str(out)], capture_output=True, text=True, env=env, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(server.probe_state.requests, ["/ipv6"] * 3)
+            manifest = json.loads((out / "manifest.json").read_text())
+            self.assertEqual(manifest["call_counts"]["http_requests"], 3)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    @unittest.skipUnless(shutil.which("curl"), "curl is required for local HTTP integration checks")
     def test_redirect_is_observed_without_following_it(self) -> None:
         env = self._curl_only_env(self.root)
         state = self.server.probe_state  # type: ignore[attr-defined]
@@ -323,6 +455,30 @@ class CliTests(unittest.TestCase):
         curl_calls = [call for call in calls if call["tool"] == "curl" and call["purpose"].startswith("HTTP attempt")]
         self.assertTrue(curl_calls)
         self.assertTrue(all(call["command"][-1].startswith("http://127.0.0.1:") for call in curl_calls))
+
+    @unittest.skipUnless(shutil.which("curl"), "curl is required for local HTTP integration checks")
+    def test_stalled_5xx_and_redirect_preserve_request_timeout(self) -> None:
+        env = self._curl_only_env(self.root)
+        def run(code: int):
+            out = self.root / f"stalled-{code}"
+            result = self._run_live(f"/stalled-{code}", out, env, timeout=28)
+            return code, out, result
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            runs = list(pool.map(run, (500, 302)))
+        for code, out, result in runs:
+            with self.subTest(code=code):
+                self.assertEqual(result.returncode, 0, result.stderr)
+                records = [json.loads(line) for line in (out / "evidence.jsonl").read_text().splitlines()]
+                probes = [record for record in records if record["kind"] == "http_probe"]
+                self.assertEqual(len(probes), 3)
+                self.assertTrue(all(p["observation"]["http_status"] == code for p in probes))
+                self.assertTrue(all(p["observation"]["curl_returncode"] == 28 and
+                                    p["observation"]["outcome"] == "timeout" and
+                                    not p["observation"]["transfer_complete"] for p in probes))
+                diagnosis = json.loads((out / "diagnosis.json").read_text())
+                self.assertEqual(diagnosis["status"], "fault_observed")
+                self.assertEqual(diagnosis["candidates"][0]["domain"], "request_timeout")
+                self.assertNotEqual(diagnosis["scope"]["health_checks"][0]["result"], "observed")
 
     @unittest.skipUnless(shutil.which("curl"), "curl is required for local HTTP integration checks")
     def test_stalled_body_keeps_http_header_but_marks_transfer_incomplete(self) -> None:
