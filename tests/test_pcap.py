@@ -15,7 +15,7 @@ SCRIPT_DIR = CLI.parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from netops.live import ToolBox
-from netops.pcap import collect_offline
+from netops.pcap import _summarize_events, collect_offline
 from netops.runner import Deadline
 
 
@@ -139,6 +139,38 @@ class PcapTests(unittest.TestCase):
         self.assertEqual(record["observation"]["input_status"], "input_limit")
         self.assertIsNone(record["observation"]["capture_sha256"])
         self.assertEqual(result["call_counts"]["pcap_parsers"], 0)
+
+
+class DnsDirectionTests(unittest.TestCase):
+    def test_dns_direction_supports_tshark_boolean_serializations_and_unknowns(self) -> None:
+        # Frame 30 of the public lotsofweb capture emits the string "True".
+        directions = [["False"], ["True"], ["0"], ["1"], [False], [True],
+                      [0], [1], [], ["unexpected"], ["False", "True"],
+                      ["True", "unexpected"]]
+        records = []
+        for index, values in enumerate(directions, 1):
+            layers = {"frame_number": [str(index)], "dns_id": ["0x1234"]}
+            if values:
+                layers["dns_flags_response"] = values
+            records.append(json.dumps({"layers": layers}))
+        summary, error, _ = _summarize_events(
+            ("\n".join(records) + "\n").encode(),
+            {"frame.number", "dns.id", "dns.flags.response"},
+        )
+        self.assertIsNone(error)
+        self.assertEqual(summary["dns_frames"], 12)
+        self.assertEqual(summary["dns_queries"], 5)
+        self.assertEqual(summary["dns_responses"], 6)
+        self.assertEqual(summary["dns_direction_unknown_frames"], 3)
+        self.assertEqual(summary["dns_mixed_direction_frames"], 1)
+
+    def test_unavailable_dns_direction_fields_remain_unknown(self) -> None:
+        raw = b'{"layers":{"frame_number":["1"],"dns_id":["0x1234"]}}\n'
+        summary, _, _ = _summarize_events(raw, {"frame.number", "dns.id"})
+        self.assertEqual(summary["dns_frames"], 1)
+        self.assertIsNone(summary["dns_queries"])
+        self.assertIsNone(summary["dns_responses"])
+        self.assertIsNone(summary["dns_direction_unknown_frames"])
 
 
 if __name__ == "__main__":
