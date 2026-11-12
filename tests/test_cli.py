@@ -23,7 +23,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from netops import live
 from netops.live import ToolBox, _ping_counts, _ping_samples, _probe_target, _proxy_context
-from netops.runner import Deadline
+from netops.runner import CommandResult, Deadline
 from netops.urls import parse_target
 
 
@@ -87,10 +87,25 @@ class ProbeHandler(BaseHTTPRequestHandler):
             pass
 
 
+class ProbeServer(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError, ssl.SSLError)):
+            return
+        super().handle_error(request, client_address)
+
+
+class CurlParsingTests(unittest.TestCase):
+    def test_proxy_failures_are_distinct_from_target_dns_or_connection_failure(self) -> None:
+        for code in (5, 97):
+            with self.subTest(code=code):
+                result = CommandResult([], code, b"", b"", 0, "complete")
+                self.assertEqual(live._curl_failure_kind(result, None, False), ("proxy_error", "complete"))
+
+
 class CliTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), ProbeHandler)
+        cls.server = ProbeServer(("127.0.0.1", 0), ProbeHandler)
         cls.server.probe_state = ProbeState()  # type: ignore[attr-defined]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -305,7 +320,8 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(marker.exists())
         calls = json.loads((out / "manifest.json").read_text(encoding="utf-8"))["subprocess_calls"]
-        curl_calls = [call for call in calls if call["tool"] == "curl"]
+        curl_calls = [call for call in calls if call["tool"] == "curl" and call["purpose"].startswith("HTTP attempt")]
+        self.assertTrue(curl_calls)
         self.assertTrue(all(call["command"][-1].startswith("http://127.0.0.1:") for call in curl_calls))
 
     @unittest.skipUnless(shutil.which("curl"), "curl is required for local HTTP integration checks")
@@ -348,7 +364,7 @@ class CliTests(unittest.TestCase):
                         "-keyout", str(key), "-out", str(cert), "-subj", "/CN=127.0.0.1",
                         "-days", "1", "-addext", "subjectAltName=IP:127.0.0.1"],
                        capture_output=True, timeout=10, check=True)
-        tls_server = ThreadingHTTPServer(("127.0.0.1", 0), ProbeHandler)
+        tls_server = ProbeServer(("127.0.0.1", 0), ProbeHandler)
         tls_server.probe_state = ProbeState()  # type: ignore[attr-defined]
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.load_cert_chain(str(cert), str(key))

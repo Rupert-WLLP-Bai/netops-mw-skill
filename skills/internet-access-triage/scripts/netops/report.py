@@ -75,7 +75,20 @@ def render_report(diagnosis: dict[str, Any], evidence: list[dict[str, Any]],
             lines.append(f"- Collection failure: `{_display(record['failure'].get('kind'))}` — {_display(record['failure'].get('reason'))}")
         lines.append("")
 
-    lines.extend(["## Candidate domains", ""])
+    lines.extend(["## Health checks", ""])
+    for check in scope.get("health_checks", []):
+        refs = ", ".join(f"`{item}`" for item in check.get("evidence_ids", [])) or "none"
+        lines.append(f"- `{_display(check.get('name'))}`: `{_display(check.get('result'))}`; evidence: {refs}")
+    lines.extend(["", "## Comparable HTTP measurements", ""])
+    groups = scope.get("http_measurement_groups", [])
+    if not groups:
+        lines.append("Fewer than three comparable samples were available for each HTTP measurement.")
+    for group in groups:
+        refs = ", ".join(f"`{item}`" for item in group.get("evidence_ids", []))
+        lines.append(f"- `{_display(group.get('name'))}` ({_display(group.get('protocol'))}, {_display(group.get('address_family'))}): "
+                     f"median: {_display(group.get('median_ms'))} ms; range: {_display(group.get('range_ms'))} ms; "
+                     f"samples: {_display(group.get('sample_count'))}; evidence: {refs}")
+    lines.extend(["", "## Candidate domains", ""])
     if not diagnosis.get("candidates"):
         lines.append("No evidence-supported candidate domain was selected.")
     for candidate in diagnosis.get("candidates", []):

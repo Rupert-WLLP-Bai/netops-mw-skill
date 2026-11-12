@@ -264,6 +264,8 @@ def _curl_failure_kind(result: CommandResult, meta: dict[str, str] | None,
         return result.status, result.status
     if result.returncode == 28:
         return "timeout", "complete"
+    if result.returncode in (5, 97):
+        return "proxy_error", "complete"
     if result.returncode == 60 or "certificate" in stderr or "ssl certificate" in stderr:
         return "tls_error", "complete"
     if result.returncode == 6 or "could not resolve" in stderr or "resolve host" in stderr:
@@ -662,7 +664,7 @@ def _probe_target(box: ToolBox, evidence: list[dict[str, Any]], target: dict[str
             "error_summary": safe_stderr.strip()[:500] or None,
         }
         failure = None
-        if outcome in ("tls_error", "dns_error", "connection_error", "timeout", "http_5xx"):
+        if outcome in ("tls_error", "dns_error", "connection_error", "proxy_error", "timeout", "http_5xx"):
             failure = {"kind": outcome, "reason": safe_stderr.strip()[:400] or outcome}
         _new_evidence(evidence, "http_probe", "curl", box.versions.get("curl"), status, scope,
                       obs, started, mono, measurements, [body_source, stderr_source], failure)

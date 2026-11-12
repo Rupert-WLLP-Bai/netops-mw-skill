@@ -20,6 +20,8 @@ FAULTS = {
                   "The target request reported a name-resolution failure (curl exit 6); this does not identify resolver processing or responsibility."),
     "connection_error": ("transport_connection", 7,
                          "The target request reported a connection failure (curl exit 7); responsibility for the path remains unresolved."),
+    "proxy_error": ("proxy_connection", (5, 97),
+                    "The target request reported a proxy resolution or handshake failure; this does not establish proxy responsibility."),
 }
 
 
@@ -242,7 +244,9 @@ def _complete_http_response(record: dict[str, Any]) -> bool:
     observation = _mapping(record.get("observation"))
     if _outcome(record) not in {"response", "http_5xx", "redirect_response_not_followed"}:
         return False
-    return observation.get("transfer_complete") is True or _int(observation.get("curl_returncode")) == 0
+    if "transfer_complete" in observation:
+        return observation["transfer_complete"] is True
+    return _int(observation.get("curl_returncode")) == 0
 
 
 def _http_success(record: dict[str, Any]) -> bool:
@@ -272,7 +276,8 @@ def _http_fault(record: dict[str, Any]) -> tuple[str, str] | None:
         return "request_timeout", "Curl exit 28 records a request timeout; a collection budget expiry alone is not treated as a business failure."
 
     for known_outcome, (domain, expected_code, basis) in FAULTS.items():
-        if outcome == known_outcome and curl_code == expected_code and status == "complete":
+        expected_codes = expected_code if isinstance(expected_code, tuple) else (expected_code,)
+        if outcome == known_outcome and curl_code in expected_codes and status == "complete":
             if failure_kind not in (None, known_outcome):
                 return None
             return domain, basis
@@ -323,13 +328,13 @@ def _candidate(domain: str, basis: str, records: list[dict[str, Any]],
 
 def _same_context_controls(control_records: list[dict[str, Any]], target_record: dict[str, Any],
                            run_window_id: str | None) -> list[dict[str, Any]]:
-    target_key = _fault_context_key(target_record, run_window_id)
+    target_key = _context_key(target_record, run_window_id)
     if target_key is None:
         return []
     target_context = target_key[1:]
     return [record for record in control_records
-            if _fault_context_key(record, run_window_id) is not None
-            and _fault_context_key(record, run_window_id)[1:] == target_context]
+            if _context_key(record, run_window_id) is not None
+            and _context_key(record, run_window_id)[1:] == target_context]
 
 
 def _group_measurements(records: list[dict[str, Any]], name: str,
@@ -587,6 +592,7 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
     candidates: list[dict[str, Any]] = []
     candidate_priority: dict[str, int] = {
         "tls_validation": 0,
+        "proxy_connection": 1,
         "name_resolution": 1,
         "transport_connection": 2,
         "request_timeout": 3,
@@ -619,7 +625,7 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
             step = "Repeat the same target request and correlate its timestamp with the service owner."
         first = fault_records[0]
         target_counters = [record for record in target_successes
-                           if _fault_context_key(record, run_window_id) == key]
+                           if _context_key(record, run_window_id) == key]
         control_counters = _same_context_controls(control_successes, first, run_window_id)
         candidate = _candidate(domain, basis, fault_records, target_counters + control_counters, step)
         if candidate is not None:
@@ -842,6 +848,7 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
                 output_family = next(iter(all_families)) if len(all_families) == 1 else None
     observed_families = {_record_family(record) for record in target_http}
     if target_family is None and (len(observed_families) > 1 or (None in observed_families and len(observed_families) > 1)):
+        output_family = None
         limitations.append("Target observations span or omit actual address families; the diagnosis leaves address family unspecified and does not pool those samples.")
     elif target_family is None and observed_families == {None} and target_http:
         limitations.append("The target's actual address family was unavailable; no family-specific latency comparison was made.")
@@ -860,6 +867,17 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
         elif mode_name == "offline_pcap":
             next_steps.append("Correlate the observed capture facts with endpoint or service-side records before assigning responsibility.")
 
+    http_groups = []
+    for metric in ("dns_ms", "tcp_connect_ms", "tls_handshake_ms", "response_wait_ms", "download_ms", "total_ms"):
+        for key, items in _group_measurements(target_http, metric, run_window_id).items():
+            if len(items) < 3:
+                continue
+            values = [value for _, value in items]
+            http_groups.append({"name": metric, "target": key[0], "protocol": key[1],
+                                "address_family": key[2], "sample_count": len(values),
+                                "median_ms": statistics.median(values), "range_ms": max(values) - min(values),
+                                "evidence_ids": _unique_ids([record for record, _ in items])})
+
     diagnosis_scope: dict[str, Any] = {
         "mode": mode_name,
         "target": target_url,
@@ -868,6 +886,7 @@ def diagnose(evidence: list[dict[str, Any]], scope: dict[str, Any], mode: str,
         "time_window": time_window,
         "control_target_configured": bool(run_scope.get("control_target_configured", control_url is not None)),
         "health_checks": health_checks,
+        "http_measurement_groups": http_groups,
     }
     diagnosis = {
         "schema_version": "0.1.0",
@@ -956,6 +975,28 @@ def validate_diagnosis(diagnosis: dict[str, Any], evidence: list[dict[str, Any]]
                                           allow_empty=True)
                 if "limit_ms" in check and not _finite(check.get("limit_ms")):
                     errors.append(f"diagnosis.scope.health_checks[{index}].limit_ms must be finite")
+
+        groups = scope.get("http_measurement_groups", [])
+        if not isinstance(groups, list):
+            errors.append("diagnosis.scope.http_measurement_groups must be an array")
+        else:
+            for index, group in enumerate(groups):
+                label = f"diagnosis.scope.http_measurement_groups[{index}]"
+                if not isinstance(group, dict):
+                    errors.append(f"{label} must be an object")
+                    continue
+                for name in ("name", "target", "protocol"):
+                    if not isinstance(group.get(name), str) or not group[name]:
+                        errors.append(f"{label}.{name} must be a non-empty string")
+                if _family_value(group.get("address_family")) is None:
+                    errors.append(f"{label}.address_family is invalid")
+                for name in ("median_ms", "range_ms"):
+                    if not _finite(group.get(name)) or group[name] < 0:
+                        errors.append(f"{label}.{name} must be finite and non-negative")
+                if _int(group.get("sample_count")) is None or group["sample_count"] < 3:
+                    errors.append(f"{label}.sample_count must be at least three")
+                _valid_reference_list(group.get("evidence_ids"), known_ids,
+                                      f"{label}.evidence_ids", errors, allow_empty=False)
 
     _valid_reference_list(diagnosis.get("evidence_ids"), known_ids,
                           "diagnosis.evidence_ids", errors, allow_empty=True)

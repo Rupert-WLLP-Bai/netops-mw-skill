@@ -1,3 +1,5 @@
+> **Superseded checkpoint:** Work resumed on 2026-11-12. See [v0.1 validation](validation-v0.1-2026-11-12.md) for completed checks and remaining review and acceptance work. The instructions and temporary paths below describe the earlier pause.
+
 # Paused Work Checkpoint
 
 Paused at 2026-11-12T09:30:30.213885+00:00 at the user's explicit request. The active implementation and review agents were interrupted. Resume only when the user asks.
