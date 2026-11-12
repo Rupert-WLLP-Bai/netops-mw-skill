@@ -1,0 +1,9 @@
+# Local case contract, schema 1
+
+Run `python scripts/case.py COMMAND --case DIR [--input FILE]`. Mutations read one JSON object and return a JSON snapshot. `get` reads the current snapshot. Event IDs are safe ASCII tokens; actor and UTC RFC 3339 `occurred_at` are required. Mutations after create also require `expected_revision`. Identical event retries return the original snapshot, even after later changes; conflicting IDs and stale new events fail.
+
+`create` requires `case_id`, `symptom`, `business_impact`, `scope`, and `verification_plan`. Scope has `vantage`, `identity`, `operation`, `target`, `protocol`, `address_family`, `proxy`, `workload`, and `original_window`; each can initially be null. The verification plan has `criterion`, `unit`, `window_seconds`, `cadence_seconds`, `maximum_gap_seconds`, `freshness_seconds`, `minimum_checks`, `minimum_coverage`, `owner`, and `agreement_ref`; each can initially be null. A criterion is `{"operator":"gte","value":1}` with operator `eq`, `gte`, or `lte`. `scope` accepts both complete objects and a `reason` and retains prior policy in history.
+
+The default budget is 3 rounds, 75 active seconds, 18 HTTP requests, and concurrency 1, reserving 1 round, 25 seconds, and 6 requests for verification. An optional `budget` must specify all seven fields shown in the snapshot.
+
+A case directory is private local state, not a service. It contains SQLite state and restricted imports. The local filesystem must support SQLite locking and durable writes. Keep it in trusted storage and apply the operator's retention policy. Do not place credentials or raw captures in event input. POSIX creation uses mode 0700 for directories and 0600 for the database; other platforms may not provide the same permission guarantees.
