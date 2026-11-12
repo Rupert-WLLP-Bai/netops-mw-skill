@@ -132,6 +132,10 @@ collection.
 Before Task 1, run `python3 -B -m unittest discover -s tests -v` and record the actual baseline count and failures;
 the historical 72 passing tests are context, not a current result.
 
+### Implementation status
+
+Tasks 1–6 were implemented in commits `7d3b06e`, `e663731`, `ffaa2a9`, `fa2453d`, `3c0fd74`, and `fbe1f88`. The associated tests cover several listed scenarios under more specific names in `tests/test_case.py`; the Task 7 validation record gives the actual commands, counts, artifacts, and platform limits. Task 7's independent behavior and host checks are recorded individually, and unavailable checks remain unvalidated. Checkboxes record completed implementation steps, not production acceptance or a completed final review.
+
 ### Task 1: Durable case store and CLI
 
 **Files:** Create `skills/netops-incident/scripts/case.py`, `skills/netops-incident/scripts/case_runtime/__init__.py`,
@@ -144,19 +148,19 @@ and `get_case(case_dir: Path) -> dict`; `case.py` exposes `create`, `scope`, and
 objects are returned as snapshots including `schema_version: 1`, `case_id`, `episode_id`, `revision`, `status`,
 `scope`, `verification_plan`, `policy_revision`, `policy_hash`, `budget`, and event-derived records.
 
-- [ ] Write `test_create_get_and_permissions`, `test_scope_update_from_null_and_policy_revision`,
+- [x] Write `test_create_get_and_permissions`, `test_scope_update_from_null_and_policy_revision`,
   `test_stale_and_conflicting_events`, and `test_interrupted_transaction_is_atomic`. Assert null intake can be
   updated, policy revision/hash changes and old values remain in history, revision survives process restart,
   interrupted transactions change nothing, create returns revision 1, and an identical create or old event retry
   after later events returns its original result without a write. Changed duplicates and new stale events fail;
   POSIX files are private. Exercise these through the public CLI.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect failure because the case CLI does
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect failure because the case CLI does
   not exist.
-- [ ] Implement `store.update_scope` and the CLI `scope`: input is the event fields, full
+- [x] Implement `store.update_scope` and the CLI `scope`: input is the event fields, full
   `scope` and `verification_plan` objects and `reason`. Allow explicit null fields; increment `policy_revision`
   and hash canonical JSON of both objects when either changes. Record prior values and invalidate eligibility of
   earlier checks; never erase prior failures. Reject updates on terminal cases until reopened.
-- [ ] Implement event insertion, revision compare-and-swap, materialized state update and budget mutation in one
+- [x] Implement event insertion, revision compare-and-swap, materialized state update and budget mutation in one
   SQLite `BEGIN IMMEDIATE` transaction with unique event IDs, full synchronous durability and bounded lock timeout.
   Resolve identical retries before revision checks; roll back failures and reject conflicting duplicates/stale new
   events. Reject symlink case roots, nonregular database files, unsafe IDs and existing unrelated case paths;
@@ -164,9 +168,9 @@ objects are returned as snapshots including `schema_version: 1`, `case_id`, `epi
   where supported; report unsupported permission guarantees on other platforms. Never follow a database, journal or
   import symlink. SQLite local filesystem locking is required; unsupported network filesystems are not claimed
   safe.
-- [ ] Document input shape, event history, local trust/retention and restricted evidence in `case-contract.md`. No
+- [x] Document input shape, event history, local trust/retention and restricted evidence in `case-contract.md`. No
   payload, credential or raw capture is copied to history.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect all Task 1 tests passing. Commit:
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect all Task 1 tests passing. Commit:
   `git add skills/netops-incident/scripts/case.py skills/netops-incident/scripts/case_runtime/__init__.py
   skills/netops-incident/scripts/case_runtime/store.py skills/netops-incident/references/case-contract.md
   tests/test_case.py && git commit -m "feat: add durable local incident cases"`.
@@ -187,13 +191,13 @@ for checked, bounded source reads and `record_decision(case_dir: Path, data: dic
 `expected_counterevidence`, and `changed_condition`. Evidence refs are objects `{run_id, evidence_id}`; decision
 fields may explicitly say unknown.
 
-- [ ] Write `test_import_qualified_ids_and_diagnosis`, `test_import_rejects_escape_symlink_and_changed_hash`, and
+- [x] Write `test_import_qualified_ids_and_diagnosis`, `test_import_rejects_escape_symlink_and_changed_hash`, and
   `test_decision_requires_existing_refs`. Assert two separate `E001` references remain distinct,
   unqualified/unknown refs fail, original diagnosis is unchanged, an input changed during import is rejected, and
   invalid imports leave revision and history unchanged.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect the new import/decision tests to
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect the new import/decision tests to
   fail.
-- [ ] Implement `import-run`: read the collector's `manifest.json`, `evidence.jsonl`, `diagnosis.json`,
+- [x] Implement `import-run`: read the collector's `manifest.json`, `evidence.jsonl`, `diagnosis.json`,
   `report.md`; verify expected summary hashes, `manifest.artifact_hashes` for referenced source artifacts, the
   manifest run window and run ID, and diagnosis references against evidence records, requiring canonical relative
   paths, regular files, no symlinks or traversal and source confinement. Bound each summary file to 16 MiB and all
@@ -205,10 +209,10 @@ fields may explicitly say unknown.
   identify and ignore orphan directories, never treat them as committed imports. Record their hashes, scoped
   source, event/collection timestamps, omissions and redaction/access class. Never copy `raw/` or captures. Refuse
   duplicate run IDs with changed content. Manual imports do not consume a collection round.
-- [ ] Implement `decision` with existing qualified refs and observation/hypothesis separation. Refuse an additional
+- [x] Implement `decision` with existing qualified refs and observation/hypothesis separation. Refuse an additional
   identical test unless `changed_condition` or a new discriminating `next_test` explains expected information gain.
   Persist explicit stop reason if no permissible test or budget remains.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect Task 1–2 tests passing. Commit:
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect Task 1–2 tests passing. Commit:
   `git add skills/netops-incident/scripts/case.py skills/netops-incident/scripts/case_runtime/evidence.py
   skills/netops-incident/scripts/case_runtime/store.py skills/netops-incident/references/case-contract.md tests/test_case.py && git commit -m "feat: import scoped incident evidence"`.
 
@@ -226,34 +230,34 @@ vantage must match the explicitly authorized decision and case scope; a mismatch
 spawn. Return JSON `{operation_id, accepted_run_id, stopped_reason}` with nullable latter fields. A `transition`
 input can record a budget increase using `budget_increase`, `reason` and `authorization_ref`.
 
-- [ ] Write `test_reserve_before_spawn_and_budget_exhaustion`, `test_crash_charges_reservation_and_resume`,
+- [x] Write `test_reserve_before_spawn_and_budget_exhaustion`, `test_crash_charges_reservation_and_resume`,
   `test_cancel_reaps_managed_child`, and `test_standalone_manual_import_costs_no_round`. Use a temporary fake
   version-compatible provider and local test endpoint only. Assert zero-budget prevents even `--version`, invalid
   reserve/concurrency and mismatched target/vantage reject before spawn, investigation cannot spend the reserve,
   and restart/lost acknowledgment retains full charge. Race cancellation against settlement and import; assert
   cancelled status persists, a valid run is imported once, invalid output reports a reason, and the child is reaped.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect the new managed-run tests to fail.
-- [ ] Preflight path, authorization, scope, decision, new output and available budget without spawning. Atomically
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect the new managed-run tests to fail.
+- [x] Preflight path, authorization, scope, decision, new output and available budget without spawning. Atomically
   reserve 1 round, 25 seconds and 6 requests for live mode before launching even `--version`; enforce the purpose
   reserve and concurrency 1. Run the trusted provider with `sys.executable` and argument arrays only. Probe version
   with a 2-second timeout; version and collector share the reserved 25-second deadline, so the collector may receive
   less time while its own existing 25-second cap remains unchanged. Incompatibility launches no network collection
   and consumes the reservation. Use only `--url URL --symptom TEXT --out DIR` or `--pcap FILE --out DIR`.
-- [ ] Do not hold a SQLite transaction while the supervisor polls cancellation and owns the child. Terminate at
+- [x] Do not hold a SQLite transaction while the supervisor polls cancellation and owns the child. Terminate at
   the shared deadline or cancellation and allow at most two extra seconds for cleanup; report unverified descendant
   cleanup. Charge 25 seconds and six live requests unless a valid manifest unambiguously reports fewer HTTP calls.
   In a new transaction reload the latest revision and operation ID, settle exactly once, and preserve any concurrent
   cancelled state. Validate and automatically import completed outputs through Task 2 using hashes of the staged
   summary bytes; missing/invalid outputs produce a recorded stop reason, never invented evidence. A cancelled or
   failed run may import only complete valid outputs; keep partial files local and restricted.
-- [ ] After supervisor crash leave the reservation spent and in-flight outcome unknown; never kill a stale PID or
+- [x] After supervisor crash leave the reservation spent and in-flight outcome unknown; never kill a stale PID or
   start another run until explicit `transition` reconciliation records owner, evidence and confirmation that the
   prior process ended. Internal settlement retries revision conflicts using operation identity, never overwrites a
   newer user event, and returns the accepted run ID or stop reason.
-- [ ] Implement cancel, reopen and explicit budget increases as events; cancel blocks new work, preserves unknown
+- [x] Implement cancel, reopen and explicit budget increases as events; cancel blocks new work, preserves unknown
   external action and partial evidence, and reopen creates a new episode while retaining budget. Explicitly report
   that the controller cannot stop unrelated processes or enforce standalone runs.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect Task 1–3 tests passing. Commit:
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect Task 1–3 tests passing. Commit:
   `git add skills/netops-incident/scripts/case.py skills/netops-incident/scripts/case_runtime/collection.py
   skills/netops-incident/scripts/case_runtime/store.py skills/netops-incident/references/case-contract.md tests/test_case.py && git commit -m "feat: enforce incident collection budgets"`.
 
@@ -276,27 +280,27 @@ consistency, not authenticity or truth; retain source attribution and mark the p
 independently established. The controller checks recorded declarations and artifacts; it cannot authenticate an
 observer or prove a supplied observation actually occurred, so report this limit with any closure.
 
-- [ ] Write `test_failed_check_and_recurrence_do_not_close`, `test_spontaneous_recovery_with_complete_window`,
+- [x] Write `test_failed_check_and_recurrence_do_not_close`, `test_spontaneous_recovery_with_complete_window`,
   `test_unknown_action_requires_reconciliation`, `test_missing_or_changed_check_artifact_rejected`, and
   `test_unavailable_original_vantage_stays_unresolved`, `test_invalid_numeric_policy_and_timestamps`, and
   `test_window_end_failure_stale_gap_wrong_policy`. Assert null fields can be completed before action; reject
   NaN/Inf, invalid durations/coverage, mismatched units, outcome/criterion disagreement and future timestamps.
   Checks from a different episode/policy/window, missing or altered refs, gaps, stale final checks, failure exactly
   at window end or recurrence after it block closure; a policy update cannot turn an earlier failure into a pass. A spontaneous recovery passes only with qualifying checks.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect the new lifecycle tests to fail.
-- [ ] Implement only these transitions: intake→investigating; investigating→awaiting_action or verifying or
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect the new lifecycle tests to fail.
+- [x] Implement only these transitions: intake→investigating; investigating→awaiting_action or verifying or
   closed_unresolved; awaiting_action→verifying, action_outcome_unknown or closed_unresolved;
   action_outcome_unknown→awaiting_action or verifying only after recorded authoritative reconciliation, or
   closed_unresolved; verifying→stabilizing, investigating or closed_unresolved; stabilizing→closed_recovered,
   investigating or closed_unresolved; any nonterminal→cancelled; closed/cancelled→intake only via `reopen`.
   Recurrence returns to investigating only with a meaningful permitted next test and budget; otherwise close
   unresolved or stay open.
-- [ ] Before action require known original scope, complete valid plan and refreshed preconditions. A verification
+- [x] Before action require known original scope, complete valid plan and refreshed preconditions. A verification
   start event uses the controller's current UTC time (not a caller-selected past window) as `window_start`, with
   `window_end = start + window_seconds`; bind it to the current episode, scope/policy revision and hash. Any scope
   or plan update invalidates prior eligibility. A new attempt after failure requires an explicit reason; prior
   failures remain visible and cannot be rewritten or made successful retroactively.
-- [ ] Import each check's local artifact with `case_runtime.evidence.read_confined` and Task 2 hash checks. Require
+- [x] Import each check's local artifact with `case_runtime.evidence.read_confined` and Task 2 hash checks. Require
   `observed_at <= collected_at <= event recorded_at <= now`, UTC timestamps and exact matching episode, policy,
   scope, window ID, start and end. Assign `recorded_at` from the controller clock, not caller input;
   owner claims are context only. Compare the finite value and exact unit to the criterion. Evaluate observations
@@ -306,11 +310,11 @@ observer or prove a supplied observation actually occurred, so report this limit
   gaps longer than `maximum_gap_seconds`. Sum disjoint intervals from each passing timestamp to the earlier of the
   next passing timestamp, timestamp plus cadence or window end; divide by window duration. Use an injectable clock
   in tests. Hashes and declared provenance establish consistency, not authenticated ground truth.
-- [ ] `export` produces a local redacted Markdown draft with scoped observations, evidence refs and hashes,
+- [x] `export` produces a local redacted Markdown draft with scoped observations, evidence refs and hashes,
   decision/counterevidence, action outcome, verification gaps, budget, status, owner and next action; it never
   sends or writes a ticket. Provide reproducible simulated failed-verification and spontaneous-recovery journeys in
   tests, including cancel/restart and unknown outcomes.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect Task 1–4 tests passing. Commit:
+- [x] Run `python3 -B -m unittest discover -s tests -p test_case.py -v`; expect Task 1–4 tests passing. Commit:
   `git add skills/netops-incident/scripts/case.py skills/netops-incident/scripts/case_runtime/recovery.py
   skills/netops-incident/scripts/case_runtime/store.py skills/netops-incident/references/case-contract.md tests/test_case.py && git commit -m "feat: record incident recovery and handoff"`.
 
@@ -327,24 +331,24 @@ Incident references its own local CLI and contract. Others consume supplied repo
 directly; when a compatible installed provider is discoverable, use its declared CLI interface, not an assumed
 `../` path or fictional skill invocation.
 
-- [ ] Write `test_skill_references_resolve` and `test_skill_inventory_frontmatter`. Assert all referenced local files
+- [x] Write `test_skill_references_resolve` and `test_skill_inventory_frontmatter`. Assert all referenced local files
   exist and each of the five folders has matching name and description metadata. Task 7 tests independent entry
   and absent-provider behavior with clean-session prompts; structural tests cannot establish model behavior.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_suite_skills.py -v`; expect failure because four skills
+- [x] Run `python3 -B -m unittest discover -s tests -p test_suite_skills.py -v`; expect failure because four skills
   do not exist.
-- [ ] Author incident instructions for scope, evidence, discriminating next test, budgets, operator action,
+- [x] Author incident instructions for scope, evidence, discriminating next test, budgets, operator action,
   verification, stop and draft handoff. State exactly when controller persistence is available and distinguish
   standalone manual work. Discover installed provider by host-supported mechanisms and declare missing capability
   if unavailable.
-- [ ] Author PCAP instructions for file-only analysis, scoped visible frames and capture limits. Use the existing
+- [x] Author PCAP instructions for file-only analysis, scoped visible frames and capture limits. Use the existing
   offline collector if discovered; otherwise use an actually installed permitted offline parser, or report its
   absence. Never install tools, initiate capture or contact a target. Avoid unsupported automatic multi-vantage or
   causation claims.
-- [ ] Author verification instructions comparing the original operation, vantage, identity, target,
+- [x] Author verification instructions comparing the original operation, vantage, identity, target,
   protocol/family, proxy, workload, criterion, timestamped independent checks and owner-agreed stability coverage.
   Author handoff instructions producing a draft with evidence, counterevidence, unknowns, owner and next action;
   never send. Both must work without the controller.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_suite_skills.py -v` and `python3
+- [x] Run `python3 -B -m unittest discover -s tests -p test_suite_skills.py -v` and `python3
   /home/pejoy/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/<name>` for each of the five
   actual names; expect all checks passing. Commit: `git add skills/netops-incident/SKILL.md
   skills/netops-pcap-analysis skills/netops-verify-recovery skills/netops-handoff tests/test_suite_skills.py && git
@@ -360,26 +364,28 @@ five names/versions and provider `internet-access-triage 0.1.x` with its support
 `--url`, and `--pcap` interface; incident controller is `netops-incident/scripts/case.py` schema version 1.
 Inventory describes optional discovery, not an implicit sibling import.
 
-- [ ] Write `test_suite_exact_allowlist_and_reproducibility`, `test_reject_extra_missing_symlink_and_overwrite`,
+- [x] Write `test_suite_exact_allowlist_and_reproducibility`, `test_reject_extra_missing_symlink_and_overwrite`,
   and `test_clean_extract_entrypoints_and_missing_provider`. Assert two builds have identical ZIP bytes and hashes;
   exactly the five named skill roots plus inventory appear, no tests/research/PCAP/logs/caches appear, and
   extracted collector/controller `--help` and `--version` or `get` as applicable run without repository access.
   Missing provider produces a bounded result.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_suite_release.py -v`; expect failure because the
+- [x] Run `python3 -B -m unittest discover -s tests -p test_suite_release.py -v`; expect failure because the
   builder does not exist.
-- [ ] Implement an explicit per-file allowlist: the existing 16 collector files; incident `SKILL.md`,
+- [x] Implement an explicit per-file allowlist: the existing 16 collector files; incident `SKILL.md`,
   `references/case-contract.md`, `scripts/case.py`, and the five files explicitly named in
   `scripts/case_runtime/`: `__init__.py`, `store.py`, `evidence.py`, `collection.py`, and `recovery.py`; the six Task 5 instruction/reference files; the four new skill licenses; and inventory. Follow existing
   deterministic ZIP timestamp, ordering, file-mode, UTF-8, symlink, path, no-overwrite and manifest SHA-256
   practices; reject missing and unexpected source files. Copy the repository `LICENSE` into each of the four new
   skill folders and list those four license files explicitly; document the repository license consistently in the
   inventory. Do not bundle raw evidence or dependencies.
-- [ ] Run `python3 -B -m unittest discover -s tests -p test_suite_release.py -v` and `python3 -B -m unittest
+- [x] Run `python3 -B -m unittest discover -s tests -p test_suite_release.py -v` and `python3 -B -m unittest
   discover -s tests -p test_release.py -v`; expect both passing and the old standalone release unchanged. Commit:
   `git add scripts/build_suite.py skills/suite-inventory.json tests/test_suite_release.py` plus any explicitly
   licensed new skill files, then `git commit -m "feat: package versioned network skill suite"`.
 
 ### Task 7: Corpus, routing, and end-to-end validation
+
+**Execution note:** R02, R04, and R13 have matched baseline/suite results; R08 is unvalidated because strict missing-tool isolation was unavailable. Two deterministic builds and clean extraction passed, while target-host discovery remains unvalidated. The remaining grouped checkboxes stay open where they include those unavailable checks or the final review. See the validation record for the failed R13 attempt, successful constrained rerun, backend failures, and session limits.
 
 **Files:** Create `docs/validation-network-skill-suite.md`; modify tests only for defects exposed by validation, in
 the owning task files.
@@ -389,14 +395,14 @@ the owning task files.
 `multi-site-packet-analysis-cases.json`. Evaluation input contains only a realistic prompt and permitted raw
 inputs; keep `category`, expected result and `private_rubric` with the grader.
 
-- [ ] Run `python3 -B -m unittest discover -s tests -v` after implementation; compare with the recorded
+- [x] Run `python3 -B -m unittest discover -s tests -v` after implementation; compare with the recorded
   pre-Task-1 baseline, require no regression and record actual results.
-- [ ] Run `python3 -B scripts/validate_real_pcap.py --out .tools/pcap-corpus/suite-validation` only if the
+- [x] Run `python3 -B scripts/validate_real_pcap.py --out .tools/pcap-corpus/suite-validation` only if the
   preexisting local corpus, hashes and TShark are available; use a new output directory. Verify originals and six
   `omit`/`snap96` variants, provenance, frame/truncation/direction counts, artifacts, evidence refs and known
   scoped diagnosis using the existing validator. If inputs or tools are unavailable, record the exact blocker as
   unvalidated; do not download, install or substitute short test captures. Keep raw results outside release.
-- [ ] Use the paired TLS reference cases for scoped comparison of visible facts, clock/vantage and missing
+- [x] Use the paired TLS reference cases for scoped comparison of visible facts, clock/vantage and missing
   intervals; do not treat simulated omissions as real loss or filenames as causal ground truth. Execute the
   controller's failed-check and spontaneous-recovery journeys with local records, plus cancel/restart and
   unknown-action paths; verify no false recovery or action repetition.
@@ -416,7 +422,7 @@ inputs; keep `category`, expected result and `private_rubric` with the grader.
   repository access; record absent tools. Check real host discovery, explicit invocation and missing-skill behavior
   only on an actually available target host without installing globally; separately mark Linux/WSL, native Windows
   and MobileWork unvalidated when unavailable.
-- [ ] Record source revision, commands, test counts, package hashes, evidence provenance, limitations and each
+- [x] Record source revision, commands, test counts, package hashes, evidence provenance, limitations and each
   actual forward-test result in the validation record. Distinguish structural checks, behavioral sessions,
   real-corpus results and conditional host smoke; do not present designed cases or historical results as new
   passes.
@@ -441,5 +447,4 @@ implementers to those files. Test observable public CLI behavior rather than pri
 files. The five review-focus cases each map to named tests above. Follow the already selected Terra/Luna method and
 reserve Sol for the final whole-branch review.
 
-**Handoff:** The implementation plan is ready for user review. Ask whether it captures the intended scope and wait
-for that review before implementation; do not ask the user to choose the execution method again.
+**Handoff:** Implementation and local validation are recorded in [the suite validation record](../../validation-network-skill-suite.md). The user approved implementation of all batches. The remaining step is the already selected final Sol review, followed by any fixes and verification it requires. Host discovery and strict R08 isolation remain unvalidated as documented; do not treat them as passing checks.

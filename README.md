@@ -2,6 +2,14 @@
 
 A runnable Skill for one target and symptom: bounded local collection, explicit counterevidence, and at most two supported investigation directions. It also analyzes an existing PCAP independently of live probing.
 
+## Network skill suite
+
+The versioned suite combines the existing collector with four direct-entry skills: incident coordination, offline capture analysis, recovery verification, and handoff drafting. The incident skill includes an optional local case controller for evidence, budgets, decisions, and recovery records; the other new skills also work directly from supplied inputs. They do not perform repairs or send handoffs. The [suite validation record](docs/validation-network-skill-suite.md) describes the checks and remaining limits.
+
+A local build is available at `dist/network-skill-suite-0.1.0.zip` with its adjacent manifest in this workspace. Build a new archive from source with `python3 -B scripts/build_suite.py --out dist/network-skill-suite-new.zip`; the builder refuses to overwrite an archive or manifest. Extract the five skill directories and use the host's supported discovery or explicit loading method. Discovery and target-host installation have not been established by the local package tests. The inventory describes the optional collector interface; it does not require an assumed sibling installation path.
+
+The case CLI lives at `skills/netops-incident/scripts/case.py`. Run it with `--help` and read the [case contract](skills/netops-incident/references/case-contract.md) for JSON input, authorization, evidence, and lifecycle details. For standalone capture analysis use the existing offline command below; recovery verification and handoff drafting can also use supplied records without the controller.
+
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 
 A subsequent real-capture validation found and corrected a DNS direction-count defect. The [pre-fix corpus record](docs/research/real-pcap-corpus.md) and [post-fix validation](docs/research/real-pcap-postfix-validation.md) describe the evidence and candidate package. The [combined independent review](docs/research/closed-loop-real-pcap-review.md) approved the correction and research within its stated scope: 72 tests and all nine corpus checks passed; the candidate package SHA-256 is `f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`.
@@ -56,6 +64,7 @@ The initial validation platform is Linux/WSL. Native Windows, actual MobileWork 
 
 | Document | Purpose |
 | --- | --- |
+| [Suite validation](docs/validation-network-skill-suite.md) | Suite tests, real-capture checks, delivery, and limitations |
 | [Implementation plan](docs/delivery-plan.md) | Scope, tasks, twelve core cases, release criteria |
 | [v0.1 validation](docs/validation-v0.1-review-fixes-2026-11-12.md) | Test, candidate package, extraction checks, and outstanding work |
 | [Final scoped review](docs/review-v0.1-2026-11-12.md) | Independent review verdict and exclusions |

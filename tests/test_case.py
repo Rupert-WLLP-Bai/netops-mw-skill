@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import io
 import json
 import os
 import sqlite3
@@ -13,6 +14,7 @@ import time
 import unittest
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
+from contextlib import redirect_stderr, redirect_stdout
 from unittest import mock
 
 CLI = Path(__file__).resolve().parents[1] / 'skills/netops-incident/scripts/case.py'
@@ -63,8 +65,10 @@ class CaseTests(unittest.TestCase):
         self.assertNotEqual(after['policy_hash'], before['policy_hash'])
         self.assertEqual(after['events'][-1]['prior_scope'], SCOPE)
         self.assertEqual(self.call('create', self.create), before)
+        later = dict(self.event('scope2', 2), scope=dict(scope, identity='user'), verification_plan=PLAN, reason='known identity')
+        latest = self.call('scope', later)
         self.assertEqual(self.call('scope', event), after)
-        self.assertEqual(self.call('get'), after)
+        self.assertEqual(self.call('get'), latest)
 
     def test_stale_and_conflicting_events(self):
         self.call('create', self.create)
@@ -191,7 +195,7 @@ class CaseTests(unittest.TestCase):
 
     def test_crash_charges_reservation_and_blocks_restart(self):
         provider, marker, event = self.prepare_run()
-        provider.write_text('from pathlib import Path\nimport time\nPath(%r).write_text("started")\ntime.sleep(1)\nprint("internet-access-triage 0.1.0")\n' % str(marker))
+        provider.write_text('from pathlib import Path\nimport time\np=Path(%r)\np.write_text("started")\ntime.sleep(.5)\np.write_text("finished")\nprint("internet-access-triage 0.1.0")\n' % str(marker))
         input_path = self.root/'run.json'
         input_path.write_text(json.dumps(event))
         proc = subprocess.Popen([sys.executable, '-B', str(CLI), 'run', '--case', str(self.case), '--input', str(input_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -208,6 +212,17 @@ class CaseTests(unittest.TestCase):
             retry = dict(event, event_id='run2', expected_revision=state['revision'], out=str(self.root/'out2'))
             result = self.call('run', retry, ok=False)
             self.assertIn('reconciliation', result.stderr)
+            deadline = time.monotonic() + 5
+            while marker.read_text() != 'finished' and time.monotonic() < deadline:
+                time.sleep(.05)
+            self.assertEqual(marker.read_text(), 'finished')
+            reconcile = dict(self.event('reconcile1', state['revision']), reconcile_operation_id=state['operations'][0]['operation_id'], confirmed_ended=True, owner='operator', evidence='provider confirmed finished', reason='reconcile unknown process')
+            state = self.call('transition', reconcile)
+            self.assertEqual(state['operations'][0]['status'], 'reconciled_unknown')
+            self.assertEqual(state['budget']['rounds'], 2)
+            retry['expected_revision'] = state['revision']
+            self.call('run', retry)
+            self.assertEqual(self.call('get')['budget']['rounds'], 1)
         finally:
             if proc.poll() is None:
                 proc.kill()
@@ -441,6 +456,177 @@ class CaseTests(unittest.TestCase):
             if proc.poll() is None:
                 proc.kill()
                 proc.wait()
+
+
+    def update_sample_hashes(self, run):
+        manifest = json.loads((run/'manifest.json').read_text())
+        for name in ('evidence.jsonl', 'diagnosis.json', 'report.md'):
+            manifest['artifact_hashes'][name] = hashlib.sha256((run/name).read_bytes()).hexdigest()
+        (run/'manifest.json').write_text(json.dumps(manifest))
+        return {name: hashlib.sha256((run/name).read_bytes()).hexdigest() for name in ('manifest.json', 'evidence.jsonl', 'diagnosis.json', 'report.md')}
+
+    def test_import_rejects_traversal_and_symlinked_source_artifacts(self):
+        before = self.call('create', self.create)
+        run, _ = self.sample_run('run1')
+        outside = self.root/'outside.txt'; outside.write_text('outside')
+        evidence = json.loads((run/'evidence.jsonl').read_text())
+        source = {'kind':'run_artifact', 'path':'../outside.txt', 'sha256':hashlib.sha256(outside.read_bytes()).hexdigest()}
+        evidence['sources'] = [source]
+        (run/'evidence.jsonl').write_text(json.dumps(evidence)+'\n')
+        event = dict(self.event('import1', 1), run_dir=str(run), run_id=run.name, expected_summary_hashes=self.update_sample_hashes(run))
+        self.call('import-run', event, ok=False)
+        (run/'raw').mkdir()
+        (run/'raw/link').symlink_to(outside)
+        source['path'] = 'raw/link'
+        (run/'evidence.jsonl').write_text(json.dumps(evidence)+'\n')
+        event['expected_summary_hashes'] = self.update_sample_hashes(run)
+        self.call('import-run', event, ok=False)
+        self.assertEqual(self.call('get'), before)
+        self.assertEqual(list((self.case/'imports').iterdir()), [])
+
+    def test_import_rejects_source_changed_during_read(self):
+        before = self.call('create', self.create)
+        run, _ = self.sample_run('run1')
+        report = run/'report.md'; report.write_bytes(b'A' * (1024*1024 + 8))
+        event = dict(self.event('import1', 1), run_dir=str(run), run_id=run.name, expected_summary_hashes=self.update_sample_hashes(run))
+        path = self.root/'input.json'; path.write_text(json.dumps(event))
+        sys.path.insert(0, str(CLI.parent))
+        import case as case_cli
+        from case_runtime import evidence as evidence_module
+        original_read = os.read
+        changed = []
+        def change_after_read(fd, count):
+            data = original_read(fd, count)
+            opened = os.fstat(fd)
+            source_stat = report.stat()
+            if (opened.st_dev, opened.st_ino) == (source_stat.st_dev, source_stat.st_ino) and data and not changed:
+                with report.open('r+b') as stream:
+                    stream.seek(0); stream.write(b'B'); stream.flush(); os.fsync(stream.fileno())
+                changed.append(True)
+            return data
+        argv = [str(CLI), 'import-run', '--case', str(self.case), '--input', str(path)]
+        with mock.patch.object(sys, 'argv', argv), mock.patch.object(evidence_module.os, 'read', side_effect=change_after_read), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            result = case_cli.main()
+        self.assertTrue(changed, 'test must change the opened source during the read')
+        self.assertNotEqual(result, 0)
+        self.assertEqual(self.call('get'), before)
+        self.assertEqual(list((self.case/'imports').iterdir()), [])
+
+    def test_invalid_budget_and_scope_block_provider_before_version(self):
+        for budget in (
+            dict(rounds=1, active_seconds=25, http_requests=6, concurrency=2, verification_reserve_rounds=0, verification_reserve_seconds=0, verification_reserve_requests=0),
+            dict(rounds=1, active_seconds=25, http_requests=6, concurrency=1, verification_reserve_rounds=2, verification_reserve_seconds=0, verification_reserve_requests=0),
+        ):
+            self.call('create', dict(self.create, budget=budget), ok=False)
+            self.assertFalse(self.case.exists())
+        provider, marker, event = self.prepare_run()
+        provider.write_text('from pathlib import Path\nPath(%r).write_text("spawned")\nprint("internet-access-triage 0.1.0")\n' % str(marker))
+        bad_vantage = dict(event, actual_vantage='other')
+        result = self.call('run', bad_vantage, ok=False)
+        self.assertIn('vantage', result.stderr)
+        bad_target = dict(event, mode='live', target='https://other.test', symptom='failure')
+        result = self.call('run', bad_target, ok=False)
+        self.assertIn('target', result.stderr)
+        self.assertFalse(marker.exists())
+        self.assertEqual(self.call('get')['budget']['rounds'], 3)
+
+    def test_zero_budget_blocks_provider_before_version(self):
+        budget = dict(rounds=0, active_seconds=0, http_requests=0, concurrency=1, verification_reserve_rounds=0, verification_reserve_seconds=0, verification_reserve_requests=0)
+        provider, marker, event = self.prepare_run(budget)
+        provider.write_text('from pathlib import Path\nPath(%r).write_text("spawned")\nprint("internet-access-triage 0.1.0")\n' % str(marker))
+        self.assertIn('insufficient budget', self.call('run', event, ok=False).stderr)
+        self.assertFalse(marker.exists())
+        self.assertEqual(self.call('get')['budget']['rounds'], 0)
+
+    def test_provider_version_observes_committed_reservation(self):
+        provider, marker, event = self.prepare_run()
+        provider.write_text('import json,sqlite3,sys\nfrom pathlib import Path\nif "--version" in sys.argv:\n c=sqlite3.connect(%r); s=json.loads(c.execute("SELECT snapshot FROM state WHERE id=1").fetchone()[0]); Path(%r).write_text(json.dumps(s["budget"])); print("internet-access-triage 0.1.0")\n' % (str(self.case/'case.sqlite3'),str(marker)))
+        self.call('run', event)
+        observed = json.loads(marker.read_text())
+        self.assertEqual(observed['rounds'], 2)
+        self.assertEqual(observed['active_seconds'], 50)
+
+    def test_reject_nonfinite_policy_and_misordered_check_times(self):
+        for criterion in ({'operator':'eq','value':float('nan')}, {'operator':'gte','value':float('inf')}):
+            self.call('create', dict(self.create, verification_plan=dict(PLAN, criterion=criterion)), ok=False)
+        for plan in (dict(PLAN, window_seconds=0), dict(PLAN, cadence_seconds=-1), dict(PLAN, minimum_checks=1.5)):
+            self.call('create', dict(self.create, verification_plan=plan), ok=False)
+        state = self.start_window(self.ready_case())
+        check = self.check_data(state, 'pass', 1)
+        check['observed_at'] = '2026-01-02T00:00:00Z'
+        check['collected_at'] = '2026-01-01T00:00:00Z'
+        self.call('verification', check, ok=False)
+        self.assertEqual(self.call('get'), state)
+
+    def test_new_verification_attempt_requires_reason_after_failure(self):
+        state = self.start_window(self.ready_case())
+        state = self.call('verification', self.check_data(state, 'fail', 0))
+        self.call('verification', dict(self.event('start2', state['revision']), kind='start', reason=''), ok=False)
+        self.assertEqual(self.call('get'), state)
+
+
+    def test_case_rejects_symlink_roots_database_and_journal(self):
+        before = self.call('create', self.create)
+        original = self.case
+        alias = self.root/'alias'; alias.symlink_to(original, target_is_directory=True)
+        self.case = alias
+        self.call('get', ok=False)
+        self.case = original
+        db = original/'case.sqlite3'; backup = original/'database-backup'
+        db.rename(backup)
+        try:
+            db.symlink_to(backup)
+            self.call('get', ok=False)
+        finally:
+            db.unlink(); backup.rename(db)
+        journal = original/'case.sqlite3-journal'; journal.symlink_to(self.root/'outside')
+        try:
+            self.call('get', ok=False)
+        finally:
+            journal.unlink()
+        self.assertEqual(self.call('get'), before)
+
+    def test_import_rejects_manifest_errors_wrong_run_and_unknown_diagnosis_ref(self):
+        before = self.call('create', self.create)
+        run, hashes = self.sample_run('run1')
+        event = dict(self.event('import1', 1), run_dir=str(run), run_id='wrong', expected_summary_hashes=hashes)
+        self.call('import-run', event, ok=False)
+        event['run_id'] = 'run1'
+        manifest = json.loads((run/'manifest.json').read_text()); manifest['validation_errors']['evidence'] = ['bad']
+        (run/'manifest.json').write_text(json.dumps(manifest)); event['expected_summary_hashes'] = self.update_sample_hashes(run)
+        self.call('import-run', event, ok=False)
+        manifest['validation_errors']['evidence'] = []
+        (run/'manifest.json').write_text(json.dumps(manifest))
+        diagnosis = json.loads((run/'diagnosis.json').read_text()); diagnosis['evidence_ids'] = ['unknown']
+        (run/'diagnosis.json').write_text(json.dumps(diagnosis)); event['expected_summary_hashes'] = self.update_sample_hashes(run)
+        self.call('import-run', event, ok=False)
+        self.assertEqual(self.call('get'), before)
+
+    def test_live_provider_version_observes_request_reservation(self):
+        provider, marker, event = self.prepare_run()
+        auth = {'target':'https://example.test','vantage':'branch','authorization_ref':'approval'}
+        decision = dict(self.event('decision2', 2), observations=['symptom'], hypotheses=['cause'], support=[], counterevidence=[], confidence='low', limitations=[], next_test='check authorized HTTPS target', expected_support='indicator', expected_counterevidence='absence', changed_condition='new approval', authorized_collection=auth)
+        state = self.call('decision', decision)
+        event.update(expected_revision=state['revision'], decision_event_id='decision2', mode='live', target=auth['target'], symptom='failure')
+        provider.write_text('import json,sqlite3,sys\nfrom pathlib import Path\nif "--version" in sys.argv:\n c=sqlite3.connect(%r); s=json.loads(c.execute("SELECT snapshot FROM state WHERE id=1").fetchone()[0]); Path(%r).write_text(json.dumps(s["budget"])); print("internet-access-triage 0.1.0")\n' % (str(self.case/'case.sqlite3'),str(marker)))
+        self.call('run', event)
+        observed = json.loads(marker.read_text())
+        self.assertEqual(observed['rounds'], 2)
+        self.assertEqual(observed['active_seconds'], 50)
+        self.assertEqual(observed['http_requests'], 12)
+
+
+    def test_import_retry_survives_source_change_but_duplicate_run_is_rejected(self):
+        self.call('create', self.create)
+        run, hashes = self.sample_run('run1')
+        event = dict(self.event('import1', 1), run_dir=str(run), run_id=run.name, expected_summary_hashes=hashes)
+        accepted = self.call('import-run', event)
+        (run/'report.md').write_text('changed after import')
+        self.assertEqual(self.call('import-run', event), accepted)
+        replacement = dict(self.event('import2', accepted['revision']), run_dir=str(run), run_id=run.name, expected_summary_hashes=self.update_sample_hashes(run))
+        self.call('import-run', replacement, ok=False)
+        self.assertEqual(self.call('get'), accepted)
+        self.assertEqual(len(list((self.case/'imports').iterdir())), 1)
 
 
 if __name__ == '__main__':
