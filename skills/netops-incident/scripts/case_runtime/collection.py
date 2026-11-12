@@ -25,6 +25,9 @@ def cancel_case(case_dir, data):
             raise CaseError('case already terminal')
         nonempty(data.get('reason'), 'reason')
         state['status'] = 'cancelled'
+        for op in state['operations']:
+            if op['status'] == 'in_flight':
+                op['cancel_requested'] = True
         return {'reason': data['reason']}
     return transact(case_dir, data, 'cancel', change)
 
@@ -68,6 +71,8 @@ def preflight(state, data):
         if parts.scheme != 'https' or not parts.hostname or parts.username or parts.password or parts.fragment or target != state['scope']['target']:
             raise CaseError('live target must match authorized HTTPS scope')
         nonempty(data.get('symptom'), 'symptom')
+        if decision.get('authorized_collection') != {'target': target, 'vantage': vantage, 'authorization_ref': data['authorization_ref']}:
+            raise CaseError('live collection requires matching decision authorization')
         args = ['--url', target, '--symptom', data['symptom'], '--out', str(out)]
         requests = 6
     elif mode == 'offline_pcap':
@@ -102,13 +107,14 @@ def stop_child(proc):
                 pass
             proc.wait(timeout=1)
 
-def supervise(case_dir, command, deadline, maximum):
+def supervise(case_dir, command, deadline, maximum, operation_id):
     with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
         import json
         with connect(case_dir) as conn:
             conn.execute('BEGIN IMMEDIATE')
             state = json.loads(conn.execute('SELECT snapshot FROM state WHERE id=1').fetchone()[0])
-            if state['status'] == 'cancelled':
+            op = next(item for item in state['operations'] if item['operation_id'] == operation_id)
+            if state['status'] == 'cancelled' or op.get('cancel_requested'):
                 conn.rollback()
                 return None, b'', 'cancelled'
             proc = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, start_new_session=(os.name == 'posix'))
@@ -116,7 +122,9 @@ def supervise(case_dir, command, deadline, maximum):
         try:
             until = min(deadline, time.monotonic() + maximum)
             while proc.poll() is None:
-                if get_case(case_dir)['status'] == 'cancelled':
+                current = get_case(case_dir)
+                op = next(item for item in current['operations'] if item['operation_id'] == operation_id)
+                if current['status'] == 'cancelled' or op.get('cancel_requested'):
                     stop_child(proc)
                     return None, b'', 'cancelled'
                 if time.monotonic() >= until:
@@ -167,11 +175,11 @@ def run_collector(case_dir, data):
     accepted = None
     reason = None
     try:
-        code, output, reason = supervise(case_dir, [sys.executable, str(provider), '--version'], deadline, 2)
+        code, output, reason = supervise(case_dir, [sys.executable, str(provider), '--version'], deadline, 2, operation_id)
         if not reason and (code != 0 or not re.fullmatch(rb'internet-access-triage 0\.1\.\d+\s*', output)):
             reason = 'incompatible provider version'
         if not reason:
-            code, _, reason = supervise(case_dir, [sys.executable, str(provider)] + args, deadline, max(0, deadline - time.monotonic()))
+            code, _, reason = supervise(case_dir, [sys.executable, str(provider)] + args, deadline, max(0, deadline - time.monotonic()), operation_id)
             if code != 0 and not reason:
                 reason = 'collector exited unsuccessfully'
         out = Path(data['out'])

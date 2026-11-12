@@ -111,9 +111,16 @@ def _check_path(case_dir):
         raise CaseError('unsafe imports directory')
     return case_dir
 
+class ClosingConnection(sqlite3.Connection):
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            return super().__exit__(exc_type, exc, tb)
+        finally:
+            self.close()
+
 def connect(case_dir):
     case_dir = _check_path(case_dir)
-    conn = sqlite3.connect(str(case_dir / 'case.sqlite3'), timeout=5, isolation_level=None)
+    conn = sqlite3.connect(str(case_dir / 'case.sqlite3'), timeout=5, isolation_level=None, factory=ClosingConnection)
     conn.execute('PRAGMA journal_mode=DELETE')
     conn.execute('PRAGMA synchronous=FULL')
     conn.execute('PRAGMA busy_timeout=5000')

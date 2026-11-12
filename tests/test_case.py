@@ -12,6 +12,8 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
+from unittest import mock
 
 CLI = Path(__file__).resolve().parents[1] / 'skills/netops-incident/scripts/case.py'
 SCOPE = {key: None for key in ('vantage', 'identity', 'operation', 'target', 'protocol', 'address_family', 'proxy', 'workload', 'original_window')}
@@ -234,6 +236,212 @@ class CaseTests(unittest.TestCase):
         self.assertEqual(reopened['status'], 'intake')
         self.assertEqual(reopened['budget'], cancelled['budget'])
         self.assertNotEqual(reopened['episode_id'], cancelled['episode_id'])
+
+    def ready_case(self):
+        scope = dict(SCOPE, vantage='branch', identity='user', operation='submit order', target='https://example.test', protocol='https', address_family='IPv4', proxy='direct', workload='one order', original_window='incident window')
+        plan = dict(criterion={'operator':'gte', 'value':1}, unit='successes', window_seconds=1, cadence_seconds=1, maximum_gap_seconds=2, freshness_seconds=5, minimum_checks=1, minimum_coverage=0.5, owner='service owner', agreement_ref='agreement')
+        state = self.call('create', dict(self.create, scope=scope, verification_plan=plan))
+        state = self.call('transition', dict(self.event('investigate', state['revision']), status='investigating', reason='investigate'))
+        return state
+
+    def start_window(self, state):
+        state = self.call('transition', dict(self.event('verify', state['revision']), status='verifying', reason='observed recovery'))
+        return self.call('verification', dict(self.event('start', state['revision']), kind='start', reason='initial attempt'))
+
+    def check_data(self, state, outcome, value, event_id='check1'):
+        window = state['verification_windows'][-1]
+        artifact = self.root / (event_id + '.txt')
+        artifact.write_text('independent local observation')
+        observed = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00','Z')
+        return dict(self.event(event_id, state['revision']), kind='check', window_id=window['window_id'], episode_id=window['episode_id'], policy_revision=window['policy_revision'], policy_hash=window['policy_hash'], window_start=window['window_start'], window_end=window['window_end'], check_id=event_id, scope=state['scope'], observed_at=observed, collected_at=observed, source='observer', source_actor='observer', value=value, unit='successes', outcome=outcome, raw_reference={'root':str(self.root), 'path':artifact.name, 'sha256':hashlib.sha256(artifact.read_bytes()).hexdigest()}, provenance='operator supplied record', trust_grade='independent_observation', differences=[])
+
+    def test_spontaneous_recovery_with_complete_window(self):
+        state = self.start_window(self.ready_case())
+        check = self.check_data(state, 'pass', 1)
+        state = self.call('verification', check)
+        state = self.call('transition', dict(self.event('stabilize', state['revision']), status='stabilizing', reason='check passed'))
+        self.call('transition', dict(self.event('tooearly', state['revision']), status='closed_recovered', reason='done'), ok=False)
+        time.sleep(1.1)
+        state = self.call('transition', dict(self.event('closed', state['revision']), status='closed_recovered', reason='window complete'))
+        self.assertEqual(state['status'], 'closed_recovered')
+
+    def test_failed_check_and_recurrence_do_not_close(self):
+        state = self.start_window(self.ready_case())
+        state = self.call('verification', self.check_data(state, 'fail', 0))
+        state = self.call('transition', dict(self.event('stabilize', state['revision']), status='stabilizing', reason='observe'))
+        time.sleep(1.05)
+        self.call('transition', dict(self.event('closed', state['revision']), status='closed_recovered', reason='done'), ok=False)
+        self.assertEqual(self.call('get')['status'], 'stabilizing')
+
+    def test_missing_or_changed_check_artifact_rejected(self):
+        state = self.start_window(self.ready_case())
+        check = self.check_data(state, 'pass', 1)
+        (self.root/'check1.txt').write_text('changed')
+        self.call('verification', check, ok=False)
+        self.assertEqual(self.call('get'), state)
+
+    def test_unknown_action_requires_reconciliation(self):
+        state = self.ready_case()
+        state = self.call('transition', dict(self.event('await', state['revision']), status='awaiting_action', reason='owner reviewing'))
+        action = dict(self.event('action1', state['revision']), owner='operator', intended_change='inspect proxy', affected_scope=state['scope'], preconditions='approved', authorization_ref='approval', expected_check='submit order', rollback_trigger='failure', rollback_owner='operator', correlation_key='change1', action_time='2026-01-01T00:00:00Z', outcome='unknown', evidence=[])
+        state = self.call('action', action)
+        self.assertEqual(state['status'], 'action_outcome_unknown')
+        self.call('transition', dict(self.event('verify', state['revision']), status='verifying', reason='maybe done'), ok=False)
+        action['event_id'] = 'action2'
+        action['expected_revision'] = state['revision']
+        self.call('action', action, ok=False)
+
+    def test_invalid_numeric_policy_and_timestamps(self):
+        bad = dict(PLAN, criterion={'operator':'eq', 'value':True})
+        self.call('create', dict(self.create, verification_plan=bad), ok=False)
+        bad = dict(PLAN, minimum_coverage=2)
+        self.call('create', dict(self.create, verification_plan=bad), ok=False)
+        self.call('create', dict(self.create, occurred_at='2026-99-01T00:00:00Z'), ok=False)
+
+    def test_unavailable_original_vantage_stays_unresolved(self):
+        self.call('create', self.create)
+        state = self.call('transition', dict(self.event('investigate', 1), status='investigating', reason='investigate'))
+        self.call('transition', dict(self.event('verify', state['revision']), status='verifying', reason='attempt'), ok=False)
+        self.assertEqual(self.call('get')['status'], 'investigating')
+
+    def test_wrong_policy_units_time_and_criterion_are_rejected(self):
+        state = self.start_window(self.ready_case())
+        check = self.check_data(state, 'pass', 1)
+        for updates in ({'policy_revision': 999}, {'unit':'ms'}, {'outcome':'fail'}, {'value':True}, {'observed_at':'2999-01-01T00:00:00Z', 'collected_at':'2999-01-01T00:00:00Z'}):
+            with self.subTest(updates=updates):
+                self.call('verification', dict(check, **updates), ok=False)
+                self.assertEqual(self.call('get'), state)
+        state = self.call('scope', dict(self.event('scope1', state['revision']), scope=state['scope'], verification_plan=dict(state['verification_plan'], minimum_coverage=.9), reason='updated agreement'))
+        self.call('verification', dict(check, expected_revision=state['revision']), ok=False)
+
+    def test_window_end_failure_and_stale_coverage(self):
+        sys.path.insert(0, str(CLI.parent))
+        from case_runtime import recovery
+        state = self.start_window(self.ready_case())
+        window = state['verification_windows'][-1]
+        start = datetime.fromisoformat(window['window_start'].replace('Z','+00:00'))
+        end = datetime.fromisoformat(window['window_end'].replace('Z','+00:00'))
+        pass_time = start + timedelta(milliseconds=100)
+        check = self.check_data(state, 'pass', 1)
+        check['observed_at'] = check['collected_at'] = pass_time.isoformat().replace('+00:00','Z')
+        with mock.patch.object(recovery, 'clock', return_value=pass_time):
+            state = recovery.record_verification(self.case, check)
+        self.assertEqual(recovery.recovery_gaps(state, now=end, case_dir=self.case), [])
+        self.assertIn('last observation is stale', recovery.recovery_gaps(state, now=end + timedelta(seconds=6), case_dir=self.case))
+        failure = self.check_data(state, 'fail', 0, 'check2')
+        failure['observed_at'] = failure['collected_at'] = end.isoformat().replace('+00:00','Z')
+        with mock.patch.object(recovery, 'clock', return_value=end):
+            state = recovery.record_verification(self.case, failure)
+        self.assertIn('failed check or recurrence', recovery.recovery_gaps(state, now=end, case_dir=self.case))
+        stored = self.case / state['checks'][0]['stored_artifact']
+        stored.write_text('tampered')
+        self.assertIn('stored check artifact hash mismatch', recovery.recovery_gaps(state, now=end, case_dir=self.case))
+
+    def test_reconciliation_requires_authority(self):
+        state = self.ready_case()
+        state = self.call('transition', dict(self.event('await', state['revision']), status='awaiting_action', reason='owner reviewing'))
+        action = dict(self.event('action1', state['revision']), owner='operator', intended_change='inspect proxy', affected_scope=state['scope'], preconditions='approved', authorization_ref='approval', expected_check='submit order', rollback_trigger='failure', rollback_owner='operator', correlation_key='change1', action_time='2026-01-01T00:00:00Z', outcome='unknown', evidence=[])
+        state = self.call('action', action)
+        reconciliation = {'owner':'operator','evidence':'owner confirmation','authorization_ref':'authority','correlation_key':'change1','outcome':'completed'}
+        state = self.call('transition', dict(self.event('verify', state['revision']), status='verifying', reason='reconciled', reconciliation=reconciliation))
+        self.assertEqual(state['status'], 'verifying')
+        self.assertEqual(state['actions'][0]['reconciliation'], reconciliation)
+
+    def test_later_recurrence_and_gap_block_recovery(self):
+        sys.path.insert(0, str(CLI.parent))
+        from case_runtime import recovery
+        state = self.start_window(self.ready_case())
+        window = state['verification_windows'][-1]
+        start = datetime.fromisoformat(window['window_start'].replace('Z','+00:00'))
+        end = datetime.fromisoformat(window['window_end'].replace('Z','+00:00'))
+        state['verification_plan']['maximum_gap_seconds'] = .1
+        check = self.check_data(state, 'pass', 1)
+        t = start + timedelta(milliseconds=500)
+        check['observed_at'] = check['collected_at'] = t.isoformat().replace('+00:00','Z')
+        with mock.patch.object(recovery, 'clock', return_value=t):
+            state = recovery.record_verification(self.case, check)
+        state['verification_plan']['maximum_gap_seconds'] = .1
+        self.assertIn('observation gap exceeds maximum', recovery.recovery_gaps(state, now=end, case_dir=self.case))
+        failure = self.check_data(state, 'fail', 0, 'recurrence')
+        t = end + timedelta(milliseconds=100)
+        failure['observed_at'] = failure['collected_at'] = t.isoformat().replace('+00:00','Z')
+        with mock.patch.object(recovery, 'clock', return_value=t):
+            state = recovery.record_verification(self.case, failure)
+        self.assertIn('failed check or recurrence', recovery.recovery_gaps(state, now=t, case_dir=self.case))
+
+
+    def test_database_context_closes_connection(self):
+        self.call('create', self.create)
+        sys.path.insert(0, str(CLI.parent))
+        from case_runtime.store import connect
+        with connect(self.case) as conn:
+            conn.execute('SELECT 1')
+        with self.assertRaises(sqlite3.ProgrammingError):
+            conn.execute('SELECT 1')
+
+
+    def test_live_run_requires_explicit_matching_decision_authorization(self):
+        provider, marker, event = self.prepare_run()
+        provider.write_text('from pathlib import Path\nPath(%r).write_text("spawned")\nprint("internet-access-triage 0.1.0")\n' % str(marker))
+        event.update(mode='live', target='https://example.test', symptom='service unavailable')
+        self.call('run', event, ok=False)
+        self.assertFalse(marker.exists())
+        self.assertEqual(self.call('get')['budget']['rounds'], 3)
+
+
+    def test_reopened_unknown_action_can_be_reconciled(self):
+        state = self.ready_case()
+        state = self.call('transition', dict(self.event('await', state['revision']), status='awaiting_action', reason='owner reviewing'))
+        action = dict(self.event('action1', state['revision']), owner='operator', intended_change='inspect proxy', affected_scope=state['scope'], preconditions='approved', authorization_ref='approval', expected_check='submit order', rollback_trigger='failure', rollback_owner='operator', correlation_key='change1', action_time='2026-01-01T00:00:00Z', outcome='unknown', evidence=[])
+        state = self.call('action', action)
+        state = self.call('cancel', dict(self.event('cancel1', state['revision']), reason='stop'))
+        state = self.call('reopen', dict(self.event('reopen1', state['revision']), reason='resume'))
+        reconciliation = {'owner':'operator','evidence':'owner confirmation','authorization_ref':'authority','correlation_key':'change1','outcome':'completed'}
+        state = self.call('transition', dict(self.event('reconcile', state['revision']), reason='owner confirmed', action_reconciliation=reconciliation))
+        self.assertEqual(state['actions'][0]['reconciliation'], reconciliation)
+        self.assertEqual(state['status'], 'intake')
+
+
+    def test_import_never_overwrites_existing_destination(self):
+        before = self.call('create', self.create)
+        run, hashes = self.sample_run('run1')
+        orphan = self.case / 'imports' / 'run1'
+        orphan.mkdir()
+        (orphan / 'keep').write_text('preserve')
+        self.call('import-run', dict(self.event('import1', 1), run_dir=str(run), run_id=run.name, expected_summary_hashes=hashes), ok=False)
+        self.assertEqual((orphan/'keep').read_text(), 'preserve')
+        self.assertEqual(self.call('get'), before)
+
+
+    def test_cancel_imports_complete_output_and_preserves_cancelled_status(self):
+        provider, marker, event = self.prepare_run()
+        source, hashes = self.sample_run('run-output')
+        provider.write_text('from pathlib import Path\nimport shutil,sys,time\nif "--version" in sys.argv: print("internet-access-triage 0.1.0"); sys.exit()\nout=sys.argv[sys.argv.index("--out")+1]\nshutil.copytree(%r,out)\nPath(%r).write_text("complete")\ntime.sleep(30)\n' % (str(source), str(marker)))
+        input_path = self.root/'run.json'
+        input_path.write_text(json.dumps(event))
+        proc = subprocess.Popen([sys.executable, '-B', str(CLI), 'run', '--case', str(self.case), '--input', str(input_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            deadline = time.monotonic() + 5
+            while not marker.exists() and time.monotonic() < deadline:
+                time.sleep(.05)
+            self.assertTrue(marker.exists())
+            state = self.call('get')
+            self.call('cancel', dict(self.event('cancel1', state['revision']), reason='operator stopped'))
+            stdout, stderr = proc.communicate(timeout=5)
+            self.assertEqual(proc.returncode, 0, stderr)
+            result = json.loads(stdout)
+            self.assertEqual(result['accepted_run_id'], 'run-output')
+            self.assertEqual(result['stopped_reason'], 'cancelled')
+            state = self.call('get')
+            self.assertEqual(state['status'], 'cancelled')
+            self.assertEqual(len(state['imports']), 1)
+            self.assertEqual(state['imports'][0]['summary_hashes'], hashes)
+            self.assertEqual(state['operations'][0]['status'], 'settled')
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -16,6 +16,25 @@ LIMIT = 16 * 1024 * 1024
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
+def rename_noreplace(source: Path, destination: Path):
+    """Publish an import without replacing even an empty destination."""
+    if os.name == 'nt':
+        os.rename(source, destination)
+        return
+    import ctypes
+    import errno
+    libc = ctypes.CDLL(None, use_errno=True)
+    rename = getattr(libc, 'renameat2', None)
+    if rename is None:
+        raise CaseError('atomic no-replace rename is unavailable')
+    rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    rename.restype = ctypes.c_int
+    if rename(-100, os.fsencode(source), -100, os.fsencode(destination), 1) != 0:
+        error = ctypes.get_errno()
+        if error == errno.EEXIST:
+            raise CaseError('import destination already exists')
+        raise CaseError('atomic no-replace rename failed: ' + os.strerror(error))
+
 def read_confined(root: Path, relative: str, max_bytes: int) -> bytes:
     if not isinstance(relative, str) or not relative or '\\' in relative:
         raise CaseError('invalid relative path')
@@ -28,8 +47,14 @@ def read_confined(root: Path, relative: str, max_bytes: int) -> bytes:
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
     fds = []
     try:
-        fd = os.open(str(root), flags | getattr(os, 'O_DIRECTORY', 0))
+        if not hasattr(os, 'O_NOFOLLOW'):
+            raise CaseError('safe no-symlink reads are unavailable')
+        absolute = Path(os.path.abspath(root))
+        fd = os.open(str(absolute.anchor), flags | getattr(os, 'O_DIRECTORY', 0))
         fds.append(fd)
+        for part in absolute.parts[1:]:
+            fd = os.open(part, flags | getattr(os, 'O_DIRECTORY', 0), dir_fd=fd)
+            fds.append(fd)
         for part in p.parts[:-1]:
             fd = os.open(part, flags | getattr(os, 'O_DIRECTORY', 0), dir_fd=fd)
             fds.append(fd)
@@ -152,7 +177,7 @@ def import_run(case_dir, data, allow_terminal=False):
             destination = imports / run_id
             if destination.exists() or destination.is_symlink():
                 raise CaseError('import destination already exists')
-            os.rename(stage, destination)
+            rename_noreplace(stage, destination)
             created.append(destination)
         finally:
             if stage.exists():
@@ -191,6 +216,15 @@ def record_decision(case_dir, data):
             if any(d['next_test'] == data['next_test'] for d in state['decisions']) and not data['changed_condition']:
                 raise CaseError('repeated test requires changed condition')
         decision = {key: data[key] for key in keys}
+        authorization = data.get('authorized_collection')
+        if authorization is not None:
+            if not isinstance(authorization, dict) or set(authorization) != {'target', 'vantage', 'authorization_ref'}:
+                raise CaseError('invalid collection authorization')
+            for key, value in authorization.items():
+                nonempty(value, key)
+            if authorization['target'] != state['scope']['target'] or authorization['vantage'] != state['scope']['vantage']:
+                raise CaseError('collection authorization does not match scope')
+        decision['authorized_collection'] = authorization
         decision['event_id'] = data['event_id']
         decision['scope'] = dict(state['scope'])
         decision['stop_reason'] = None if data['next_test'] and state['budget']['rounds'] > 0 else 'no permissible next test or budget'
