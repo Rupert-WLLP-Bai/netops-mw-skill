@@ -2,7 +2,9 @@
 
 A runnable Skill for one target and symptom: bounded local collection, explicit counterevidence, and at most two supported investigation directions. It also analyzes an existing PCAP independently of live probing.
 
-The [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
+The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
+
+A subsequent real-capture validation found and corrected a DNS direction-count defect. The [pre-fix corpus record](docs/research/real-pcap-corpus.md) and [post-fix validation](docs/research/real-pcap-postfix-validation.md) describe the evidence and candidate package. The [combined independent review](docs/research/closed-loop-real-pcap-review.md) approved the correction and research within its stated scope: 72 tests and all nine corpus checks passed; the candidate package SHA-256 is `f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`.
 
 ## Run
 
@@ -38,6 +40,8 @@ python3 -B -m unittest discover -s tests -v
 python3 -B scripts/build_release.py --out dist/internet-access-triage-0.1.0.zip
 ```
 
+For the optional real-capture check, obtain the pinned capture files and derived variants described in the corpus record, then run `python3 -B scripts/validate_real_pcap.py --out .tools/pcap-corpus/validation-new`. The validator checks local hashes and does not download or probe; choose a new output directory. It is a developer tool outside the package.
+
 The release uses an explicit file list and deterministic ZIP metadata. Its sidecar records package and file SHA-256 values. Existing outputs are preserved; choose a different destination for a new build.
 
 ## Interpretation
@@ -56,6 +60,8 @@ The initial validation platform is Linux/WSL. Native Windows, actual MobileWork 
 | [v0.1 validation](docs/validation-v0.1-review-fixes-2026-11-12.md) | Test, candidate package, extraction checks, and outstanding work |
 | [Final scoped review](docs/review-v0.1-2026-11-12.md) | Independent review verdict and exclusions |
 | [Project baseline](docs/research/current-state.md) | Existing assets and discovery/publication gaps |
+| [Real PCAP corpus](docs/research/real-pcap-corpus.md) | Public captures, reproducible impairment variants, and pre-fix results |
+| [Post-fix PCAP validation](docs/research/real-pcap-postfix-validation.md) | Corrected results, candidate package checks, and review |
 | [TShark integration](docs/research/tshark-integration.md) | Offline interfaces and interpretation boundaries |
 | [Upstream pattern review](docs/research/upstream-patterns.md) | Pinned sources and verified reuse patterns |
 | [Source manifest](docs/research/source-manifest.json) | Original-byte hashes and archive structure checks |
