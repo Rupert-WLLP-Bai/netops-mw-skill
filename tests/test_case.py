@@ -9,6 +9,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -124,6 +125,115 @@ class CaseTests(unittest.TestCase):
         decision['support'] = [{'run_id':'missing','evidence_id':'E001'}]
         self.call('decision', decision, ok=False)
         self.assertEqual(self.call('get'), before)
+
+    def prepare_run(self, budget=None):
+        create = dict(self.create, scope=dict(SCOPE, vantage='branch', target='https://example.test'))
+        if budget is not None:
+            create['budget'] = budget
+        self.call('create', create)
+        decision = dict(self.event('decision1', 1), observations=['symptom'], hypotheses=['cause'], support=[], counterevidence=[], confidence='low', limitations=[], next_test='compare capture', expected_support='indicator', expected_counterevidence='absence', changed_condition=None)
+        self.call('decision', decision)
+        marker = self.root / 'spawned'
+        provider = self.root / 'diagnose.py'
+        event = dict(self.event('run1', 2), purpose='investigation', provider_cli=str(provider), mode='offline_pcap', pcap=str(self.root/'capture'), out=str(self.root/'out'), authorization_ref='approval', decision_event_id='decision1', actual_vantage='branch', vantage_source='operator')
+        (self.root/'capture').write_bytes(b'capture')
+        return provider, marker, event
+
+    def test_reserve_before_spawn_and_budget_exhaustion(self):
+        budget = dict(rounds=1, active_seconds=25, http_requests=6, concurrency=1, verification_reserve_rounds=1, verification_reserve_seconds=25, verification_reserve_requests=6)
+        provider, marker, event = self.prepare_run(budget)
+        provider.write_text('from pathlib import Path\nPath(%r).write_text("spawned")\nprint("internet-access-triage 0.1.0")\n' % str(marker))
+        result = self.call('run', event, ok=False)
+        self.assertIn('insufficient budget', result.stderr)
+        self.assertFalse(marker.exists())
+        self.assertEqual(self.call('get')['budget']['rounds'], 1)
+
+    def test_run_reserves_before_version_and_retry_does_not_spawn(self):
+        provider, marker, event = self.prepare_run()
+        provider.write_text('from pathlib import Path\nimport sys\np=Path(%r)\np.write_text((p.read_text() if p.exists() else "") + "x")\nprint("internet-access-triage 0.1.0" if "--version" in sys.argv else "no output")\n' % str(marker))
+        result = self.call('run', event)
+        self.assertIn('no complete output', result['stopped_reason'])
+        self.assertEqual(marker.read_text(), 'xx')
+        after = self.call('get')
+        self.assertEqual(after['budget']['rounds'], 2)
+        self.assertEqual(after['budget']['active_seconds'], 50)
+        self.call('run', event)
+        self.assertEqual(marker.read_text(), 'xx')
+        self.assertEqual(self.call('get'), after)
+
+    def test_cancel_reaps_managed_child(self):
+        provider, marker, event = self.prepare_run()
+        provider.write_text('from pathlib import Path\nimport sys,time\nif "--version" in sys.argv: print("internet-access-triage 0.1.0"); sys.exit()\nPath(%r).write_text("started")\ntime.sleep(30)\n' % str(marker))
+        event_path = self.root/'run.json'
+        event_path.write_text(json.dumps(event))
+        proc = subprocess.Popen([sys.executable, '-B', str(CLI), 'run', '--case', str(self.case), '--input', str(event_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            deadline = time.monotonic() + 5
+            while not marker.exists() and time.monotonic() < deadline:
+                time.sleep(.05)
+            self.assertTrue(marker.exists())
+            snapshot = self.call('get')
+            self.assertEqual(snapshot['operations'][0]['status'], 'in_flight')
+            self.call('cancel', dict(self.event('cancel1', snapshot['revision']), reason='operator stopped'))
+            stdout, stderr = proc.communicate(timeout=5)
+            self.assertEqual(proc.returncode, 0, stderr)
+            self.assertEqual(json.loads(stdout)['stopped_reason'], 'cancelled')
+            final = self.call('get')
+            self.assertEqual(final['status'], 'cancelled')
+            self.assertEqual(final['operations'][0]['status'], 'settled')
+            self.assertEqual(final['budget']['rounds'], 2)
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait()
+
+    def test_crash_charges_reservation_and_blocks_restart(self):
+        provider, marker, event = self.prepare_run()
+        provider.write_text('from pathlib import Path\nimport time\nPath(%r).write_text("started")\ntime.sleep(1)\nprint("internet-access-triage 0.1.0")\n' % str(marker))
+        input_path = self.root/'run.json'
+        input_path.write_text(json.dumps(event))
+        proc = subprocess.Popen([sys.executable, '-B', str(CLI), 'run', '--case', str(self.case), '--input', str(input_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            deadline = time.monotonic() + 5
+            while not marker.exists() and time.monotonic() < deadline:
+                time.sleep(.05)
+            self.assertTrue(marker.exists())
+            proc.kill()
+            proc.wait()
+            state = self.call('get')
+            self.assertEqual(state['budget']['rounds'], 2)
+            self.assertEqual(state['operations'][0]['status'], 'in_flight')
+            retry = dict(event, event_id='run2', expected_revision=state['revision'], out=str(self.root/'out2'))
+            result = self.call('run', retry, ok=False)
+            self.assertIn('reconciliation', result.stderr)
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait()
+
+    def test_explicit_budget_increase_requires_authorization(self):
+        self.call('create', self.create)
+        event = dict(self.event('increase1', 1), budget_increase={'rounds': 1, 'active_seconds': 25, 'http_requests': 6}, reason='new evidence')
+        self.call('transition', event, ok=False)
+        event['authorization_ref'] = 'approval'
+        after = self.call('transition', event)
+        self.assertEqual(after['budget']['rounds'], 4)
+        self.assertEqual(after['budget']['active_seconds'], 100)
+
+    def test_standalone_manual_import_costs_no_round(self):
+        before = self.call('create', self.create)
+        run, hashes = self.sample_run('run1')
+        after = self.call('import-run', dict(self.event('import1', 1), run_dir=str(run), run_id=run.name, expected_summary_hashes=hashes))
+        self.assertEqual(after['budget'], before['budget'])
+
+    def test_cancel_and_reopen_preserve_budget(self):
+        self.call('create', self.create)
+        cancelled = self.call('cancel', dict(self.event('cancel1', 1), reason='stop'))
+        self.assertEqual(cancelled['status'], 'cancelled')
+        reopened = self.call('reopen', dict(self.event('reopen1', 2), reason='resume'))
+        self.assertEqual(reopened['status'], 'intake')
+        self.assertEqual(reopened['budget'], cancelled['budget'])
+        self.assertNotEqual(reopened['episode_id'], cancelled['episode_id'])
 
 if __name__ == '__main__':
     unittest.main()

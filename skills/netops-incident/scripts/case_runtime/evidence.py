@@ -131,10 +131,10 @@ def validate_run(data):
         raise CaseError('invalid diagnosis status')
     return snapshots, manifest, diagnosis, sorted(ids)
 
-def import_run(case_dir, data):
+def import_run(case_dir, data, allow_terminal=False):
     created = []
     def change(state, conn):
-        if state['status'] in TERMINAL:
+        if state['status'] in TERMINAL and not allow_terminal:
             raise CaseError('case is terminal')
         snapshots, manifest, diagnosis, ids = validate_run(data)
         run_id = data['run_id']
@@ -192,6 +192,7 @@ def record_decision(case_dir, data):
                 raise CaseError('repeated test requires changed condition')
         decision = {key: data[key] for key in keys}
         decision['event_id'] = data['event_id']
+        decision['scope'] = dict(state['scope'])
         decision['stop_reason'] = None if data['next_test'] and state['budget']['rounds'] > 0 else 'no permissible next test or budget'
         state['decisions'].append(decision)
         return {'decision': decision}
