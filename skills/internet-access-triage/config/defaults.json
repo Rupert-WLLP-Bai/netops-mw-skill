@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0",
+  "live_budget_seconds": 25,
+  "finish_reserve_seconds": 2,
+  "curl_attempts_per_target": 3,
+  "curl_max_concurrent": 2,
+  "curl_connect_timeout_seconds": 3,
+  "curl_total_timeout_seconds": 6,
+  "curl_body_limit_bytes": 65536,
+  "dns_timeout_seconds": 2,
+  "ping_samples_per_address": 10,
+  "ping_interval_seconds": 1,
+  "pcap_input_limit_bytes": 67108864,
+  "pcap_frame_limit": 100000,
+  "pcap_event_limit_bytes": 8388608,
+  "pcap_stderr_limit_bytes": 65536,
+  "pcap_budget_seconds": 25,
+  "default_control_url": null
+}

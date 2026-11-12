@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/netops/evidence-0.1.schema.json",
+  "title": "Internet access triage evidence record",
+  "type": "object",
+  "required": ["id", "kind", "tool", "status", "scope", "started_at_utc", "duration_ns", "observation", "sources"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^ev-[0-9a-f]{12}$"},
+    "kind": {"type": "string", "minLength": 1},
+    "tool": {"type": "object", "required": ["name", "version"], "properties": {"name": {"type": "string"}, "version": {"type": ["string", "null"]}}, "additionalProperties": true},
+    "status": {"enum": ["complete", "partial", "timeout", "permission_denied", "unsupported", "not_executed", "budget_exhausted", "parse_error", "tool_error"]},
+    "scope": {"type": "object", "properties": {"target": {"type": ["string", "null"]}, "hostname": {"type": ["string", "null"]}, "address_family": {"type": ["string", "null"]}, "protocol": {"type": ["string", "null"]}, "window": {"type": ["string", "null"]}}, "additionalProperties": true},
+    "started_at_utc": {"type": "string", "format": "date-time"},
+    "duration_ns": {"type": "integer", "minimum": 0},
+    "measurements": {"type": "array", "items": {"$ref": "#/$defs/measurement"}},
+    "observation": {"type": "object"},
+    "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+    "failure": {"type": ["object", "null"]}
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "required": ["name", "value", "unit", "sample_count"],
+      "properties": {"name": {"type": "string"}, "value": {"type": ["number", "null"]}, "unit": {"type": "string"}, "sample_count": {"type": "integer", "minimum": 0}, "missing_reason": {"type": ["string", "null"]}, "raw_values": {"type": "array", "items": {"type": ["number", "null"]}}},
+      "allOf": [{"if": {"properties": {"value": {"type": "null"}}}, "then": {"required": ["missing_reason"], "properties": {"missing_reason": {"type": "string", "minLength": 1}}}}],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {"kind": {"enum": ["run_artifact", "external_input", "inline"]}, "path": {"type": "string"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "pointer": {"type": ["string", "null"]}, "frame_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1}}, "name": {"type": "string"}},
+      "additionalProperties": false
+    }
+  }
+}

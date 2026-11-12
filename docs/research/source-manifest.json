@@ -1,0 +1,94 @@
+{
+  "recorded_at_utc": "2026-11-12T08:34:19.971298+00:00",
+  "scope": "Project discovery and local legacy-tool verification; not validation of the proposed Internet diagnosis skill.",
+  "sources": [
+    {
+      "id": "self_validation_template",
+      "filename": "user-validation-template.docx",
+      "bytes": 83729,
+      "sha256": "504aea4c03454350395fb3e0acdddc5b303c4ce5f5dbc58d1bedd03aef5f1567",
+      "location_note": "User-provided Windows file; original is retained outside this repository.",
+      "filename_note": "English reference alias; SHA-256 identifies the unchanged original source bytes."
+    },
+    {
+      "id": "security_specification",
+      "filename": "skill-security-specification.wps",
+      "bytes": 709208,
+      "sha256": "7b7c2b3bbf79e79e0afed8b9727c760919c0dbfc2428b602d941806f4bb2255b",
+      "location_note": "User-provided Windows file; original is retained outside this repository.",
+      "filename_note": "English reference alias; SHA-256 identifies the unchanged original source bytes."
+    },
+    {
+      "id": "publication_guide",
+      "filename": "skill-testing-and-publication.pptx",
+      "bytes": 2023798,
+      "sha256": "a8e6ba75b89e3a961a52b61a3161e3819c926ecccf0131bce28d31703c21ca96",
+      "location_note": "User-provided Windows file; original is retained outside this repository.",
+      "filename_note": "English reference alias; SHA-256 identifies the unchanged original source bytes."
+    },
+    {
+      "id": "research_design_archive",
+      "filename": "internet-lag-research-2026-11-12.zip",
+      "bytes": 125912,
+      "sha256": "68033910cb3fcded1bc3610aefbce87a1a642694302073eb7e0db543b1639629",
+      "location_note": "User-provided Windows file; original is retained outside this repository.",
+      "filename_note": "English reference alias; SHA-256 identifies the unchanged original source bytes."
+    },
+    {
+      "id": "legacy_csv_analyzer",
+      "filename": "analyze.py",
+      "bytes": 28464,
+      "sha256": "378a715e0ea02e19404e67bf39ae75b710f32030de859edb79f5805aa7a04e0c",
+      "location_note": "network-inspection-analyst/scripts/analyze.py"
+    },
+    {
+      "id": "legacy_csv_tests",
+      "filename": "test_analysis.py",
+      "bytes": 26822,
+      "sha256": "4737e1347a9446eb2d4fe7d6e6bf075df36bcb3d8a28b58324274513c3774e69",
+      "location_note": "network-inspection-analyst/tests/test_analysis.py"
+    },
+    {
+      "id": "legacy_pcap_analyzer",
+      "filename": "analyze_pcap.py",
+      "bytes": 17610,
+      "sha256": "90fbb831c3997784c65f61f339a737dca9db511e88a8a4ff2feeb69798e8e0b0",
+      "location_note": "pcap-evidence-analyst/scripts/analyze_pcap.py"
+    },
+    {
+      "id": "legacy_public_pcap_sample",
+      "filename": "http_redirects.pcapng",
+      "bytes": 47804,
+      "sha256": "ff432a6b71d06cd20720f7763e584014edd0a43c3b55981c682d1b7640207abc",
+      "location_note": "research/pcap-demo/http_redirects.pcapng"
+    }
+  ],
+  "research_archive_checks": {
+    "archive_manifest_entries_checked": 47,
+    "archive_hash_mismatches": [],
+    "case_count": 30,
+    "provenance_counts": {
+      "adapted": 14,
+      "derived": 16
+    },
+    "case_states": {
+      "design_not_executed": 30
+    },
+    "basic_structure_check_errors": [],
+    "validation_method": "Required keys, enum/const, nonempty arrays and IDs checked using Python standard library. This is not full Draft 2020-12 JSON Schema validation or behavioral validation.",
+    "initial_suite": [
+      "INET-01",
+      "INET-05",
+      "INET-06",
+      "INET-07",
+      "INET-10",
+      "INET-18",
+      "INET-20",
+      "INET-23",
+      "INET-24",
+      "INET-25",
+      "INET-26",
+      "INET-27"
+    ]
+  }
+}

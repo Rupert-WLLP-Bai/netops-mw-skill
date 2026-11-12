@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/netops/diagnosis-0.1.schema.json",
+  "title": "Internet access triage diagnosis",
+  "type": "object",
+  "required": ["schema_version", "status", "scope", "evidence_ids", "candidates", "counterevidence", "limitations", "next_steps"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "status": {"enum": ["fault_observed", "healthy_within_scope", "not_reproduced", "insufficient_evidence"]},
+    "scope": {"type": "object", "required": ["mode", "target", "protocol", "time_window"], "properties": {"mode": {"enum": ["live", "offline_pcap", "replay"]}, "target": {"type": ["string", "null"]}, "protocol": {"type": ["string", "null"]}, "address_family": {"type": ["string", "null"]}, "time_window": {"type": ["string", "null"]}}, "additionalProperties": true},
+    "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "candidates": {"type": "array", "maxItems": 2, "items": {"type": "object", "required": ["domain", "basis", "evidence_ids", "counterevidence_ids", "next_step"], "properties": {"domain": {"type": "string"}, "basis": {"type": "string"}, "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}, "counterevidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}, "next_step": {"type": "string"}}, "additionalProperties": false}},
+    "counterevidence": {"type": "array", "items": {"type": "object", "required": ["evidence_id", "meaning"], "properties": {"evidence_id": {"type": "string"}, "meaning": {"type": "string"}}, "additionalProperties": false}},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "next_steps": {"type": "array", "items": {"type": "string"}},
+    "origin": {"enum": ["live", "offline_pcap", "replay"]}
+  },
+  "additionalProperties": false
+}

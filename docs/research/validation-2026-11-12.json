@@ -1,0 +1,112 @@
+{
+  "recorded_at_utc": "2026-11-12T08:43:06.618131+00:00",
+  "verification_date_local": "2026-11-12",
+  "scope": "Discovery of existing assets; not a validation report for the proposed Internet Skill.",
+  "environment": {
+    "os": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.7",
+    "curl": "8.21.0",
+    "tshark": "4.6.6",
+    "native_windows_tested": false
+  },
+  "checks": [
+    {
+      "id": "legacy_csv_cli_regression",
+      "execution": "executed",
+      "result": "passed",
+      "cwd": "../network-inspection-analyst",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "tests_run": 19,
+      "reported_duration_seconds": 1.446,
+      "analyzer_sha256": "378a715e0ea02e19404e67bf39ae75b710f32030de859edb79f5805aa7a04e0c",
+      "tests_sha256": "4737e1347a9446eb2d4fe7d6e6bf075df36bcb3d8a28b58324274513c3774e69",
+      "evidence_note": "Observed terminal test output: Ran 19 tests in 1.446s; OK. This summary records that executed command, not an independent re-run."
+    },
+    {
+      "id": "legacy_pcap_cli_smoke",
+      "execution": "executed",
+      "result": "passed",
+      "cwd": "workspace parent",
+      "command": [
+        "python3",
+        "-B",
+        "pcap-evidence-analyst/scripts/analyze_pcap.py",
+        "research/pcap-demo/http_redirects.pcapng",
+        "--http-headers-only",
+        "--out",
+        "<new temporary output directory>"
+      ],
+      "exit_code": 0,
+      "analyzer_sha256": "90fbb831c3997784c65f61f339a737dca9db511e88a8a4ff2feeb69798e8e0b0",
+      "input_sha256": "ff432a6b71d06cd20720f7763e584014edd0a43c3b55981c682d1b7640207abc",
+      "input_hash_matches": true,
+      "frames": 271,
+      "http_request_messages": 48,
+      "http_response_messages": 48,
+      "http_paired": 48,
+      "http_pairing_coverage": "complete_for_decoded_selected_http",
+      "summary_artifact_sha256": "f57878dd92f4394c3055f6a424da33785e4bef227cc59b9186df01d88ebdcec5",
+      "evidence_note": "Original generated summary/events remain in a local temporary output directory; packet URLs are not copied into this repository. These observations cover one HTTP sample with the specified parser setting."
+    },
+    {
+      "id": "research_archive_hashes_and_structure",
+      "execution": "executed",
+      "result": "passed_with_stated_scope",
+      "details": {
+        "archive_manifest_entries_checked": 47,
+        "archive_hash_mismatches": [],
+        "case_count": 30,
+        "provenance_counts": {
+          "adapted": 14,
+          "derived": 16
+        },
+        "case_states": {
+          "design_not_executed": 30
+        },
+        "basic_structure_check_errors": [],
+        "validation_method": "Required keys, enum/const, nonempty arrays and IDs checked using Python standard library. This is not full Draft 2020-12 JSON Schema validation or behavioral validation.",
+        "initial_suite": [
+          "INET-01",
+          "INET-05",
+          "INET-06",
+          "INET-07",
+          "INET-10",
+          "INET-18",
+          "INET-20",
+          "INET-23",
+          "INET-24",
+          "INET-25",
+          "INET-26",
+          "INET-27"
+        ]
+      }
+    },
+    {
+      "id": "tshark_offline_interface_checks",
+      "execution": "executed",
+      "result": "see_research_record",
+      "record": "tshark-integration.md",
+      "scope": "Local version/field registration, fields/json/ek, input frame limit and invalid field behavior; existing PCAP only."
+    }
+  ],
+  "not_executed": [
+    "New Internet Skill runtime implementation and behavioral validation",
+    "Twelve Internet diagnosis cases and independent scoring",
+    "Public target probes or Globalping measurements",
+    "Fault injection and recovery validation",
+    "Live traffic capture or TLS key collection",
+    "Native Windows or macOS execution",
+    "MobileWork client import, natural-language triggering or execution",
+    "External security inspection, report submission or publication"
+  ]
+}
