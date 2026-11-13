@@ -239,13 +239,17 @@ class AccessTests(unittest.TestCase):
         row.update(metric='wifi_state',value='pass',counter_semantics='gauge',reset_state='none',sample_count=1)
         unrelated = self.analyze(self.add_observations(request,'reverse-unrelated',[row]))
         self.assertIn('missing_reverse_direction',unrelated['gaps'])
-        row['metric'] = 'application_state'
+        row.update(metric='application_state',sample_interval_seconds=60)
         wrong_scope = self.analyze(self.add_observations(request,'reverse-other',[row],alias='other-alias'))
         self.assertIn('missing_reverse_direction',wrong_scope['gaps'])
         row['event_time'] = '2026-01-01T00:07:00Z'
         wrong_window = self.analyze(self.add_observations(request,'reverse-time',[row]))
         self.assertIn('missing_reverse_direction',wrong_window['gaps'])
         row['event_time'] = '2026-01-01T00:08:00Z'
+        row['sample_interval_seconds'] = 30
+        wrong_interval = self.analyze(self.add_observations(request,'reverse-interval',[row]))
+        self.assertIn('missing_reverse_direction',wrong_interval['gaps'])
+        row['sample_interval_seconds'] = 60
         compatible = self.analyze(self.add_observations(request,'reverse-good',[row]))
         self.assertNotIn('missing_reverse_direction',compatible['gaps'])
 

@@ -17,6 +17,12 @@ This report records the initial local engineering verification for issue #7 at s
 
 The initial delivery manifest records that all archive member hashes were checked and both combined suite builds and manifests were identical. The package contains no M3 evaluator oracle or synthetic case source inputs. Do not treat this hash as the corrected release hash.
 
+## Latest correction-gate attempt
+
+After the Sol-driven corrections, the next full-suite run executed 183 tests in 102.592 seconds and failed one test: `test_reverse_direction_requires_same_supported_operation_and_scope`. The independent extracted run executed 104 tests in 68.256 seconds and failed the same assertion. Both logs show the expected `missing_reverse_direction` gap remained because the new positive reverse-direction input had `sample_interval_seconds: null`, while its ingress baseline declared 60 seconds. The analyzer correctly treats those fields as incompatible, so the test input did not satisfy its own no-gap expectation.
+
+Terra will correct only that positive test input to use a 60-second interval, preserving the assertion that the compatible pair removes the gap and retaining a separate incompatible-interval negative case. No expected product result is being changed to force a pass. This correction-gate attempt remains failed; rerun results, package verification, and final review are pending. Evidence is retained in `.tools/carrier-m3/full-suite-reviewed.log` and `.tools/carrier-m3/delivery-reviewed.log`.
+
 ## Review findings and correction phase
 
 The initial Sol reviews identified four P2 issues and one P3 contract mismatch: contradictory optical observations were omitted instead of retained as counterevidence; unsupported or missing observations could falsely satisfy reverse-direction coverage; strict UTF-8 decoding was missing on the new request path; counter semantics, sample-count, and interval gaps could disappear; and the provider documentation described only up/down/up although down/up/down was also accepted. The sampling-gap finding appeared in both review tracks. Terra owns the implementation and tests for these findings. The access contract and manual Skill reference now reflect the agreed correction semantics. Final implementation verification and Sol re-review are pending; no pass is claimed for the corrected head.
