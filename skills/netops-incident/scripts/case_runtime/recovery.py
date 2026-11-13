@@ -252,9 +252,13 @@ def export_report(case_dir):
         gaps = [str(exc)]
     lines = ['# Incident handoff draft', '', 'Status: ' + state['status'], 'Case: ' + state['case_id'], 'Episode: ' + state['episode_id'], 'Symptom: ' + state['symptom'], 'Business impact: ' + state['business_impact'], '', '## Original scope']
     lines.extend('- ' + key + ': ' + str(value) for key, value in state['scope'].items())
+    if 'service_context' in state:
+        lines.append('- Carrier service reference: ' + str(state['service_context']['service_ref']) + ' (context-local declaration)')
     lines += ['', '## Evidence and decisions']
     for item in state['imports']:
         lines.append('- Run ' + item['run_id'] + ': evidence ' + ', '.join(item['evidence_ids']) + '; summary hashes ' + str(item['summary_hashes']))
+        if 'carrier_evidence' in item:
+            lines.append('  Carrier records: ' + str(len(item['carrier_evidence']['records'])) + '; source context is not matched to case context')
     for decision in state['decisions']:
         lines.append('- Observations: ' + str(decision['observations']) + '; hypotheses: ' + str(decision['hypotheses']) + '; support: ' + str(decision['support']) + '; counterevidence: ' + str(decision['counterevidence']) + '; limitations: ' + str(decision['limitations']) + '; next test: ' + str(decision['next_test']))
     lines += ['', '## Actions and checks']

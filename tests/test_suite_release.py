@@ -15,7 +15,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 NAMES = ('internet-access-triage', 'netops-incident', 'netops-pcap-analysis', 'netops-verify-recovery', 'netops-handoff')
 LEGACY = ('LICENSE', 'SKILL.md', 'config/defaults.json', 'references/collection-limits.md', 'references/evidence-contract.md', 'schemas/diagnosis.schema.json', 'schemas/evidence.schema.json', 'scripts/diagnose.py', 'scripts/netops/__init__.py', 'scripts/netops/contract.py', 'scripts/netops/diagnosis.py', 'scripts/netops/live.py', 'scripts/netops/pcap.py', 'scripts/netops/report.py', 'scripts/netops/runner.py', 'scripts/netops/urls.py')
-INCIDENT = ('LICENSE', 'SKILL.md', 'references/case-contract.md', 'scripts/case.py', 'scripts/case_runtime/__init__.py', 'scripts/case_runtime/store.py', 'scripts/case_runtime/evidence.py', 'scripts/case_runtime/collection.py', 'scripts/case_runtime/recovery.py')
+INCIDENT = ('LICENSE', 'SKILL.md', 'references/case-contract.md', 'references/carrier-evidence-contract.md', 'schemas/service-context.schema.json', 'schemas/carrier-evidence.schema.json', 'scripts/case.py', 'scripts/case_runtime/__init__.py', 'scripts/case_runtime/store.py', 'scripts/case_runtime/evidence.py', 'scripts/case_runtime/collection.py', 'scripts/case_runtime/recovery.py', 'scripts/case_runtime/carrier.py')
 EXPECTED = {f'internet-access-triage/{name}' for name in LEGACY} | {f'netops-incident/{name}' for name in INCIDENT} | {'suite-inventory.json'}
 for name, ref in (('netops-pcap-analysis','offline-analysis'), ('netops-verify-recovery','verification'), ('netops-handoff','handoff')):
     EXPECTED |= {f'{name}/LICENSE', f'{name}/SKILL.md', f'{name}/references/{ref}.md'}
@@ -42,7 +42,7 @@ class SuiteReleaseTests(unittest.TestCase):
         self.assertEqual(first.read_bytes(), second.read_bytes())
         self.assertEqual(a['archive']['sha256'], hashlib.sha256(first.read_bytes()).hexdigest())
         self.assertEqual(a['archive'], b['archive'])
-        self.assertEqual(a['file_count'], 35)
+        self.assertEqual(a['file_count'], 39)
         with zipfile.ZipFile(first) as archive:
             self.assertEqual(set(archive.namelist()), EXPECTED)
             self.assertEqual(len(archive.namelist()), len(EXPECTED))

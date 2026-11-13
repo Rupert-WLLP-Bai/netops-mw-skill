@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "records": [{
+    "evidence_id":"E001", "object_refs":["service-1", "customer-1"], "source":"sample-source", "source_native_id":null,
+    "device_role":null, "event_time":"2026-01-01T00:00:00Z", "collected_at":"2026-01-01T00:00:01Z",
+    "timezone":"UTC", "clock_quality":"synchronized", "clock_uncertainty_seconds":0,
+    "artifact_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "redaction":{"status":"redacted", "raw_sha256":null, "visible_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "policy_ref":"synthetic"},
+    "topology_mapping_confidence":"medium",
+    "measurement":{"value":10, "unit":"packets", "direction":"ingress", "denominator":"interface", "sample_interval_seconds":60, "sample_count":2, "missing_reason":null, "counter_semantics":"cumulative", "reset_state":"none"}
+  }]
+}

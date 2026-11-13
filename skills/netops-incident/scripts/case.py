@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from case_runtime.collection import run_collector, cancel_case, reopen_case
 from case_runtime.recovery import record_action, record_verification, transition_case, export_report
-from case_runtime.evidence import import_run, record_decision
+from case_runtime.evidence import import_run, record_decision, read_confined
 from case_runtime.store import CaseError, create_case, get_case, update_scope
 
 def main():
@@ -24,11 +24,13 @@ def main():
         else:
             if args.input is None:
                 raise CaseError('--input is required')
-            data = json.loads(args.input.read_text(encoding='utf-8'), parse_constant=lambda value: (_ for _ in ()).throw(CaseError('non-finite JSON number')))
+            input_path = args.input.absolute()
+            raw = read_confined(input_path.parent, input_path.name, 16 * 1024 * 1024)
+            data = json.loads(raw, parse_constant=lambda value: (_ for _ in ()).throw(CaseError('non-finite JSON number')))
             result = {'create': create_case, 'scope': update_scope, 'import-run': import_run, 'decision': record_decision, 'run': run_collector, 'cancel': cancel_case, 'reopen': reopen_case, 'transition': transition_case, 'action': record_action, 'verification': record_verification}[args.command](args.case, data)
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 0
-    except (CaseError, OSError, ValueError, KeyError) as exc:
+    except (CaseError, OSError, ValueError, KeyError, RecursionError) as exc:
         print('case: ' + str(exc), file=sys.stderr)
         return 1
 

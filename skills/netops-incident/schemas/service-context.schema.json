@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/netops/service-context-v1.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "service_ref", "objects", "topology"],
+  "properties": {
+    "schema_version": {"const": 1}, "service_ref": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"},
+    "objects": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/object"}},
+    "topology": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/link"}}
+  },
+  "$defs": {
+    "text": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048, "pattern": "\\S"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"},
+    "object": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "type", "identity_state", "layer", "source", "source_native_id", "reason"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "type": {"enum": ["service", "customer_pseudonym", "site", "circuit", "access_line", "device", "interface", "vlan", "vrf", "session", "path", "alarm", "measurement", "sla", "acceptance_criterion"]},
+        "identity_state": {"enum": ["known", "unknown", "ambiguous"]},
+        "layer": {"enum": [null, "endpoint_lan", "access", "aggregation_subscriber_edge", "ip_bearer_transport", "internet_edge_interconnect", "destination_application"]},
+        "source": {"$ref": "#/$defs/text"}, "source_native_id": {"$ref": "#/$defs/text"}, "reason": {"$ref": "#/$defs/text"}
+      }
+    },
+    "link": {
+      "type": "object", "additionalProperties": false,
+      "required": ["from_id", "to_id", "relation", "state", "confidence", "reason"],
+      "properties": {
+        "from_id": {"$ref": "#/$defs/id"}, "to_id": {"$ref": "#/$defs/id"},
+        "relation": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "\\S"}, "state": {"enum": ["verified", "unverified", "ambiguous"]},
+        "confidence": {"enum": [null, "low", "medium", "high"]}, "reason": {"$ref": "#/$defs/text"}
+      }
+    }
+  }
+}
