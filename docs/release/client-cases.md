@@ -1,0 +1,11 @@
+# Client validation cases
+
+Record results against the exact artifact SHA-256 and client/tool versions. A local package build or Linux/WSL run does not establish MobileWork import, native Windows behavior, or external security results.
+
+| Case | Coverage | Operator action | Expected behavior | Result |
+|---|---|---|---|---|
+| V-01 | Load and invocation boundary | On the target client, load the frozen **suite** and confirm discovery of its eight packaged Skill entry points. Then ask the client to invoke a Skill or provider that is absent from a separate single-Skill package. | Record suite and single-Skill results separately. A standalone package must follow its own instructions and must not silently depend on an absent sibling or invented orchestration API. Check the actual scanner's entry filename interpretation. | `pending_user` |
+| V-02 | Normal default workflow | Using the exact `netops-incident` 0.2.0 artifact, prepare `validation-inputs/normal` and materialize its request on the target host. Ask for service acceptance review of the supplied sample with no change execution request. | The supplied historical evidence supports technical conformance; human acceptance remains pending. Cite the supplied evidence and state that it does not establish current network recovery. | `pending_user` |
+| V-03 | Input/output: change and error | With the same `netops-incident` 0.2.0 artifact, materialize the `missing-reverse` request and submit it. Then submit `malformed-input.json` to the documented local CLI. | The sample has five forward measurements and missing reverse-direction measurements: A-to-B is reviewable, B-to-A is unverified, and overall technical conformance is unverified. Malformed JSON is rejected without a fabricated report. | `pending_user` |
+
+The short handoff report covers these three client cases against the `netops-incident` 0.2.0 artifact. Record the other seven Skills individually in the [per-Skill ledger](per-skill-validation-ledger.md); suite loading does not prove every standalone package loads. Capture original screenshots and command transcripts in the user's evidence location. Do not replace evidence paths with reconstructed screenshots or inferred results.

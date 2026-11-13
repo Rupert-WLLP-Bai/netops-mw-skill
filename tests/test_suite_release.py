@@ -39,6 +39,8 @@ class SuiteReleaseTests(unittest.TestCase):
         second = self.root/'second'/'suite.zip'
         a = self.builder.build_suite(self.source, first)
         b = self.builder.build_suite(self.source, second)
+        self.assertEqual(a['version'], '0.2.0')
+        self.assertEqual(a['package'], 'network-skill-suite')
         self.assertEqual(first.read_bytes(), second.read_bytes())
         self.assertEqual(a['archive']['sha256'], hashlib.sha256(first.read_bytes()).hexdigest())
         self.assertEqual(a['archive'], b['archive'])
@@ -46,6 +48,11 @@ class SuiteReleaseTests(unittest.TestCase):
         with zipfile.ZipFile(first) as archive:
             self.assertEqual(set(archive.namelist()), EXPECTED)
             self.assertEqual(len(archive.namelist()), len(EXPECTED))
+            inventory = json.loads(archive.read('suite-inventory.json'))
+            self.assertEqual(inventory['version'], '0.2.0')
+            self.assertEqual({item['name']: item['version'] for item in inventory['skills']}, {
+                name: ('0.2.0' if name == 'netops-incident' else '0.1.0') for name in NAMES
+            })
             self.assertTrue(all(info.date_time == (1980,1,1,0,0,0) for info in archive.infolist()))
             for info in archive.infolist():
                 self.assertNotIn('..', Path(info.filename).parts)

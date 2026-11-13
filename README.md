@@ -94,6 +94,21 @@ records 259 passing regression tests, 153 fresh extracted runtime tests, 36 actu
 scoring finding and retained one nonblocking maintainability suggestion.
 [Optional local lab plans](docs/labs/carrier-controlled-experiments.md)
 remain unexecuted. None of these developer evaluation files enters a Skill archive.
+M6 was merged through [PR #17](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/pull/17).
+
+### Release and user validation handoff (M7)
+
+The [M7 plan](docs/implementation/carrier-m7-plan.md) prepares versioned suite/individual packages,
+portable representative inputs, user prompts and acceptance records. The
+[validation record](docs/validation-carrier-m7.md) separates engineering checks from user-deferred
+MobileWork, native Windows and external security assessment. Actual client verdicts and screenshots
+remain pending user validation.
+
+Build one independent package with `python3 -B scripts/build_skill.py --skill netops-incident --out dist/netops-incident-new.zip`.
+Build the complete handoff with `python3 -B scripts/build_handoff.py --out /tmp/netops-handoff-new`;
+choose a fresh destination outside the checkout. The [handoff guide](docs/release/README.md) contains
+three representative client cases, portable input commands, a manual expert prompt and pending
+security/evidence ledgers. A suite handoff is not a verified native expert package.
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 

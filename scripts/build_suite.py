@@ -37,6 +37,8 @@ SKILL_FILES = {
     'telecom-service-acceptance': ('LICENSE', 'SKILL.md', 'references/service-acceptance.md'),
 }
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+SUITE_VERSION = '0.2.0'
+SKILL_VERSIONS = {name: ('0.2.0' if name == 'netops-incident' else '0.1.0') for name in SKILL_FILES}
 
 class ReleaseError(Exception):
     """The release source or destination violates the package contract."""
@@ -89,7 +91,8 @@ def read_skill(root: Path, name: str, allowed: tuple[str, ...]) -> dict[str, byt
         result[name + '/' + relative] = content
     skill = result[name + '/SKILL.md'].decode('utf-8')
     parts = skill.split('---\n', 2)
-    if not skill.startswith('---\n') or len(parts) != 3 or not re.search(r'(?m)^name:\s*' + re.escape(name) + r'\s*$', parts[1]) or not re.search(r'(?m)^  version:\s*0\.1\.0\s*$', parts[1]):
+    version = SKILL_VERSIONS.get(name)
+    if not skill.startswith('---\n') or len(parts) != 3 or not re.search(r'(?m)^name:\s*' + re.escape(name) + r'\s*$', parts[1]) or not version or not re.search(r'(?m)^  version:\s*' + re.escape(version) + r'\s*$', parts[1]):
         raise ReleaseError('invalid skill name or version: ' + name)
     return result
 
@@ -101,11 +104,11 @@ def read_inventory(path: Path) -> bytes:
         inventory = json.loads(content)
     except (ValueError, UnicodeError) as exc:
         raise ReleaseError('invalid inventory') from exc
-    expected = {(name, '0.1.0') for name in SKILL_FILES}
+    expected = set(SKILL_VERSIONS.items())
     skills = inventory.get('skills') if isinstance(inventory, dict) else None
     if not isinstance(skills, list) or len(skills) != len(expected) or not all(isinstance(item, dict) and set(item) == {'name', 'version'} and isinstance(item['name'], str) and isinstance(item['version'], str) for item in skills):
         raise ReleaseError('invalid inventory skills')
-    if {(item['name'], item['version']) for item in skills} != expected or inventory.get('suite') != 'network-skill-suite' or inventory.get('version') != '0.1.0' or inventory.get('schema_version') != 1 or inventory.get('license') != 'Apache-2.0':
+    if {(item['name'], item['version']) for item in skills} != expected or inventory.get('suite') != 'network-skill-suite' or inventory.get('version') != SUITE_VERSION or inventory.get('schema_version') != 1 or inventory.get('license') != 'Apache-2.0':
         raise ReleaseError('inventory versions or license mismatch')
     provider = inventory.get('provider')
     controller = inventory.get('controller')
@@ -159,7 +162,7 @@ def build_suite(source_root: Path, output_zip: Path, manifest_path: Path | None 
         files.update(read_skill(source/'skills'/name, name, allowed))
     files['suite-inventory.json'] = read_inventory(source/'skills/suite-inventory.json')
     content = archive_bytes(files)
-    result = {'package': 'network-skill-suite', 'version': '0.1.0', 'archive': {'file': output.name, 'sha256': hashlib.sha256(content).hexdigest(), 'size_bytes': len(content)}, 'file_count': len(files), 'files': [{'path': name, 'sha256': hashlib.sha256(data).hexdigest(), 'size_bytes': len(data)} for name, data in sorted(files.items())]}
+    result = {'package': 'network-skill-suite', 'version': SUITE_VERSION, 'archive': {'file': output.name, 'sha256': hashlib.sha256(content).hexdigest(), 'size_bytes': len(content)}, 'file_count': len(files), 'files': [{'path': name, 'sha256': hashlib.sha256(data).hexdigest(), 'size_bytes': len(data)} for name, data in sorted(files.items())]}
     sidecar = (json.dumps(result, indent=2, sort_keys=True) + '\n').encode('utf-8')
     output.parent.mkdir(parents=True, exist_ok=True)
     manifest.parent.mkdir(parents=True, exist_ok=True)
