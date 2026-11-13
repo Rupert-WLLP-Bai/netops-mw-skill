@@ -3,11 +3,13 @@ import copy
 import hashlib
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEW = ROOT/'skills/netops-incident/scripts/review_service.py'
@@ -26,6 +28,7 @@ class ServiceReviewTests(unittest.TestCase):
         self.refs=importlib.util.module_from_spec(spec); spec.loader.exec_module(self.refs)
 
     def materialize(self,scenario,overrides=None,config_overrides=None):
+        self.assertNotIn('case_id',scenario['request'],'scenario metadata must not enter provider requests')
         row_ids={}; run_ids={}; runs={}
         for source in scenario['sources']:
             key=source['run_key']; config_path=(FIXTURES/source['config_path']).resolve(); input_path=(FIXTURES/source['input_path']).resolve()
@@ -36,16 +39,21 @@ class ServiceReviewTests(unittest.TestCase):
             if config_overrides and key in config_overrides: config=config_overrides[key](copy.deepcopy(config))
             cache_key=hashlib.sha256(json.dumps([config,data],sort_keys=True).encode()).hexdigest()
             if cache_key not in self.cache:
-                folder=self.root/(cache_key+'-source'); folder.mkdir()
-                if isinstance(data,dict) and isinstance(data.get('records'),list):
-                    header={key:value for key,value in data.items() if key!='records'}
-                    source_text=json.dumps(header)[:-1]+',"records":[\n'+',\n'.join(json.dumps(row,separators=(',',':')) for row in data['records'])+'\n]}'
-                else: source_text=json.dumps(data)
-                (folder/'input.json').write_text(source_text)
-                config_file=self.root/(cache_key+'-config.json'); config_file.write_text(json.dumps(config)); out=self.root/(cache_key+'-run')
-                result=subprocess.run([sys.executable,'-B',str(INGEST),'--source-root',str(folder),'--source','input.json','--config',str(config_file),'--out',str(out),'--private-out',str(self.root/(cache_key+'-private'))],capture_output=True,text=True)
-                self.assertEqual(result.returncode,0,result.stderr); self.assertEqual(json.loads(result.stdout)['parse_status'],'complete')
-                self.cache[cache_key]=out
+                attempt=Path(tempfile.mkdtemp(prefix='ingest-',dir=self.root))
+                try:
+                    folder=attempt/'source'; folder.mkdir()
+                    if isinstance(data,dict) and isinstance(data.get('records'),list):
+                        header={key:value for key,value in data.items() if key!='records'}
+                        source_text=json.dumps(header)[:-1]+',"records":[\n'+',\n'.join(json.dumps(row,separators=(',',':')) for row in data['records'])+'\n]}'
+                    else: source_text=json.dumps(data)
+                    (folder/'input.json').write_text(source_text)
+                    config_file=attempt/'config.json'; config_file.write_text(json.dumps(config)); out=attempt/'run'
+                    result=subprocess.run([sys.executable,'-B',str(INGEST),'--source-root',str(folder),'--source','input.json','--config',str(config_file),'--out',str(out),'--private-out',str(attempt/'private')],capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stderr); self.assertEqual(json.loads(result.stdout)['parse_status'],'complete')
+                    self.cache[cache_key]=out
+                except BaseException:
+                    shutil.rmtree(attempt)
+                    raise
             out=self.cache[cache_key]
             evidence=[json.loads(line) for line in (out/'evidence.jsonl').read_text().splitlines() if line.strip()]
             keys=source['row_keys']; self.assertEqual(len(keys),len(evidence)); self.assertEqual(len(keys),len(set(keys)))
@@ -54,6 +62,25 @@ class ServiceReviewTests(unittest.TestCase):
         request=self.refs.resolve_row_refs(copy.deepcopy(scenario['request']),row_ids)
         request['runs']=[runs[run['run_id']] for run in request['runs']]
         return request,row_ids
+
+    def test_failed_ingest_retry_is_isolated_and_scenario_metadata_stays_out(self):
+        full=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        source=next(item for item in full['sources'] if item['run_key']=='topology')
+        topology_run=next(item for item in full['request']['runs'] if item['run_id']==full['request']['service']['topology_run_id'])
+        scenario=dict(case_id='developer-only',sources=[source],request=dict(runs=[topology_run]))
+        sentinel=self.root/'untouched'; sentinel.write_text('preserve')
+        def rejected(args,**kwargs):
+            Path(args[args.index('--out')+1]).mkdir()
+            Path(args[args.index('--private-out')+1]).mkdir()
+            return subprocess.CompletedProcess(args,0,stdout=json.dumps({'parse_status':'parse_error'}),stderr='')
+        with mock.patch.object(subprocess,'run',side_effect=rejected):
+            with self.assertRaises(AssertionError): self.materialize(scenario)
+        self.assertEqual(sentinel.read_text(),'preserve')
+        self.assertEqual(set(self.root.iterdir()),{sentinel}); self.assertFalse(self.cache)
+        request,rows=self.materialize(scenario)
+        self.assertNotIn('case_id',request); self.assertIn('topology',rows)
+        leaked=copy.deepcopy(scenario); leaked['request']['case_id']='developer-only'
+        with self.assertRaisesRegex(AssertionError,'scenario metadata'): self.materialize(leaked)
 
     def review(self,request):
         path=self.root/'review.json'; path.write_text(json.dumps(request))
@@ -65,6 +92,10 @@ class ServiceReviewTests(unittest.TestCase):
         scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text()); request,_=self.materialize(scenario)
         result=self.review(request)
         self.assertEqual(result['technical_status'],'conformant'); self.assertEqual(result['acceptance_status'],'awaiting_human_signoff'); self.assertEqual(result['human_signoff'],'pending')
+        unexpected=copy.deepcopy(request); unexpected['case_id']='developer-only'
+        bad_input=self.root/'unexpected-field.json'; bad_input.write_text(json.dumps(unexpected))
+        rejected=subprocess.run([sys.executable,'-B',str(REVIEW),'--input',str(bad_input)],capture_output=True,text=True)
+        self.assertNotEqual(rejected.returncode,0); self.assertEqual(rejected.stdout,'')
         report=result['draft_report']
         for heading in ('# Service acceptance and handover draft','## Field comparisons','## Acceptance tests','## Change review','## Outstanding evidence and signoff'):
             self.assertIn(heading,report)

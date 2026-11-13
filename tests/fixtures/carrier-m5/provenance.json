@@ -86,13 +86,13 @@
     },
     {
       "path": "cases/case-001/scenario.json",
-      "sha256": "d48f92ed21b8abeff81b711c6ddef944a192a952c1d75ca45b41c3933805d0b2",
-      "bytes": 1254
+      "sha256": "b853e05010777f540c9e6c4b791025cf850f55dbefa9b1643a7efcba223bfd35",
+      "bytes": 1233
     },
     {
       "path": "cases/case-002/scenario.json",
-      "sha256": "70e819fc98c236fea0e4183c395139921ac5ffe574604576d8da85890e1fddf8",
-      "bytes": 406922
+      "sha256": "2d04121939f0dc8cea7e71a37d02bcfeff631065e494be92c53fa10500c155d2",
+      "bytes": 406901
     },
     {
       "path": "cases/case-002/sources/actual-fields/config.json",
@@ -126,8 +126,8 @@
     },
     {
       "path": "cases/case-003/scenario.json",
-      "sha256": "bfaae71d95dd2f687cc87eaa3434441e5eded53371447eb4b7a448fa4ff5c802",
-      "bytes": 406922
+      "sha256": "12e56a9a158b86e7972222d493e93427767f513781c0a6d5a1ed617b89f5d66c",
+      "bytes": 406901
     },
     {
       "path": "cases/case-003/sources/actual-fields/config.json",
@@ -161,8 +161,8 @@
     },
     {
       "path": "cases/case-004/scenario.json",
-      "sha256": "1fb423938f138387960ce9ec18cf0927402250a3315326cb5a8fa11c10f21b91",
-      "bytes": 406892
+      "sha256": "e706669934487e39fe9a4e4f3e3882eae09c44313b8d8c10e684a4d77cd6fd34",
+      "bytes": 406871
     },
     {
       "path": "cases/case-004/sources/actual-fields/config.json",
@@ -181,8 +181,8 @@
     },
     {
       "path": "cases/case-005/scenario.json",
-      "sha256": "87d4c5c1f603efb54b9be67ab387ad6b903f04d56dc299ea25654f91a2d102c0",
-      "bytes": 406892
+      "sha256": "a01cfb821ca2a4e8918bb6810378b65e9df48d08ad4361018d374cef75bab52f",
+      "bytes": 406871
     },
     {
       "path": "cases/case-005/sources/actual-tests/config.json",
@@ -231,8 +231,8 @@
     },
     {
       "path": "cases/case-012/scenario.json",
-      "sha256": "2379b6af05791ad656da729886efdc76e42317f17bebc73fafebddc03d623763",
-      "bytes": 377982
+      "sha256": "2587e8c86a0d80bf09611ade6275955ace6448456aef6d6e5292e6e10a5cd286",
+      "bytes": 377961
     },
     {
       "path": "cases/case-012/sources/actual-fields/config.json",
@@ -271,8 +271,8 @@
     },
     {
       "path": "cases/case-014/scenario.json",
-      "sha256": "65068f60ac542610f708f26b5dce554ab8144a802cdf7a0bf5b775dc8cc946db",
-      "bytes": 406891
+      "sha256": "ca9af65da803456815c4795eb789cdf299fd471203737b19b61733afc26e9e60",
+      "bytes": 406870
     },
     {
       "path": "cases/case-014/sources/actual-tests/config.json",
@@ -291,8 +291,8 @@
     },
     {
       "path": "cases/case-015/scenario.json",
-      "sha256": "353b06964bff6587866e128513d2fe3bb8b40491c7400eeb2b77cb4dbf9ef96c",
-      "bytes": 406892
+      "sha256": "08bcc2590cec59b65f2f5ef54f4acef93280e849a0cdca836f12657bd81f3795",
+      "bytes": 406871
     },
     {
       "path": "cases/case-015/sources/design/config.json",
@@ -311,8 +311,8 @@
     },
     {
       "path": "cases/case-016/scenario.json",
-      "sha256": "c773055d11a24d32e3351682f61edd6e9a557177ba15554b1d3fce8008f4d50c",
-      "bytes": 406892
+      "sha256": "7f9905f3df45a0e2f7aab4b1d23bb646c2e275cfac07a3b1d5cd647e1ca77fe1",
+      "bytes": 406871
     },
     {
       "path": "cases/case-016/sources/calibration/config.json",
@@ -426,7 +426,7 @@
     },
     {
       "path": "sources/criteria/input.json",
-      "sha256": "d7f30d384d984851ebbb8fffa9392ccb5af671e290d189a15e932f9596a75e01",
+      "sha256": "47b2837a48b2eebc03ed0b5ecf049f34bc2e43a431fc10eac62ff2096dfe1677",
       "bytes": 20428
     },
     {
