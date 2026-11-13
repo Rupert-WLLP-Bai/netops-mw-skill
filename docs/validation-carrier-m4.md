@@ -74,3 +74,30 @@ P2 findings. Corrections are now in progress; this successful gate does not cove
 full/extracted checks, package/provenance/managed-PCAP verification, and independent Sol review
 remain pending. Earlier failed gate records above are preserved.
 
+## R2 pre-review gate and corrections required
+
+After the first correction pass at `c7625bf`, a pre-R2 gate passed 210 full-suite tests and 131
+extracted tests. The reproducible 55-file suite archive had SHA-256
+`de814a87a24a9390aa6a4ce4a63d260a38b137a4d0900628ac87467841d8588e`; seven Skill validators,
+package/hash verification, and managed-PCAP compatibility also passed. Evidence is retained at
+`.tools/carrier-m4/full-suite-isolated.log`,
+`.tools/carrier-m4/isolated-delivery/extracted-tests.log`,
+`.tools/carrier-m4/isolated-delivery/delivery-verification.json`,
+`.tools/carrier-m4/delivery-isolated.log`,
+`.tools/carrier-m4/skill-validators-reviewed.json`, and the two build manifests under
+`.tools/carrier-m4/isolated-delivery/build-{a,b}/network-skill-suite-m4.manifest.json`.
+
+The R2 Standards review found one P2: categorical `profile_aggregation` conflicts were filtered by
+optional unit labels. The R2 Spec review found two P2s: applicable profile changes during the used
+measurement window were missed, and an observed cumulative decrease could be skipped while deriving
+an outer delta. Findings and reproductions are retained in `.tools/carrier-m4/sol-standards-r2.md`,
+`.tools/carrier-m4/sol-spec-r2.md`,
+`.tools/carrier-m4/standards-probes-r2/profile-aggregation-units.json`,
+`.tools/carrier-m4/sol-spec-r2-profile-window.json`, and
+`.tools/carrier-m4/sol-spec-r2-counter-decrease.json`.
+
+The c7625bf gate is a successful pre-review result only; it does not cover these R2 findings. Their
+corrections are in progress. Renewed full/extracted checks, validators, package/provenance/managed-PCAP
+verification, and independent Sol review remain pending. Earlier failed gate records are preserved.
+Actual M7 MobileWork, native Windows, and external-security validation remains user-deferred.
+

@@ -1,6 +1,7 @@
 """Shared bounded evidence, scope and time checks for offline analyzers."""
 from __future__ import annotations
 
+import heapq
 import math
 import os
 import tempfile
@@ -200,17 +201,29 @@ def _ordered(left, right):
 
 
 def _counter_discontinuities(left, right, observations):
-    """Find declared discontinuities that overlap the candidate counter interval."""
+    """Find declared discontinuities or observed cumulative decreases in the candidate interval."""
     try:
         begin = timestamp(left['carrier']['event_time']) - timedelta(seconds=left['carrier']['clock_uncertainty_seconds'])
         end = timestamp(right['carrier']['event_time']) + timedelta(seconds=right['carrier']['clock_uncertainty_seconds'])
+        samples = [left, right]
         for item in observations:
             row = item['row']
             if item['key'] in (left['key'], right['key']) or row['metric'] != left['row']['metric'] or not _same_scope(left, item): continue
-            if row['reset_state'] == 'none' and row['counter_semantics'] == 'cumulative': continue
             event = timestamp(item['carrier']['event_time'])
             uncertainty = timedelta(seconds=item['carrier']['clock_uncertainty_seconds'])
-            if event + uncertainty >= begin and event - uncertainty <= end: return True
+            if event + uncertainty < begin or event - uncertainty > end: continue
+            if row['reset_state'] != 'none' or row['counter_semantics'] != 'cumulative': return True
+            value = row['value']
+            if isinstance(value,bool) or not isinstance(value,(int,float)) or not row['sample_count'] or not _same(left,item): continue
+            samples.append(item)
+        intervals = sorted((timestamp(item['carrier']['event_time']) - timedelta(seconds=item['carrier']['clock_uncertainty_seconds']), timestamp(item['carrier']['event_time']) + timedelta(seconds=item['carrier']['clock_uncertainty_seconds']), item['row']['value']) for item in samples)
+        pending = []; highest = None
+        for low,high,value in intervals:
+            while pending and pending[0][0] < low:
+                _,earlier = heapq.heappop(pending)
+                highest = earlier if highest is None else max(highest,earlier)
+            if highest is not None and value < highest: return True
+            heapq.heappush(pending,(high,value))
     except (OverflowError, ValueError):
         return True
     return False

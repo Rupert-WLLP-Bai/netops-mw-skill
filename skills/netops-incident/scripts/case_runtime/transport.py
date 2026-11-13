@@ -130,7 +130,7 @@ def _coverage_window(item, windows, gaps):
     return applicable[0]
 
 
-def _profile_conflicts(profile, chosen, evidence, runs, request, reference, start, end):
+def _profile_conflicts(profile, chosen, evidence, runs, request, reference, start, end, window):
     conflicts = []
     begin,until = timestamp(profile['valid_from']),timestamp(profile['valid_until'])
     for key,item in evidence.items():
@@ -140,10 +140,10 @@ def _profile_conflicts(profile, chosen, evidence, runs, request, reference, star
         if key == selected['key'] or row['value'] == selected['row']['value']: continue
         carrier = item['carrier']
         if (carrier['source'],carrier['source_native_id']) != (profile['source'],profile['profile_id']): continue
-        if row['direction'] != profile['direction'] or row['unit'] != selected['row']['unit']: continue
+        if row['direction'] != profile['direction'] or (row['metric']=='utilization_limit' and row['unit'] != selected['row']['unit']): continue
         if runs[key[0]]['adapter'].get('parse_status')!='complete' or not _fresh(carrier,request,reference,start,end) or not _inside_interval(carrier,begin,until) or not _valid(item): continue
         candidate = _evidence_item(item,key,profile['resource_id'])
-        if _same_event(candidate,selected): conflicts.append(candidate)
+        if not _ordered(candidate,window['start']) and not _ordered(window['end'],candidate): conflicts.append(candidate)
     return conflicts
 
 
@@ -271,7 +271,7 @@ def analyze(request):
             for profile in request['transport_profiles']:
                 chosen=_profile(profile,util['resource'],util['row']['direction'],agg,util['row']['unit'],evidence,runs,request,reference,start,end)
                 if chosen and all(_inside_interval(item['carrier'],timestamp(profile['valid_from']),timestamp(profile['valid_until'])) for item in (a,b,util)):
-                    conflicts = _profile_conflicts(profile,chosen,evidence,runs,request,reference,start,end)
+                    conflicts = _profile_conflicts(profile,chosen,evidence,runs,request,reference,start,end,util_window)
                     if conflicts:
                         disputed=True
                         gaps.add('conflicting_observations')

@@ -278,29 +278,37 @@ class TransportTests(unittest.TestCase):
     def test_counter_discontinuity_inside_interval_blocks_queue_but_unrelated_does_not(self):
         root=ROOT/'tests/fixtures/carrier-m4'; source=root/'cases/case-005/sources/observations.json'
         config=root/'sources/observations/config.json'
-        variants=[('reset','reset','cumulative','00:05:30','egress','queue_drops',True),('wrap','wrap','cumulative','00:05:30','egress','queue_drops',True),('unknown','unknown','unknown','00:05:30','egress','queue_drops',True),('outside','reset','cumulative','00:04:00','egress','queue_drops',False),('otherdirection','reset','cumulative','00:05:30','ingress','queue_drops',False),('othermetric','reset','cumulative','00:05:30','egress','interface_crc',False)]
-        for name,state,semantics,time,direction,metric,blocks in variants:
+        variants=[('reset','reset','cumulative','00:05:30','egress','queue_drops',5,True),('wrap','wrap','cumulative','00:05:30','egress','queue_drops',5,True),('unknown','unknown','unknown','00:05:30','egress','queue_drops',5,True),('decrease','none','cumulative','00:05:30','egress','queue_drops',5,True),('laterdecrease','none','cumulative','00:05:30','egress','queue_drops',130,True),('innerdecrease','none','cumulative','00:05:30','egress','queue_drops',115,True),('innermonotonic','none','cumulative','00:05:30','egress','queue_drops',105,False),('monotonic','none','cumulative','00:05:30','egress','queue_drops',110,False),('outside','reset','cumulative','00:04:00','egress','queue_drops',5,False),('outsidedecrease','none','cumulative','00:04:00','egress','queue_drops',5,False),('otherdirection','reset','cumulative','00:05:30','ingress','queue_drops',5,False),('othermetric','reset','cumulative','00:05:30','egress','interface_crc',5,False)]
+        for name,state,semantics,time,direction,metric,value,blocks in variants:
             with self.subTest(name=name):
                 request=self.materialize_fixture('case-005',name); data=json.loads(source.read_text())
-                row=dict(data['records'][1],value=5,reset_state=state,counter_semantics=semantics,event_time='2026-11-13T'+time+'Z',direction=direction,metric=metric)
-                data['records'].append(row); self.replace_fixture_run(request,'counter-'+name,config,data)
+                row=dict(data['records'][1],value=value,reset_state=state,counter_semantics=semantics,event_time='2026-11-13T'+time+'Z',direction=direction,metric=metric)
+                data['records'].append(row)
+                if name in ('innerdecrease','innermonotonic'):
+                    data['records'].append(dict(row,value=110 if blocks else 115,event_time='2026-11-13T00:05:45Z'))
+                self.replace_fixture_run(request,'counter-'+name,config,data)
                 binding=copy.deepcopy(request['bindings'][1]); binding['record']['evidence_id']='ev-00000000000b'; request['bindings'].append(binding)
+                if name in ('innerdecrease','innermonotonic'):
+                    binding=copy.deepcopy(binding); binding['record']['evidence_id']='ev-00000000000c'; request['bindings'].append(binding)
                 result=self.analyze(request); codes={item['code'] for item in result['findings']}
                 if blocks:
-                    self.assertNotIn('counter_increase',codes); self.assertNotIn('queue_condition',codes); self.assertIn('counter_discontinuity',result['gaps'])
+                    self.assertNotIn('queue_condition',codes); self.assertIn('counter_discontinuity',result['gaps'])
+                    for finding in result['findings']:
+                        if finding['code']=='counter_increase':
+                            refs={(ref['run_id'],ref['evidence_id']) for ref in finding['support']}
+                            self.assertFalse({('m4-observations','ev-000000000002'),('m4-observations','ev-000000000003')}.issubset(refs))
                 else: self.assertIn('queue_condition',codes)
 
     def test_conflicting_imported_profile_is_counterevidence_not_a_queue_fault(self):
         root=ROOT/'tests/fixtures/carrier-m4/sources/profile'
-        for name,index,value in [('limit',0,95),('aggregation',1,'max'),('other-time',0,95)]:
+        for name,index,value,event,unit,conflicts in [('limit',0,95,'00:05:00','%',True),('limit-middle',0,95,'00:05:30','%',True),('limit-end',0,95,'00:06:00','%',True),('limit-before',0,95,'00:04:00','%',False),('limit-after',0,95,'00:07:00','%',False),('limit-other-unit',0,95,'00:05:30','1',False),('aggregation',1,'max','00:05:00',None,True),('aggregation-middle',1,'max','00:05:30','%',True),('aggregation-end',1,'max','00:06:00','%',True),('aggregation-after',1,'max','00:07:00','%',False)]:
             with self.subTest(field=name):
                 request=self.materialize_fixture('case-005','profile'+name)
-                data=json.loads((root/'input.json').read_text()); opposing=dict(data['records'][index],value=value)
-                if name=='other-time': opposing['event_time']='2026-11-13T00:04:00Z'
+                data=json.loads((root/'input.json').read_text()); opposing=dict(data['records'][index],value=value,unit=unit,event_time='2026-11-13T'+event+'Z')
                 data['records'].append(opposing)
                 self.replace_fixture_run(request,'profile-'+name,root/'config.json',data)
                 result=self.analyze(request); codes={item['code'] for item in result['findings']}
-                if name=='other-time':
+                if not conflicts:
                     self.assertIn('queue_condition',codes); self.assertNotIn('profile_conflict',codes); continue
                 self.assertNotIn('queue_condition',codes); self.assertEqual(result['status'],'insufficient_evidence')
                 conflict=next(item for item in result['findings'] if item['code']=='profile_conflict')
