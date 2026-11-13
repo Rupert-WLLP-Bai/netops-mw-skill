@@ -1,0 +1,8 @@
+{
+  "format": "telemetry-json-v1", "version": 1,
+  "records": [
+    {"metric": "pon_session_state", "value": "up", "unit": null, "direction": "ingress", "denominator": null, "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:06:00Z", "object_id": "fixture-access-resource"},
+    {"metric": "pon_session_state", "value": "down", "unit": null, "direction": "ingress", "denominator": null, "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:07:00Z", "object_id": "fixture-access-resource"},
+    {"metric": "pon_session_state", "value": "up", "unit": null, "direction": "ingress", "denominator": null, "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:08:00Z", "object_id": "fixture-access-resource"}
+  ]
+}

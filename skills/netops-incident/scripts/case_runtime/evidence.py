@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -82,27 +83,59 @@ def read_confined(root: Path, relative: str, max_bytes: int) -> bytes:
         for fd in reversed(fds):
             os.close(fd)
 
-def strict_json(data):
+def strict_json(data, reject_duplicates=False):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise CaseError('duplicate JSON key')
+            result[key] = value
+        return result
     try:
-        return json.loads(data, parse_constant=lambda value: (_ for _ in ()).throw(CaseError('non-finite JSON number')))
+        if reject_duplicates and isinstance(data, (bytes, bytearray)):
+            data = data.decode('utf-8')
+        return json.loads(data, object_pairs_hook=pairs if reject_duplicates else None, parse_constant=lambda value: (_ for _ in ()).throw(CaseError('non-finite JSON number')))
     except (UnicodeError, ValueError, RecursionError) as exc:
         raise CaseError('invalid JSON') from exc
 
-def validate_run(data):
+def validate_run(data, limits=None):
     run_id = token(data.get('run_id'), 'run_id')
     root = Path(nonempty(data.get('run_dir'), 'run_dir'))
     expected = data.get('expected_summary_hashes')
     if not isinstance(expected, dict) or set(expected) != set(SUMMARIES):
         raise CaseError('four expected summary hashes are required')
-    snapshots = {name: read_confined(root, name, LIMIT) for name in SUMMARIES}
+    total = 0
+    artifacts = {}
+    def checked_read(name):
+        nonlocal total
+        if limits is None:
+            return read_confined(root, name, LIMIT)
+        if name in artifacts:
+            return artifacts[name]
+        remaining = min(limits['per_run'] - total, limits['aggregate'][0])
+        if remaining < 0: raise CaseError('run byte budget exceeded')
+        content = read_confined(root, name, remaining)
+        total += len(content)
+        limits['aggregate'][0] -= len(content)
+        artifacts[name] = content
+        return content
+    snapshots = {name: checked_read(name) for name in SUMMARIES}
     if sum(map(len, snapshots.values())) > 32 * 1024 * 1024:
         raise CaseError('summary limit exceeded')
     if any(expected[name] != sha(content) for name, content in snapshots.items()):
         raise CaseError('summary hash mismatch')
-    manifest = strict_json(snapshots['manifest.json'])
-    diagnosis = strict_json(snapshots['diagnosis.json'])
+    manifest = strict_json(snapshots['manifest.json'], limits is not None)
+    diagnosis = strict_json(snapshots['diagnosis.json'], limits is not None)
     try:
-        records = [strict_json(line) for line in snapshots['evidence.jsonl'].splitlines() if line.strip()]
+        if limits is None:
+            records = [strict_json(line) for line in snapshots['evidence.jsonl'].splitlines() if line.strip()]
+        else:
+            records = []
+            for line in io.BytesIO(snapshots['evidence.jsonl']):
+                if not line.strip(): continue
+                if limits['records'][0] <= 0: raise CaseError('record budget exceeded')
+                limits['records'][0] -= 1
+                records.append(strict_json(line, True))
     except (TypeError, ValueError) as exc:
         raise CaseError('invalid evidence stream') from exc
     if not isinstance(manifest, dict) or manifest.get('run_id') != run_id or not isinstance(diagnosis, dict):
@@ -116,6 +149,11 @@ def validate_run(data):
     artifact_hashes = manifest.get('artifact_hashes')
     if not isinstance(artifact_hashes, dict):
         raise CaseError('missing artifact hashes')
+    if limits is not None:
+        from .carrier import bounded
+        bounded(manifest); bounded(diagnosis)
+        if not isinstance(manifest.get('carrier_adapter'), dict) or set(artifact_hashes) != set(SUMMARIES[1:]) | {'carrier-visible.json'}:
+            raise CaseError('access analysis requires an M2 run')
     for name in SUMMARIES[1:]:
         if artifact_hashes.get(name) != sha(snapshots[name]):
             raise CaseError('manifest summary hash mismatch')
@@ -131,12 +169,16 @@ def validate_run(data):
         sources = record.get('sources', [])
         if not isinstance(sources, list):
             raise CaseError('invalid evidence sources')
+        if limits is not None:
+            bounded(record)
+            if len(sources) != 1 or not isinstance(sources[0], dict) or sources[0].get('kind') != 'run_artifact' or sources[0].get('path') != 'carrier-visible.json':
+                raise CaseError('unsupported access artifact')
         for source in sources:
             if not isinstance(source, dict):
                 raise CaseError('invalid source')
             if source.get('kind') == 'run_artifact':
                 name = source.get('path')
-                content = read_confined(root, name, LIMIT)
+                content = checked_read(name)
                 if sha(content) != source.get('sha256') or artifact_hashes.get(name) != sha(content):
                     raise CaseError('source hash mismatch')
     def check_refs(value, key=None):
@@ -163,6 +205,8 @@ def validate_run(data):
         bounded({'service_context': context, 'carrier_evidence': envelope})
         if context is not None: validate_context(context)
         if envelope is not None: validate_envelope(envelope, context, records)
+    if limits is not None and 'carrier-visible.json' in artifacts:
+        snapshots['carrier-visible.json'] = artifacts['carrier-visible.json']
     return snapshots, manifest, diagnosis, sorted(ids)
 
 def import_run(case_dir, data, allow_terminal=False):

@@ -1,0 +1,1 @@
+{"format":"telemetry-json-v1","version":1,"records":[{"metric":"dhcp_pool","value":"exhausted","unit":null,"direction":"ingress","denominator":null,"sample_interval_seconds":null,"sample_count":1,"counter_semantics":"gauge","reset_state":"none","event_time":"2026-11-13T00:08:00Z","object_id":"fixture-access-resource"}]}
