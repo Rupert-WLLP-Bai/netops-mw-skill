@@ -1,0 +1,1264 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "case-001",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "optical_degradation",
+              "layer": "access",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "application_failure",
+            "wifi_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-002",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "pon_flap",
+              "layer": "access",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "optical_degradation",
+            "los_active",
+            "lof_active"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-003",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "dhcp_exhaustion",
+              "layer": "aggregation_subscriber_edge",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "auth_reject",
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-004",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "route_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "route_service_correlation",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "service_failure",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:6",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-005",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "queue_condition",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "observations:8",
+                  "observations:9",
+                  "profile:1",
+                  "profile:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:10"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-006",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "mtu_discrepancy",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "mtu_scoped_failure",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-007",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "bgp_peer_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:3"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "route_service_correlation"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-008",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "igp_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ],
+                [
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:4"
+              ]
+            },
+            {
+              "code": "igp_flap",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:4"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "route_service_correlation"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-009",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "lag_member_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:3"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "route_service_correlation"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-010",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "ecmp_asymmetry",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-011",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "traceroute_observation",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ],
+                [
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-012",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "wifi_failure",
+              "layer": "endpoint_lan",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:5",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:1",
+                "observations:2",
+                "observations:3",
+                "observations:4"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "optical_degradation",
+            "forwarding_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-013",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "pon_flap",
+              "layer": "access",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "optical_degradation",
+            "los_active",
+            "lof_active"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-014",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "dhcp_failure",
+              "layer": "aggregation_subscriber_edge",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:1"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "auth_reject",
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-015",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "route_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "route_service_correlation",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "service_failure",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:6",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-016",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [
+            "counter_reset"
+          ],
+          "claims": [],
+          "prohibited_codes": [
+            "counter_increase",
+            "queue_condition",
+            "service_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-017",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [],
+          "prohibited_codes": [
+            "los_active",
+            "lof_active",
+            "optical_degradation"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-018",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [],
+          "prohibited_codes": [
+            "auth_reject",
+            "dhcp_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-019",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [
+            "missing_mtu_evidence"
+          ],
+          "claims": [
+            {
+              "code": "pmtud_suspected",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "mtu_scoped_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-020",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [
+            "stale_or_outside_window"
+          ],
+          "claims": [],
+          "prohibited_codes": [
+            "counter_increase",
+            "queue_condition",
+            "service_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-021",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-022",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-023",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-024",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-025",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-026",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-027",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-028",
+      "jobs": [
+        {}
+      ]
+    },
+    {
+      "case_id": "case-029",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "optical_degradation",
+              "layer": "access",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "application_failure",
+            "wifi_failure"
+          ]
+        },
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "bgp_peer_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:3"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "route_service_correlation"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-030",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "pon_flap",
+              "layer": "access",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "optical_degradation",
+            "los_active",
+            "lof_active"
+          ]
+        },
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "route_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "route_service_correlation",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "service_failure",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:6",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-031",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "wifi_failure",
+              "layer": "endpoint_lan",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:5",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:1",
+                "observations:2",
+                "observations:3",
+                "observations:4"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "optical_degradation",
+            "forwarding_failure"
+          ]
+        },
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "igp_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ],
+                [
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:4"
+              ]
+            },
+            {
+              "code": "igp_flap",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:4"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "route_service_correlation"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-032",
+      "jobs": [
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "dhcp_failure",
+              "layer": "aggregation_subscriber_edge",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:1"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "auth_reject",
+            "application_failure"
+          ]
+        },
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "lag_member_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:3"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "route_service_correlation"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-033",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "counter_increase",
+              "layer": "access",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:3",
+                  "observations:4",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "optical_degradation"
+          ]
+        },
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "queue_condition",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "observations:8",
+                  "observations:9",
+                  "profile:1",
+                  "profile:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:10"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-034",
+      "jobs": [
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [],
+          "prohibited_codes": [
+            "auth_reject",
+            "dhcp_failure"
+          ]
+        },
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "mtu_discrepancy",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "mtu_scoped_failure",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-035",
+      "jobs": [
+        {},
+        {
+          "expected_state": "fault_observed",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "route_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "route_service_correlation",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "observations:2",
+                  "observations:3",
+                  "observations:4",
+                  "observations:5",
+                  "observations:6",
+                  "observations:7",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            },
+            {
+              "code": "service_failure",
+              "layer": "ip_bearer_transport",
+              "fault_class": true,
+              "status": null,
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:6",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": []
+            }
+          ],
+          "prohibited_codes": [
+            "application_failure"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "case-036",
+      "jobs": [
+        {},
+        {
+          "expected_state": "insufficient_evidence",
+          "required_gaps": [],
+          "claims": [
+            {
+              "code": "bgp_peer_event",
+              "layer": "ip_bearer_transport",
+              "fault_class": false,
+              "status": "insufficient_evidence",
+              "scope": {},
+              "support_sets": [
+                [
+                  "observations:1",
+                  "topology:1"
+                ],
+                [
+                  "observations:2",
+                  "topology:1"
+                ]
+              ],
+              "counter_refs": [
+                "observations:3"
+              ]
+            }
+          ],
+          "prohibited_codes": [
+            "service_failure",
+            "route_service_correlation"
+          ]
+        }
+      ]
+    }
+  ]
+}

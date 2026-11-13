@@ -11,8 +11,8 @@ superseded by that explicit authorization. Offline/device/production boundaries 
 | M2 / #6 / PR #13 | Merged, `147c2af`; source `f78c897`; 162 full and 83 extracted tests; final Sol pass | No implementation work remains |
 | M3 / #7 / PR #14 | Merged, `4087d4e`; source `60e7e8b`; 185 full / 106 extracted tests, 12 cases and final Sol R3 pass | No implementation work remains |
 | M4 / #8 / PR #15 | Merged, `8b210eb`; source `45a0743`; 210 full / 131 extracted tests, 12 cases and final Sol R3 pass | No implementation work remains |
-| M5 / #9 | Verified source `f1c8441`; 232 full / 153 extracted tests, 17 cases and final Sol pass; PR integration pending | Create and merge the verified-head PR |
-| M6 / #10 | Open | At least 36 scenarios, independent scoring, hidden/visible isolation and experiment validity |
+| M5 / #9 / PR #16 | Merged, `6a7eed1`; source `f1c8441`; 232 full / 153 extracted tests, 17 cases and final Sol pass | No implementation work remains |
+| M6 / #10 | In progress on `feat/carrier-m6-evaluation` | At least 36 scenarios, independent scoring, hidden/visible isolation and experiment validity |
 | M7 / #11 | Open; user-owned validation execution deferred | Prepare versioned packages/hashes, prompts, acceptance criteria and evidence/document handoff; PR and merge |
 
 Terra/Luna implemented the earlier milestones. After the environment restart, the user explicitly
@@ -29,3 +29,8 @@ Windows, actual MobileWork or external security acceptance. Their results remain
 validation, never prefilled as passed. Package preparation and engineering regression/build checks
 remain separate from those acceptance runs. No operational publication or production access is
 authorized by repository merge permission.
+
+The user subsequently requested a short report draft using their Word template and publication
+slides. Prepare three representative V-01/V-02/V-03 records, leave original screenshot slots and
+actual client verdicts pending, and use plain Chinese in that user-owned external document. The
+user confirmed that only this report is simplified; necessary engineering regression remains.

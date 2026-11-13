@@ -1,0 +1,573 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "case-001",
+      "primary_group": "true_fault",
+      "prompt": "Please review the supplied evidence for this operator request. A subscriber reports intermittent service and low optical receive readings.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-001",
+          "provider": "access",
+          "ticket": "A subscriber reports intermittent service and low optical receive readings."
+        }
+      ]
+    },
+    {
+      "case_id": "case-002",
+      "primary_group": "true_fault",
+      "prompt": "Please review the supplied evidence for this operator request. A subscriber reports repeated access session drops.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-002",
+          "provider": "access",
+          "ticket": "A subscriber reports repeated access session drops."
+        }
+      ]
+    },
+    {
+      "case_id": "case-003",
+      "primary_group": "true_fault",
+      "prompt": "Please review the supplied evidence for this operator request. A subscriber reports new address assignment failures at the aggregation edge.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-009",
+          "provider": "access",
+          "ticket": "A subscriber reports new address assignment failures at the aggregation edge."
+        }
+      ]
+    },
+    {
+      "case_id": "case-004",
+      "primary_group": "true_fault",
+      "prompt": "Please review the supplied evidence for this operator request. A service reports forwarding loss during a route withdrawal window.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-002",
+          "provider": "transport",
+          "ticket": "A service reports forwarding loss during a route withdrawal window."
+        }
+      ]
+    },
+    {
+      "case_id": "case-005",
+      "primary_group": "true_fault",
+      "prompt": "Please review the supplied evidence for this operator request. A service reports variable performance during the stated measurement window.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-005",
+          "provider": "transport",
+          "ticket": "A service reports variable performance during the stated measurement window."
+        }
+      ]
+    },
+    {
+      "case_id": "case-006",
+      "primary_group": "true_fault",
+      "prompt": "Please review the supplied evidence for this operator request. A service reports large packets failing while small probes pass.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-007",
+          "provider": "transport",
+          "ticket": "A service reports large packets failing while small probes pass."
+        }
+      ]
+    },
+    {
+      "case_id": "case-007",
+      "primary_group": "healthy_misleading",
+      "prompt": "Please review the supplied evidence for this operator request. A service reports a routing peer event; verify whether service impact is shown.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-001",
+          "provider": "transport",
+          "ticket": "A service reports a routing peer event; verify whether service impact is shown."
+        }
+      ]
+    },
+    {
+      "case_id": "case-008",
+      "primary_group": "healthy_misleading",
+      "prompt": "Please review the supplied evidence for this operator request. A service reports an IGP adjacency event; determine what the evidence establishes.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-003",
+          "provider": "transport",
+          "ticket": "A service reports an IGP adjacency event; determine what the evidence establishes."
+        }
+      ]
+    },
+    {
+      "case_id": "case-009",
+      "primary_group": "healthy_misleading",
+      "prompt": "Please review the supplied evidence for this operator request. A service reports a degraded member while the aggregate remains available.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-004",
+          "provider": "transport",
+          "ticket": "A service reports a degraded member while the aggregate remains available."
+        }
+      ]
+    },
+    {
+      "case_id": "case-010",
+      "primary_group": "healthy_misleading",
+      "prompt": "Please review the supplied evidence for this operator request. A service reports different observed paths for one flow.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-009",
+          "provider": "transport",
+          "ticket": "A service reports different observed paths for one flow."
+        }
+      ]
+    },
+    {
+      "case_id": "case-011",
+      "primary_group": "healthy_misleading",
+      "prompt": "Please review the supplied evidence for this operator request. A user reports a single vantage point did not return a traceroute response.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-012",
+          "provider": "transport",
+          "ticket": "A user reports a single vantage point did not return a traceroute response."
+        }
+      ]
+    },
+    {
+      "case_id": "case-012",
+      "primary_group": "healthy_misleading",
+      "prompt": "Please review the supplied evidence for this operator request. A customer reports Wi-Fi connectivity trouble and suspects the optical access line.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-003",
+          "provider": "access",
+          "ticket": "A customer reports Wi-Fi connectivity trouble and suspects the optical access line."
+        }
+      ]
+    },
+    {
+      "case_id": "case-013",
+      "primary_group": "unreliable_ticket",
+      "prompt": "Please review the supplied evidence for this operator request. The ticket describes a loss-of-signal alarm and repeated access session transitions.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-002",
+          "provider": "access",
+          "ticket": "The ticket describes a loss-of-signal alarm and repeated access session transitions."
+        }
+      ]
+    },
+    {
+      "case_id": "case-014",
+      "primary_group": "unreliable_ticket",
+      "prompt": "Please review the supplied evidence for this operator request. The ticket says authentication was rejected and the subscriber could not obtain an address.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-008",
+          "provider": "access",
+          "ticket": "The ticket says authentication was rejected and the subscriber could not obtain an address."
+        }
+      ]
+    },
+    {
+      "case_id": "case-015",
+      "primary_group": "unreliable_ticket",
+      "prompt": "Please review the supplied evidence for this operator request. The ticket reports an application outage during a scoped route and forwarding event.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-002",
+          "provider": "transport",
+          "ticket": "The ticket reports an application outage during a scoped route and forwarding event."
+        }
+      ]
+    },
+    {
+      "case_id": "case-016",
+      "primary_group": "unreliable_ticket",
+      "prompt": "Please review the supplied evidence for this operator request. The ticket says a rising CRC counter proves a worsening fault.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-011",
+          "provider": "transport",
+          "ticket": "The ticket says a rising CRC counter proves a worsening fault."
+        }
+      ]
+    },
+    {
+      "case_id": "case-017",
+      "primary_group": "insufficient_evidence",
+      "prompt": "Please review the supplied evidence for this operator request. The ticket reports a loss-of-signal alarm; the supplied evidence and binding are incomplete.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-004",
+          "provider": "access",
+          "ticket": "The ticket reports a loss-of-signal alarm; the supplied evidence and binding are incomplete."
+        }
+      ]
+    },
+    {
+      "case_id": "case-018",
+      "primary_group": "insufficient_evidence",
+      "prompt": "Please review the supplied evidence for this operator request. The ticket links authentication and address assignment, but source clocks are uncertain.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-012",
+          "provider": "access",
+          "ticket": "The ticket links authentication and address assignment, but source clocks are uncertain."
+        }
+      ]
+    },
+    {
+      "case_id": "case-019",
+      "primary_group": "insufficient_evidence",
+      "prompt": "Please review the supplied evidence for this operator request. A user reports possible large-packet trouble, with no scoped MTU test.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-008",
+          "provider": "transport",
+          "ticket": "A user reports possible large-packet trouble, with no scoped MTU test."
+        }
+      ]
+    },
+    {
+      "case_id": "case-020",
+      "primary_group": "insufficient_evidence",
+      "prompt": "Please review the supplied evidence for this operator request. The ticket reports a counter outside the requested observation window.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m4",
+          "parent_case": "case-010",
+          "provider": "transport",
+          "ticket": "The ticket reports a counter outside the requested observation window."
+        }
+      ]
+    },
+    {
+      "case_id": "case-021",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review the supplied service delivery evidence and state what remains for acceptance.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-009",
+          "provider": "service_review",
+          "ticket": "Review the supplied service delivery evidence and state what remains for acceptance."
+        }
+      ]
+    },
+    {
+      "case_id": "case-022",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review the endpoint A VLAN against its approved service requirement.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-002",
+          "provider": "service_review",
+          "ticket": "Review the endpoint A VLAN against its approved service requirement."
+        }
+      ]
+    },
+    {
+      "case_id": "case-023",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review the supplied throughput evidence and its calibration status.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-016",
+          "provider": "service_review",
+          "ticket": "Review the supplied throughput evidence and its calibration status."
+        }
+      ]
+    },
+    {
+      "case_id": "case-024",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review the A to B throughput result against its criterion.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-005",
+          "provider": "service_review",
+          "ticket": "Review the A to B throughput result against its criterion."
+        }
+      ]
+    },
+    {
+      "case_id": "case-025",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review the relative throughput observation when absolute direction mapping is absent.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-006",
+          "provider": "service_review",
+          "ticket": "Review the relative throughput observation when absolute direction mapping is absent."
+        }
+      ]
+    },
+    {
+      "case_id": "case-026",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review the supplied acceptance criterion inventory and identify omissions.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-013",
+          "provider": "service_review",
+          "ticket": "Review the supplied acceptance criterion inventory and identify omissions."
+        }
+      ]
+    },
+    {
+      "case_id": "case-027",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review technical acceptance and proposed change readiness separately.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-017",
+          "provider": "service_review",
+          "ticket": "Review technical acceptance and proposed change readiness separately."
+        }
+      ]
+    },
+    {
+      "case_id": "case-028",
+      "primary_group": "service_acceptance",
+      "prompt": "Please review the supplied evidence for this operator request. Review the endpoint A VRF using the scoped source mapping.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-003",
+          "provider": "service_review",
+          "ticket": "Review the endpoint A VRF using the scoped source mapping."
+        }
+      ]
+    },
+    {
+      "case_id": "case-029",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A customer reports intermittent connectivity. Review each supplied evidence domain independently and state what it supports. Missing cross-job identity and time links do not permit causal joins; assess each job independently.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-001",
+          "provider": "access",
+          "ticket": "An access customer reports low optical readings."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-001",
+          "provider": "transport",
+          "ticket": "A provider route peer changed during a reported service window."
+        }
+      ],
+      "required_bindings": []
+    },
+    {
+      "case_id": "case-030",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A customer reports an outage. Review each supplied evidence domain independently and state what it supports. Missing cross-job identity and time links do not permit causal joins; assess each job independently.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-002",
+          "provider": "access",
+          "ticket": "A subscriber reports access session drops."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-002",
+          "provider": "transport",
+          "ticket": "A service reports route withdrawal and forwarding trouble."
+        }
+      ],
+      "required_bindings": []
+    },
+    {
+      "case_id": "case-031",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A customer reports local connectivity trouble and a routing event. Assess only the supplied, domain-scoped evidence. Missing cross-job identity and time links do not permit causal joins; assess each job independently.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-003",
+          "provider": "access",
+          "ticket": "A customer reports Wi-Fi trouble."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-003",
+          "provider": "transport",
+          "ticket": "A service reports an IGP adjacency transition."
+        }
+      ],
+      "required_bindings": []
+    },
+    {
+      "case_id": "case-032",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A subscriber reports address assignment trouble alongside an aggregation event. Assess each domain separately. Missing cross-job identity and time links do not permit causal joins; assess each job independently.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-008",
+          "provider": "access",
+          "ticket": "A subscriber reports address assignment trouble."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-004",
+          "provider": "transport",
+          "ticket": "A service reports a degraded LAG member."
+        }
+      ],
+      "required_bindings": []
+    },
+    {
+      "case_id": "case-033",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A customer reports performance trouble. Assess the access and transport observations independently. Missing cross-job identity and time links do not permit causal joins; assess each job independently.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-005",
+          "provider": "access",
+          "ticket": "A subscriber reports rising CRC counters."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-005",
+          "provider": "transport",
+          "ticket": "A service reports queue pressure during the measurement window."
+        }
+      ],
+      "required_bindings": []
+    },
+    {
+      "case_id": "case-034",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A customer reports large-packet trouble while access authentication timing is uncertain. Keep the supplied domains separate. Missing cross-job identity and time links do not permit causal joins; assess each job independently.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m3",
+          "parent_case": "case-012",
+          "provider": "access",
+          "ticket": "Authentication and address assignment timing is uncertain."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-007",
+          "provider": "transport",
+          "ticket": "A service reports scoped large-packet failure."
+        }
+      ],
+      "required_bindings": []
+    },
+    {
+      "case_id": "case-035",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A service acceptance review and transport event are both supplied. Assess each independently; absent cross-job identity and time bindings do not permit joining observations or asserting a common cause.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-002",
+          "provider": "service_review",
+          "ticket": "An endpoint VLAN review is requested."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-002",
+          "provider": "transport",
+          "ticket": "A service reports route and forwarding changes."
+        }
+      ],
+      "required_bindings": []
+    },
+    {
+      "case_id": "case-036",
+      "primary_group": "multi_layer_compound",
+      "prompt": "A service acceptance review and peer event are both supplied. Assess each independently; absent cross-job identity and time bindings do not permit joining observations or asserting a common cause.",
+      "jobs": [
+        {
+          "job_id": "job-01",
+          "parent": "m5",
+          "parent_case": "case-009",
+          "provider": "service_review",
+          "ticket": "A service acceptance review is requested."
+        },
+        {
+          "job_id": "job-02",
+          "parent": "m4",
+          "parent_case": "case-001",
+          "provider": "transport",
+          "ticket": "A routing peer event is reported."
+        }
+      ],
+      "required_bindings": []
+    }
+  ]
+}
