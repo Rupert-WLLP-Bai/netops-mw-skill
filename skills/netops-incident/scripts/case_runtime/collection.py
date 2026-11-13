@@ -64,6 +64,8 @@ def preflight(state, data, conn):
     decision = next((d for d in state['decisions'] if d['event_id'] == data.get('decision_event_id')), None)
     if not decision or not decision.get('next_test') or decision.get('scope') != state['scope']:
         raise CaseError('current authorized decision required')
+    if state.get('carrier_policy') and (decision.get('policy_revision') != state['policy_revision'] or decision.get('policy_hash') != state['policy_hash']):
+        raise CaseError('decision predates carrier policy')
     # Older operations retain their original decision in the durable event payload.
     import json
     attempted = (json.loads(row[0]).get('decision_event_id') for row in conn.execute("SELECT payload FROM events WHERE kind='run'"))

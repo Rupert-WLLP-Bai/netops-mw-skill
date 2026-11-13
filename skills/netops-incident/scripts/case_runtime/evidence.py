@@ -85,7 +85,7 @@ def read_confined(root: Path, relative: str, max_bytes: int) -> bytes:
 def strict_json(data):
     try:
         return json.loads(data, parse_constant=lambda value: (_ for _ in ()).throw(CaseError('non-finite JSON number')))
-    except (UnicodeError, ValueError) as exc:
+    except (UnicodeError, ValueError, RecursionError) as exc:
         raise CaseError('invalid JSON') from exc
 
 def validate_run(data):
@@ -154,6 +154,15 @@ def validate_run(data):
     check_refs(diagnosis)
     if diagnosis.get('status') not in ('fault_observed', 'healthy_within_scope', 'not_reproduced', 'insufficient_evidence'):
         raise CaseError('invalid diagnosis status')
+    context = manifest.get('service_context')
+    envelope = manifest.get('carrier_evidence')
+    if ('service_context' in manifest and context is None) or ('carrier_evidence' in manifest and envelope is None):
+        raise CaseError('carrier manifest extensions must be objects')
+    if context is not None or envelope is not None:
+        from .carrier import bounded, validate_context, validate_envelope
+        bounded({'service_context': context, 'carrier_evidence': envelope})
+        if context is not None: validate_context(context)
+        if envelope is not None: validate_envelope(envelope, context, records)
     return snapshots, manifest, diagnosis, sorted(ids)
 
 def import_run(case_dir, data, allow_terminal=False):
@@ -183,6 +192,8 @@ def import_run(case_dir, data, allow_terminal=False):
             if stage.exists():
                 shutil.rmtree(stage)
         item = {'run_id': run_id, 'summary_hashes': {k: sha(v) for k, v in snapshots.items()}, 'evidence_ids': ids, 'diagnosis': diagnosis, 'scope': manifest.get('scope'), 'run_window': manifest['run_window'], 'collection_time': manifest.get('completed_at_utc'), 'omissions': manifest.get('failures', []), 'redaction': manifest.get('privacy'), 'access_class': 'restricted', 'source': str(data['run_dir'])}
+        for key in ('service_context', 'carrier_evidence'):
+            if key in manifest: item[key] = manifest[key]
         state['imports'].append(item)
         return {'run_id': run_id, 'summary_hashes': item['summary_hashes']}
     try:
@@ -227,6 +238,9 @@ def record_decision(case_dir, data):
         decision['authorized_collection'] = authorization
         decision['event_id'] = data['event_id']
         decision['scope'] = dict(state['scope'])
+        if state.get('carrier_policy'):
+            decision['policy_revision'] = state['policy_revision']
+            decision['policy_hash'] = state['policy_hash']
         decision['stop_reason'] = None if data['next_test'] and state['budget']['rounds'] > 0 else 'no permissible next test or budget'
         state['decisions'].append(decision)
         return {'decision': decision}

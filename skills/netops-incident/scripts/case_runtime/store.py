@@ -145,6 +145,10 @@ def create_case(case_dir, data):
     nonempty(data.get('symptom'), 'symptom')
     nonempty(data.get('business_impact'), 'business_impact')
     validate_policy(data.get('scope'), data.get('verification_plan'))
+    context = data.get('service_context')
+    if context is not None:
+        from .carrier import validate_context
+        validate_context(context)
     budget = data.get('budget', DEFAULT_BUDGET)
     validate_budget(budget)
     case_dir = Path(case_dir)
@@ -161,6 +165,10 @@ def create_case(case_dir, data):
         os.close(fd)
         event = {'event_id': data['event_id'], 'kind': 'create', 'actor': data['actor'], 'occurred_at': data['occurred_at'], 'revision': 1}
         state = dict(schema_version=1, case_id=data['case_id'], episode_id=uuid.uuid4().hex, revision=1, status='intake', symptom=data['symptom'], business_impact=data['business_impact'], scope=data['scope'], verification_plan=data['verification_plan'], policy_revision=1, policy_hash=digest([data['scope'], data['verification_plan']]), budget=dict(budget), events=[event], imports=[], decisions=[], actions=[], verification_windows=[], checks=[], operations=[])
+        if context is not None:
+            state['service_context'] = context
+            state['carrier_policy'] = True
+            state['policy_hash'] = digest([data['scope'], data['verification_plan'], context])
         with connect(case_dir) as conn:
             conn.execute('CREATE TABLE state (id INTEGER PRIMARY KEY CHECK (id=1), snapshot TEXT NOT NULL)')
             conn.execute('CREATE TABLE events (event_id TEXT PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL, result TEXT NOT NULL)')
@@ -209,12 +217,25 @@ def update_scope(case_dir, data):
             raise CaseError('reopen terminal case before updating scope')
         validate_policy(data.get('scope'), data.get('verification_plan'))
         nonempty(data.get('reason'), 'reason')
+        context = data.get('service_context', state.get('service_context'))
+        if context is not None:
+            from .carrier import validate_context
+            validate_context(context)
+        old_context = state.get('service_context')
         old_scope, old_plan = state['scope'], state['verification_plan']
-        if (old_scope, old_plan) != (data['scope'], data['verification_plan']):
+        if (old_scope, old_plan, old_context) != (data['scope'], data['verification_plan'], context):
             state['scope'], state['verification_plan'] = data['scope'], data['verification_plan']
+            if old_context is not None or context is not None:
+                state['carrier_policy'] = True
+                if context is None: state.pop('service_context', None)
+                else: state['service_context'] = context
             state['policy_revision'] += 1
-            state['policy_hash'] = digest([state['scope'], state['verification_plan']])
-        return {'reason': data['reason'], 'prior_scope': old_scope, 'prior_verification_plan': old_plan}
+            policy = [state['scope'], state['verification_plan']]
+            if context is not None: policy.append(context)
+            state['policy_hash'] = digest(policy)
+        detail = {'reason': data['reason'], 'prior_scope': old_scope, 'prior_verification_plan': old_plan}
+        if old_context is not None or context is not None: detail['prior_service_context'] = old_context
+        return detail
     return transact(case_dir, data, 'scope', change)
 
 def apply_event(case_dir, data, kind):

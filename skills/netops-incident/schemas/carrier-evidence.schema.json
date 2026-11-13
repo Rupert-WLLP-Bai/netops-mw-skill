@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/netops/carrier-evidence-v1.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "records"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "records": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/record"}}
+  },
+  "$defs": {
+    "text": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048, "pattern": "\\S"},
+    "hash": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"},
+    "redaction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "raw_sha256", "visible_sha256", "policy_ref"],
+      "properties": {"status": {"enum": ["redacted", "not_redacted", "unknown"]}, "raw_sha256": {"$ref": "#/$defs/hash"}, "visible_sha256": {"$ref": "#/$defs/hash"}, "policy_ref": {"$ref": "#/$defs/text"}}
+    },
+    "measurement": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "required": ["value", "unit", "direction", "denominator", "sample_interval_seconds", "sample_count", "missing_reason", "counter_semantics", "reset_state"],
+      "properties": {
+        "value": {"type": ["number", "null"]}, "unit": {"$ref": "#/$defs/text"},
+        "direction": {"enum": ["ingress", "egress", "bidirectional", "unknown"]}, "denominator": {"$ref": "#/$defs/text"},
+        "sample_interval_seconds": {"type": ["number", "null"], "exclusiveMinimum": 0}, "sample_count": {"type": ["integer", "null"], "minimum": 0},
+        "missing_reason": {"$ref": "#/$defs/text"}, "counter_semantics": {"enum": ["gauge", "delta", "cumulative", "unknown"]},
+        "reset_state": {"enum": ["none", "reset", "wrap", "unknown"]}
+      }
+    },
+    "record": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_id", "object_refs", "source", "source_native_id", "device_role", "event_time", "collected_at", "timezone", "clock_quality", "clock_uncertainty_seconds", "artifact_sha256", "redaction", "topology_mapping_confidence", "measurement"],
+      "properties": {
+        "evidence_id": {"$ref": "#/$defs/id"}, "object_refs": {"type": "array", "maxItems": 256, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "source": {"$ref": "#/$defs/text"}, "source_native_id": {"$ref": "#/$defs/text"}, "device_role": {"$ref": "#/$defs/text"},
+        "event_time": {"$ref": "#/$defs/text"}, "collected_at": {"$ref": "#/$defs/text"}, "timezone": {"$ref": "#/$defs/text"},
+        "clock_quality": {"enum": ["synchronized", "skewed", "unknown"]}, "clock_uncertainty_seconds": {"type": ["number", "null"], "minimum": 0},
+        "artifact_sha256": {"$ref": "#/$defs/hash"}, "redaction": {"$ref": "#/$defs/redaction"},
+        "topology_mapping_confidence": {"enum": [null, "low", "medium", "high"]}, "measurement": {"$ref": "#/$defs/measurement"}
+      }
+    }
+  }
+}

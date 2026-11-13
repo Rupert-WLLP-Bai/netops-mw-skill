@@ -12,6 +12,23 @@ A local build is available at `dist/network-skill-suite-0.1.0.zip` with its adja
 
 The case CLI lives at `skills/netops-incident/scripts/case.py`. Run it with `--help` and read the [case contract](skills/netops-incident/references/case-contract.md) for JSON input, authorization, evidence, and lifecycle details. For standalone capture analysis use the existing offline command below; recovery verification and handoff drafting can also use supplied records without the controller.
 
+### Carrier domain contracts (M1)
+
+The incident controller also accepts optional, versioned carrier service context and evidence metadata.
+The [domain glossary](GLOSSARY.md) defines service, circuit, device, interface and related objects across
+six network layers. The bundled [carrier contract](skills/netops-incident/references/carrier-evidence-contract.md)
+defines source-qualified identifiers, declared topology relationships, raw measurements, clock uncertainty,
+redaction hashes and comparison gaps. Context changes invalidate earlier verification and decision eligibility;
+legacy records without carrier fields retain their existing behavior.
+
+M1 supplies contracts and validation for offline operator-provided records. Access diagnostics, transport
+diagnostics, vendor parsers, service acceptance, and live platform integration are later milestones in
+[the carrier expansion](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/3).
+See the [M1 implementation plan](docs/implementation/carrier-m1-plan.md) for scope and validation order.
+The [M1 validation record](docs/validation-carrier-m1.md) records 141 passing tests, 62 tests against
+an independent package extraction, reproducible package hashes and [final Sol review](docs/review-carrier-m1.md).
+The milestone awaits maintainer review; it does not establish vendor, MobileWork or native Windows support.
+
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 
 A subsequent real-capture validation found and corrected a DNS direction-count defect. The [pre-fix corpus record](docs/research/real-pcap-corpus.md) and [post-fix validation](docs/research/real-pcap-postfix-validation.md) describe the evidence and candidate package. The [combined independent review](docs/research/closed-loop-real-pcap-review.md) approved the correction and research within its stated scope: 72 tests and all nine corpus checks passed; the candidate package SHA-256 is `f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`.

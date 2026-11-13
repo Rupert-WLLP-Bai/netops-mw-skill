@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import io
+import importlib.util
 import json
 import os
 import sqlite3
@@ -46,6 +47,49 @@ class CaseTests(unittest.TestCase):
 
     def event(self, event_id, revision):
         return dict(event_id=event_id, actor='operator', occurred_at='2026-01-01T00:01:00Z', expected_revision=revision)
+
+    def case_cli_module(self):
+        sys.path.insert(0, str(CLI.parent))
+        spec = importlib.util.spec_from_file_location('incident_case_cli', CLI)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_legacy_cli_input_does_not_require_nofollow(self):
+        cli = self.case_cli_module()
+        input_path = self.root / 'legacy.json'
+        input_path.write_text(json.dumps(self.create))
+        args = [str(CLI), 'create', '--case', str(self.case), '--input', str(input_path)]
+        output = io.StringIO()
+        with mock.patch.dict(os.__dict__, {}), mock.patch.object(sys, 'argv', args), redirect_stdout(output):
+            os.__dict__.pop('O_NOFOLLOW', None)
+            self.assertEqual(cli.main(), 0)
+        self.assertEqual(json.loads(output.getvalue())['case_id'], 'case1')
+        self.assertEqual(self.call('get')['case_id'], 'case1')
+
+    def test_input_rejects_symlink_and_file_changed_during_read(self):
+        cli = self.case_cli_module()
+        path = self.root / 'input-source.json'
+        path.write_text(json.dumps(self.create))
+        link = self.root / 'input-link.json'
+        try:
+            link.symlink_to(path)
+        except (OSError, NotImplementedError):
+            pass
+        else:
+            with self.assertRaises(cli.CaseError): cli.read_input(link)
+        original_read = os.read
+        changed = False
+        def changing_read(fd, size):
+            nonlocal changed
+            data = original_read(fd, size)
+            if not changed:
+                changed = True
+                with path.open('ab') as stream: stream.write(b' ')
+            return data
+        with mock.patch.object(os, 'read', side_effect=changing_read):
+            with self.assertRaises(cli.CaseError): cli.read_input(path)
+        self.assertFalse(self.case.exists())
 
     def test_reused_decision_cannot_spawn_another_run(self):
         provider, marker, event = self.prepare_run()
@@ -213,6 +257,71 @@ class CaseTests(unittest.TestCase):
         decision = dict(self.event('decision1', 3), observations=['fact'], hypotheses=['hypothesis'], support=[{'run_id':'run1','evidence_id':'E001'}, {'run_id':'run2','evidence_id':'E001'}], counterevidence=[], confidence='low', limitations=['scope'], next_test=None, expected_support=None, expected_counterevidence=None, changed_condition=None)
         self.assertEqual(len(self.call('decision', decision)['decisions'][0]['support']), 2)
 
+    def test_carrier_manifest_import_and_hash_binding(self):
+        before = self.call('create', self.create)
+        self.assertNotIn('service_context', before)
+        run, hashes = self.sample_run('run1')
+        fixtures = Path(__file__).parent / 'fixtures/carrier'
+        context = json.loads((fixtures / 'context.json').read_text())
+        envelope = json.loads((fixtures / 'evidence.json').read_text())
+        evidence = json.loads((run / 'evidence.jsonl').read_text())
+        evidence['sources'] = [{'sha256': 'a' * 64}]
+        (run / 'evidence.jsonl').write_text(json.dumps(evidence) + '\n')
+        hashes['evidence.jsonl'] = hashlib.sha256((run / 'evidence.jsonl').read_bytes()).hexdigest()
+        manifest = json.loads((run / 'manifest.json').read_text())
+        manifest['artifact_hashes']['evidence.jsonl'] = hashes['evidence.jsonl']
+        manifest.update(service_context=context, carrier_evidence=envelope)
+        (run / 'manifest.json').write_text(json.dumps(manifest))
+        event = dict(self.event('import1', 1), run_dir=str(run), run_id=run.name, expected_summary_hashes=hashes)
+        self.call('import-run', event, ok=False)
+        self.assertEqual(self.call('get'), before)
+        hashes['manifest.json'] = hashlib.sha256((run / 'manifest.json').read_bytes()).hexdigest()
+        envelope['records'][0]['object_refs'] = ['missing']
+        manifest['carrier_evidence'] = envelope
+        (run / 'manifest.json').write_text(json.dumps(manifest))
+        hashes['manifest.json'] = hashlib.sha256((run / 'manifest.json').read_bytes()).hexdigest()
+        self.call('import-run', event, ok=False)
+        self.assertEqual(self.call('get'), before)
+        envelope['records'][0]['object_refs'] = ['service-1']
+        (run / 'manifest.json').write_text(json.dumps(manifest))
+        hashes['manifest.json'] = hashlib.sha256((run / 'manifest.json').read_bytes()).hexdigest()
+        state = self.call('import-run', event)
+        self.assertEqual(state['imports'][0]['service_context'], context)
+        self.assertEqual(state['imports'][0]['carrier_evidence'], envelope)
+        self.assertNotIn('service_context', state)
+
+    def test_context_change_invalidates_decision_and_persists(self):
+        provider, marker, event = self.prepare_run()
+        provider.write_text('print("internet-access-triage 0.1.0")')
+        context = json.loads((Path(__file__).parent / 'fixtures/carrier/context.json').read_text())
+        old = self.call('get')
+        updated = self.call('scope', dict(self.event('context1', old['revision']), scope=old['scope'], verification_plan=old['verification_plan'], service_context=context, reason='service selected'))
+        self.assertEqual(updated['policy_revision'], old['policy_revision'] + 1)
+        self.assertNotEqual(updated['policy_hash'], old['policy_hash'])
+        event['expected_revision'] = updated['revision']
+        result = self.call('run', event, ok=False)
+        self.assertIn('decision predates carrier policy', result.stderr)
+        self.assertFalse(marker.exists())
+        retained = self.call('scope', dict(self.event('context2', updated['revision']), scope=updated['scope'], verification_plan=updated['verification_plan'], reason='unchanged'))
+        self.assertEqual(retained['service_context'], context)
+        self.assertEqual(retained['policy_revision'], updated['policy_revision'])
+        removed = self.call('scope', dict(self.event('context3', retained['revision']), scope=retained['scope'], verification_plan=retained['verification_plan'], service_context=None, reason='unknown service'))
+        self.assertNotIn('service_context', removed)
+        self.assertEqual(removed['policy_revision'], updated['policy_revision'] + 1)
+        self.assertEqual(self.call('get'), removed)
+
+    def test_context_change_invalidates_persisted_verification_window(self):
+        sys.path.insert(0, str(CLI.parent))
+        from case_runtime import recovery
+        state = self.start_window(self.ready_case())
+        context = json.loads((Path(__file__).parent / 'fixtures/carrier/context.json').read_text())
+        changed = self.call('scope', dict(self.event('context-after-window', state['revision']), scope=state['scope'], verification_plan=state['verification_plan'], service_context=context, reason='service updated'))
+        self.assertEqual(self.call('get'), changed)
+        self.assertEqual(recovery.recovery_gaps(changed), ['verification policy or episode changed'])
+        changed = self.call('transition', dict(self.event('stabilize-context', changed['revision']), status='stabilizing', reason='observe'))
+        result = self.call('transition', dict(self.event('close-context', changed['revision']), status='closed_recovered', reason='old window'), ok=False)
+        self.assertIn('verification policy or episode changed', result.stderr)
+
     def test_import_rejects_escape_symlink_and_changed_hash(self):
         before = self.call('create', self.create)
         run, hashes = self.sample_run('run1')
@@ -224,6 +333,23 @@ class CaseTests(unittest.TestCase):
         self.call('import-run', event, ok=False)
         self.assertEqual(self.call('get'), before)
         self.assertEqual(list((self.case / 'imports').iterdir()), [])
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'FIFO requires POSIX')
+    def test_public_input_fifo_and_oversize_rejected(self):
+        path = self.root / 'input-fifo'
+        os.mkfifo(path)
+        proc = subprocess.Popen([sys.executable, '-B', str(CLI), 'create', '--case', str(self.case), '--input', str(path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            _, stderr = proc.communicate(timeout=2)
+            self.assertNotEqual(proc.returncode, 0, stderr)
+        finally:
+            if proc.poll() is None: proc.kill(); proc.communicate()
+        self.assertFalse(self.case.exists())
+        oversized = self.root / 'oversized.json'
+        with oversized.open('wb') as stream: stream.truncate(16 * 1024 * 1024 + 1)
+        result = subprocess.run([sys.executable, '-B', str(CLI), 'create', '--case', str(self.case), '--input', str(oversized)], capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.case.exists())
 
     def test_decision_requires_existing_refs(self):
         before = self.call('create', self.create)

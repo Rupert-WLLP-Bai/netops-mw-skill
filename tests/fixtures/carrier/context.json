@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "service_ref": "service-1",
+  "objects": [
+    {"id":"service-1", "type":"service", "identity_state":"known", "layer":"access", "source":"sample-source", "source_native_id":"svc-pseudonym", "reason":null},
+    {"id":"customer-1", "type":"customer_pseudonym", "identity_state":"known", "layer":null, "source":"sample-source", "source_native_id":null, "reason":null}
+  ],
+  "topology": [{"from_id":"service-1", "to_id":"customer-1", "relation":"serves", "state":"verified", "confidence":"medium", "reason":null}]
+}
