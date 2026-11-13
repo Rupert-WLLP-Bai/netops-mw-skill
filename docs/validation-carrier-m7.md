@@ -22,7 +22,7 @@ Environment: Kali 2026.3 under WSL2 Linux 6.18.58.1, x86-64, Python 3.14.7.
 | External 43 static / 17 dynamic security assessment | `pending_user`; no report exists here |
 | Real device/vendor acceptance and live fault injection | Not performed or claimed |
 
-The user-owned short Word draft will retain actual results and original screenshot positions for
+The user-owned short Word draft reserves actual results and original screenshot positions for
 the user to complete. The original PPT/Word files and personal paths are private local materials;
 the public handoff includes derivative guidance and source hashes only. One report covers one
 actual Skill/version. All official security criteria retain pending status regardless of local
@@ -90,3 +90,25 @@ for nonpackaged validation prose or the separate Word layout.
 The focused run is retained in `focused-release-v2.log`. All gate processes finished before the
 independent final Sol review. Actual client, native Windows and external security verdicts remain
 pending user execution.
+
+## Published layout correction
+
+The initial independent Spec review found a P2 setup error: the guide placed the extracted incident
+directory beside the handoff while its commands expected both the incident directory and
+`validation-inputs/` inside the handoff root. Luna corrected that paragraph at `ecdfd18`, after both
+reviewers released ownership. No runtime, test, fixture or archive member changed.
+
+The frozen correction passed `.tools/carrier-common/verify_m7_published_layout.py`; evidence is in
+`.tools/carrier-m7/layout-v3/`. Two fresh 103-file handoffs were identical. Compared with the
+previously verified handoff, only `guide/README.md` and its top-level hash ledger changed; all nine
+ZIPs and their manifests remain byte-identical. The gate extracted the incident ZIP into the
+handoff root and executed all six published shell commands from that root. Normal, missing-reverse
+and malformed inputs produced the expected technical results and exit statuses, with human
+signoff pending. Actual command transcripts and output files are retained beside `result.json`.
+
+```sh
+.tools/carrier-m1/schema-venv/bin/python -B .tools/carrier-common/verify_m7_published_layout.py
+```
+
+This guide-only correction does not invalidate the unchanged 264-test source regression or
+153-test extracted-runtime regression. Final independent re-review follows these completed gates.
