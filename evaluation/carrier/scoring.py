@@ -84,7 +84,7 @@ def _score_job(task_job: dict[str, Any], answer_job: dict[str, Any] | None,
                 actual_support = _refs(claim, "support")
                 for support_set in sets:
                     required = {_ref(ref) for ref in support_set if _ref(ref) is not None} if isinstance(support_set, list) else set()
-                    if required and required <= actual_support and required <= actual_refs:
+                    if required and required <= actual_support and actual_support <= actual_refs:
                         claim_grounded = True
                         break
                 if claim_grounded:

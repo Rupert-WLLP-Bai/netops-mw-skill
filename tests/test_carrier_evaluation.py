@@ -74,6 +74,42 @@ class CarrierEvaluationTests(unittest.TestCase):
         self.assertEqual(scored["grounding"]["score"], 0)
         self.assertEqual(scored["localization"]["layer"]["score"], 0)
 
+    def test_fabricated_extra_support_ref_gets_no_grounded_credit(self):
+        required, fabricated = ref("run-001", "ev-required"), ref("run-999", "ev-fabricated")
+        visible = task(request={"evidence": [required]})
+        expected = {"kind": "finding", "code": "optical_degradation", "status": None,
+                    "scope": {}, "layer": "access", "fault_class": True,
+                    "support_sets": [[required]], "counter_refs": []}
+        scored = self.score(visible, {"status": "fault_observed",
+                                     "findings": [finding("optical_degradation", [required, fabricated])], "gaps": []},
+                            {"claims": [expected]})
+        self.assertEqual(scored["claim_recall"]["score"], 1)
+        self.assertEqual(scored["state"]["score"], 1)
+        self.assertEqual(scored["grounding"]["score"], 0)
+        self.assertEqual(scored["fault_class"]["score"], 0)
+        self.assertEqual(scored["localization"]["layer"]["score"], 0)
+
+    def test_other_job_extra_support_ref_gets_no_grounded_credit(self):
+        required, other_job = ref("run-001", "ev-required"), ref("run-002", "ev-other-job")
+        visible = task(request={"evidence": [required]})
+        answer = answer_for(visible, {"status": "fault_observed",
+                                      "findings": [finding("optical_degradation", [required, other_job])], "gaps": []})
+        expected = {"kind": "finding", "code": "optical_degradation", "status": None,
+                    "scope": {}, "layer": "access", "fault_class": True,
+                    "support_sets": [[required]], "counter_refs": []}
+        oracle = {"schema_version": 1, "task_id": visible["task_id"],
+                  "jobs": [{"job_id": "job-001", "expected_state": "fault_observed",
+                            "service_states": {"technical": None, "acceptance": None, "change": None},
+                            "required_gaps": [], "prohibited_codes": [], "forbid_causal_links": True,
+                            "claims": [expected]}], "required_bindings": []}
+        scored = score_answer(visible, answer, oracle, elapsed_ms=12,
+                              visible_refs_by_job={"job-001": [required], "job-002": [other_job]})["jobs"][0]
+        self.assertEqual(scored["claim_recall"]["score"], 1)
+        self.assertEqual(scored["state"]["score"], 1)
+        self.assertEqual(scored["grounding"]["score"], 0)
+        self.assertEqual(scored["fault_class"]["score"], 0)
+        self.assertEqual(scored["localization"]["layer"]["score"], 0)
+
     def test_each_claim_requires_its_own_support_set(self):
         a, b = ref("run-001", "ev-a"), ref("run-001", "ev-b")
         visible = task(request={"evidence": [a, b]})
