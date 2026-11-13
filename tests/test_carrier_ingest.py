@@ -229,6 +229,59 @@ class IngestTests(unittest.TestCase):
         _, out, _ = self.invoke(json.dumps(data).encode(), suffix='version')
         self.assertEqual(json.loads((out/'carrier-visible.json').read_text())['parse_status'], 'unsupported_vendor_format')
 
+    def test_public_integral_sample_counts_and_invalid_counts(self):
+        row = dict(self.record, sample_count=1.0)
+        _, out, _ = self.invoke(self.source_json([row]), suffix='count-integral')
+        visible = json.loads((out/'carrier-visible.json').read_text())
+        self.assertEqual(visible['parse_status'], 'complete')
+        self.assertIsInstance(visible['records'][0]['sample_count'], float)
+        self.assertEqual(visible['records'][0]['sample_count'], 1.0)
+        manifest = json.loads((out/'manifest.json').read_text())
+        self.assertIsInstance(manifest['carrier_evidence']['records'][0]['measurement']['sample_count'], float)
+        for index, invalid in enumerate((True, 1.5, -1, float('nan'), float('inf'))):
+            with self.subTest(value=invalid):
+                row['sample_count'] = invalid
+                _, out, _ = self.invoke(self.source_json([row]), suffix='bad-count-' + str(index))
+                self.assertEqual(json.loads((out/'carrier-visible.json').read_text())['parse_status'], 'parse_error')
+
+    def test_csv_integral_decimal_count_is_preserved(self):
+        config = dict(self.config, format='telemetry-csv-v1')
+        text = io.StringIO(newline=''); writer = csv.writer(text)
+        writer.writerow(ingest.FIELDS)
+        row = dict(self.record, sample_count='1.0')
+        writer.writerow([row[key] if row[key] is not None else '' for key in ingest.FIELDS])
+        _, out, _ = self.invoke(text.getvalue().encode(), config, suffix='csv-count')
+        visible = json.loads((out/'carrier-visible.json').read_text())
+        self.assertEqual(visible['parse_status'], 'complete')
+        self.assertIsInstance(visible['records'][0]['sample_count'], float)
+        self.assertEqual(visible['records'][0]['sample_count'], 1.0)
+
+    def test_collection_age_marks_topology_and_eventless_inputs_stale(self):
+        config = dict(self.config, format='topology-json-v1', reference_time='2026-01-02T00:00:03Z', max_age_seconds=60, pseudonyms={'service-source':'service-1', 'device-source':'device-1'})
+        data = dict(format='topology-json-v1', version=1, service_id='service-source', objects=[dict(id='service-source',type='service',layer='access'),dict(id='device-source',type='device',layer='access')], links=[dict(from_id='service-source',to_id='device-source',relation='serves',state='verified',confidence='high')])
+        _, out, _ = self.invoke(json.dumps(data).encode(), config, suffix='stale-topology')
+        manifest = json.loads((out/'manifest.json').read_text())
+        self.assertIn('stale', manifest['carrier_adapter']['quality'])
+        self.assertEqual(manifest['service_context']['topology'][0]['state'], 'verified')
+        config = dict(self.config, format='cli-keyvalue-v1', reference_time='2026-01-02T00:00:03Z', max_age_seconds=60)
+        _, out, _ = self.invoke(b'# carrier-cli-keyvalue-v1\nrx_power=1\n', config, suffix='stale-cli')
+        visible = json.loads((out/'carrier-visible.json').read_text())
+        self.assertIn('stale', visible['quality'])
+        self.assertIsNone(visible['records'][0]['event_time'])
+        config['reference_time'] = '2026-01-01T00:01:02Z'
+        _, out, _ = self.invoke(b'# carrier-cli-keyvalue-v1\nrx_power=1\n', config, suffix='fresh-boundary')
+        self.assertNotIn('stale', json.loads((out/'carrier-visible.json').read_text())['quality'])
+        config = dict(self.config, reference_time='2026-01-02T00:00:03Z', max_age_seconds=60)
+        _, out, _ = self.invoke(b'{malformed', config, suffix='stale-error')
+        visible = json.loads((out/'carrier-visible.json').read_text())
+        self.assertEqual(visible['parse_status'], 'parse_error')
+        self.assertIn('stale', visible['quality'])
+        config['format'] = 'unknown-vendor'
+        _, out, _ = self.invoke(b'opaque', config, suffix='stale-unsupported')
+        visible = json.loads((out/'carrier-visible.json').read_text())
+        self.assertEqual(visible['parse_status'], 'unsupported_vendor_format')
+        self.assertIn('stale', visible['quality'])
+
     def test_source_file_limits_and_symlink(self):
         cfg = self.root/'source-config.json'; cfg.write_text(json.dumps(self.config))
         source = self.source/'real'; source.write_bytes(self.source_json())

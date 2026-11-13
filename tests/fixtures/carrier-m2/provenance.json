@@ -103,6 +103,18 @@
       }
     },
     {
+      "name": "stale-topology",
+      "format": "topology-json-v1",
+      "parse_status": "complete",
+      "quality": ["stale"],
+      "warnings": [],
+      "files": {
+        "config.json": "adec755f0f218b573d1c16dc2a318eb1f4bbc607dce17cdbb6094fe4811ea6b5",
+        "input.json": "64f1846a99c37a807613390f53d76b9724b34756389a8e2748f2b32cab2ad718",
+        "expected.json": "fa56c1f72cfd8260bcf6f52de3abfa41ee5370d8dcf7bf7324919c2b5ca0ab51"
+      }
+    },
+    {
       "name": "malformed-json",
       "format": "telemetry-json-v1",
       "parse_status": "parse_error",

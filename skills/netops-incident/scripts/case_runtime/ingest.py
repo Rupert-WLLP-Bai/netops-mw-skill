@@ -128,7 +128,9 @@ def _normalize_record(row, cfg, quality):
     if row['sample_interval_seconds'] is not None:
         if finite(row['sample_interval_seconds'], 0) == 0: raise CaseError('invalid sampling interval')
     count = row['sample_count']
-    if count is not None and (isinstance(count, bool) or not isinstance(count, int) or count < 0): raise CaseError('invalid sample count')
+    if count is not None:
+        finite(count, 0)
+        if isinstance(count, float) and not count.is_integer(): raise CaseError('invalid sample count')
     event = row['event_time']
     if event is not None:
         when = timestamp(event)
@@ -179,11 +181,18 @@ def _topology(data, cfg, quality):
     return context
 
 
+def _base_quality(cfg):
+    quality = set()
+    reference, collected = timestamp(cfg['reference_time']), timestamp(cfg['collected_at'])
+    if cfg['clock_quality'] != 'synchronized' or cfg['clock_uncertainty_seconds'] is None or reference < collected: quality.add('clock_uncertain')
+    if (reference - collected).total_seconds() > cfg['max_age_seconds']: quality.add('stale')
+    return quality
+
+
 def parse_source(raw, cfg):
     """Interpret only the explicitly selected formats, returning safe data."""
-    quality = set()
+    quality = _base_quality(cfg)
     warnings = set()
-    if cfg['clock_quality'] != 'synchronized' or cfg['clock_uncertainty_seconds'] is None or timestamp(cfg['reference_time']) < timestamp(cfg['collected_at']): quality.add('clock_uncertain')
     if cfg['format'] not in FORMATS:
         return dict(parse_status='unsupported_vendor_format', quality=sorted(quality), warnings=[], records=[], service_context=None)
     if cfg['format'] == 'optical-json-v1' and b'\x00' in raw:
@@ -216,8 +225,8 @@ def parse_source(raw, cfg):
                     else:
                         try:
                             if field == 'sample_count':
-                                if not re.fullmatch(r'\d+', value): raise ValueError('integer required')
-                                row[field] = int(value)
+                                if not re.fullmatch(r'\d+(?:\.\d+)?', value): raise ValueError('decimal count required')
+                                row[field] = float(value) if '.' in value else int(value)
                             else: row[field] = float(value)
                         except ValueError as exc: raise CaseError('invalid CSV number') from exc
                 records.append(_normalize_record(row, cfg, quality))
@@ -261,10 +270,7 @@ def parse_source(raw, cfg):
 
 
 def _failure(status, cfg, warnings=None):
-    quality = []
-    if cfg['clock_quality'] != 'synchronized' or cfg['clock_uncertainty_seconds'] is None or timestamp(cfg['reference_time']) < timestamp(cfg['collected_at']):
-        quality.append('clock_uncertain')
-    return dict(parse_status=status, quality=quality, warnings=warnings or [], records=[], service_context=None)
+    return dict(parse_status=status, quality=sorted(_base_quality(cfg)), warnings=warnings or [], records=[], service_context=None)
 
 
 def _worker(result_path, raw, cfg):

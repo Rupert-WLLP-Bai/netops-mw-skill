@@ -44,7 +44,7 @@ JSON telemetry and optical records require exactly these fields:
 | `direction` | `ingress`, `egress`, `bidirectional`, or `unknown` | Preserved; unknown direction limits comparison. |
 | `denominator` | Null or an allowlisted unit token | Preserved; no inferred denominator. |
 | `sample_interval_seconds` | Null or a positive finite number | Preserved; no rate is derived. |
-| `sample_count` | Null or a non-negative integer | Preserved; no samples are fabricated. |
+| `sample_count` | Null or a non-negative numeric value with an integer value | JSON and CSV accept integral numeric forms such as `1` and `1.0`; fractional values are rejected. The accepted numeric representation is preserved, and no samples are fabricated. |
 | `counter_semantics` | `gauge`, `delta`, `cumulative`, or `unknown` | Preserved. |
 | `reset_state` | `none`, `reset`, `wrap`, or `unknown` | Reset or wrap is accepted only with cumulative or unknown counter semantics. |
 | `event_time` | Null or UTC RFC 3339 timestamp | Kept separate from collection time. |
@@ -90,7 +90,7 @@ Terminal control bytes make a text source malformed and produce `parse_error`; p
 
 `parse_status` is one of `complete`, `parse_error`, `unsupported_vendor_format`, or `parse_timeout`. It describes adapter handling, not network health. Independent quality codes can coexist with any successful parse:
 
-- `stale`: an event timestamp is older than `max_age_seconds` relative to the supplied `reference_time`;
+- `stale`: the source collection snapshot is older than `max_age_seconds` relative to `reference_time`, or a record event time is older than that window. The comparison is strict: age equal to the configured maximum is not stale. Collection age applies to every format, including topology-only imports; declared topology is retained and marked stale rather than discarded;
 - `clock_uncertain`: an event time is absent, the supplied clock quality is not synchronized, uncertainty is missing, or the configured reference time precedes collection time;
 - `unknown_counter_semantics`: a counter meaning is not established;
 - `incomplete_topology`: a source object lacks a pseudonym, or the source-qualified alias has no supplied verified topology association. A matching alias across runs does not prove a shared object. Telemetry, optical, and CLI inputs always carry this quality flag because they do not define a topology context; topology-only data can carry it when identities or links are unknown or unverified.
