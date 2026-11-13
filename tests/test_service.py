@@ -121,10 +121,21 @@ class ServiceReviewTests(unittest.TestCase):
                     self.assertIn(label,known[source],where+path+': '+marker)
                 else: self.assertIn(marker,allowed,where+path+': '+marker)
 
+        def verify_qualifiers(value,run_by_key,where):
+            if isinstance(value,dict):
+                marker=value.get('evidence_id')
+                if isinstance(marker,dict) and set(marker)=={'$row'}:
+                    logical=marker['$row'].split('/')[0]
+                    self.assertIn(logical,run_by_key,where)
+                    self.assertEqual(value.get('run_id'),run_by_key[logical],where+': '+marker['$row'])
+                for key,child in value.items(): verify_qualifiers(child,run_by_key,where+'/'+key)
+            elif isinstance(value,list):
+                for index,child in enumerate(value): verify_qualifiers(child,run_by_key,where+'/'+str(index))
+
         for path in scenarios:
             with self.subTest(case=path.parent.name):
                 scenario=json.loads(path.read_text()); self.assertEqual(scenario['case_id'],path.parent.name)
-                known={}; run_ids=set(); previous=set()
+                known={}; run_ids=set(); run_by_key={}; previous=set()
                 for source in scenario['sources']:
                     key=source['run_key']; self.assertNotIn(key,known)
                     labels=source['row_keys']; self.assertEqual(len(labels),len(set(labels)))
@@ -132,16 +143,20 @@ class ServiceReviewTests(unittest.TestCase):
                     config_path=(FIXTURES/source['config_path']).resolve(); input_path=(FIXTURES/source['input_path']).resolve()
                     self.assertTrue(config_path.is_relative_to(FIXTURES.resolve()) and input_path.is_relative_to(FIXTURES.resolve()))
                     config=json.loads(config_path.read_text()); data=json.loads(input_path.read_text())
-                    run_id=config['run_id']; self.assertNotIn(run_id,run_ids); run_ids.add(run_id)
+                    run_id=config['run_id']; self.assertNotIn(run_id,run_ids); run_ids.add(run_id); run_by_key[key]=run_id
                     if 'records' in data: self.assertEqual(len(labels),len(data['records']),key)
                     else: self.assertEqual(len(labels),1,key)
                     verify(config,known,previous,'config/'+key)
                     verify(data,known,previous,'input/'+key)
+                    verify_qualifiers(config,run_by_key,'config/'+key)
+                    verify_qualifiers(data,run_by_key,'input/'+key)
                     previous.add(key)
                 self.assertNotIn('case_id',scenario['request'])
                 self.assertEqual({item['run_id'] for item in scenario['request']['runs']},run_ids)
                 verify(scenario['request'],known,previous,'request')
                 verify(by_case[path.parent.name],known,previous,'oracle')
+                verify_qualifiers(scenario['request'],run_by_key,'request')
+                verify_qualifiers(by_case[path.parent.name],run_by_key,'oracle')
 
     def test_complete_control_and_blocked_change_stay_separate(self):
         scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text()); request,_=self.materialize(scenario)
@@ -253,6 +268,73 @@ class ServiceReviewTests(unittest.TestCase):
         def wrong_unit(data): data['records'][bandwidth_index]['unit']='bytes'; return data
         changed,_=self.materialize(original,{'actual-fields':wrong_unit}); result=self.review(changed)
         self.assertIn('field_unit_mismatch',result['gaps']); self.assertNotEqual(result['technical_status'],'conformant')
+
+    def test_source_qualified_alias_relations_and_invalid_mappings(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        request,_=self.materialize(scenario); baseline=self.review(request)
+        def field(result,name,target):
+            return next(item for item in result['field_results'] if item['field']==name and item['target']==target)
+        # The circuit aliases differ in spelling; the VLAN aliases have the same spelling.
+        self.assertEqual(field(baseline,'circuit','service')['status'],'match')
+        self.assertEqual(field(baseline,'vlan','endpoint_a')['status'],'match')
+        wrong_scenario=json.loads((FIXTURES/'cases/case-002/scenario.json').read_text())
+        wrong,_=self.materialize(wrong_scenario); different=self.review(wrong)
+        self.assertEqual(field(different,'vlan','endpoint_a')['status'],'mismatch')
+        self.assertEqual(different['technical_status'],'nonconformant')
+
+        source=next(item for item in scenario['sources'] if item['run_key']=='equivalence')
+        relation_index=source['row_keys'].index('equal_vlan_endpoint_a')
+        vlan_id_index=source['row_keys'].index('expected_id_vlan_endpoint_a')
+        circuit_id_index=source['row_keys'].index('expected_id_circuit_service')
+        def allow_different(config):
+            config['value_allowlists']['field_equivalence'].append('declared_different'); return config
+        def different_same_spelling(data):
+            data['records'][relation_index]['value']='declared_different'; return data
+        changed,_=self.materialize(scenario,{'equivalence':different_same_spelling},{'equivalence':allow_different})
+        result=self.review(changed)
+        self.assertEqual(field(result,'vlan','endpoint_a')['status'],'mismatch')
+
+        missing=copy.deepcopy(request)
+        next(item for item in missing['fields'] if item['field']=='vlan' and item['target']=='endpoint_a')['equivalence_evidence']=None
+        result=self.review(missing); self.assertEqual(field(result,'vlan','endpoint_a')['status'],'unverified')
+        self.assertIn('missing_field_equivalence',result['gaps'])
+        def wrong_pair(data):
+            data['records'][vlan_id_index]['value']=data['records'][circuit_id_index]['value']; return data
+        changed,_=self.materialize(scenario,{'equivalence':wrong_pair})
+        result=self.review(changed); self.assertEqual(field(result,'vlan','endpoint_a')['status'],'unverified')
+        self.assertIn('missing_field_equivalence',result['gaps'])
+        wrong_scope=copy.deepcopy(request)
+        target=next(item for item in wrong_scope['fields'] if item['field']=='vlan' and item['target']=='endpoint_a')
+        mapping_ref=target['equivalence_evidence']['relation']
+        next(binding for binding in wrong_scope['bindings'] if binding['record']==mapping_ref)['resource_id']='point-b-m5'
+        result=self.review(wrong_scope); self.assertEqual(field(result,'vlan','endpoint_a')['status'],'unverified')
+
+        conflicting=copy.deepcopy(scenario); eq=next(item for item in conflicting['sources'] if item['run_key']=='equivalence')
+        eq['row_keys'].append('opposing_vlan_relation')
+        binding=next(item for item in conflicting['request']['bindings'] if item['record']['evidence_id']=={'$row':'equivalence/equal_vlan_endpoint_a'})
+        extra=copy.deepcopy(binding); extra['record']['evidence_id']={'$row':'equivalence/opposing_vlan_relation'}; conflicting['request']['bindings'].append(extra)
+        def add_opposition(data):
+            data['records'].append(dict(data['records'][relation_index],value='declared_different')); return data
+        changed,ids=self.materialize(conflicting,{'equivalence':add_opposition},{'equivalence':allow_different})
+        result=self.review(changed); vlan=field(result,'vlan','endpoint_a')
+        self.assertEqual(vlan['status'],'unverified'); self.assertIn('conflicting_observations',result['gaps'])
+        self.assertIn(dict(run_id='m5-equivalence',evidence_id=ids['equivalence']['opposing_vlan_relation']),vlan['counterevidence'])
+
+        same_namespace=copy.deepcopy(scenario)
+        next(item for item in same_namespace['request']['fields'] if item['field']=='vlan' and item['target']=='endpoint_a')['equivalence_evidence']=None
+        for binding in same_namespace['request']['bindings']:
+            if binding['record']['run_id']=='m5-actual-fields':
+                binding['source']='synthetic-design-source'
+                if binding['source_native_id']=='actual-vlan_endpoint_a': binding['source_native_id']='vlan_endpoint_a'
+        def same_source(config):
+            config['source']='synthetic-design-source'; config['pseudonyms']['fixture-field-vlan_endpoint_a']='vlan_endpoint_a'; return config
+        changed,_=self.materialize(same_namespace,config_overrides={'actual-fields':same_source})
+        self.assertEqual(field(self.review(changed),'vlan','endpoint_a')['status'],'match')
+        actual_source=next(item for item in same_namespace['sources'] if item['run_key']=='actual-fields')
+        actual_index=actual_source['row_keys'].index('actual_vlan_endpoint_a')
+        def literal_difference(data): data['records'][actual_index]['value']='vlan-b-410'; return data
+        changed,_=self.materialize(same_namespace,{'actual-fields':literal_difference},{'actual-fields':same_source})
+        self.assertEqual(field(self.review(changed),'vlan','endpoint_a')['status'],'mismatch')
 
     def test_source_criteria_cannot_make_every_capability_one_way(self):
         scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())

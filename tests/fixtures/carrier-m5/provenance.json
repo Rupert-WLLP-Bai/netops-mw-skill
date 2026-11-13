@@ -211,8 +211,8 @@
     },
     {
       "path": "cases/case-008/scenario.json",
-      "sha256": "f79ca378f549ea759263e4fea6ad872def69ce512cda72a9a8c682ff8af380be",
-      "bytes": 417879
+      "sha256": "cd5f0f0cb4bd16839a7acb18c30d4cb9843b64f24f696dae2b69f3b5cbb5e30d",
+      "bytes": 418406
     },
     {
       "path": "cases/case-009/scenario.json",
@@ -221,13 +221,13 @@
     },
     {
       "path": "cases/case-010/scenario.json",
-      "sha256": "d3c01263fb1f720f6ef80d3c11654f209a85b7d2e9b13f224c7ecba46020fd95",
-      "bytes": 429775
+      "sha256": "d3f38033b6b71dd2d1cf65489e4a07859c43073157c50d7a85cd1242e0097cf7",
+      "bytes": 430239
     },
     {
       "path": "cases/case-011/scenario.json",
-      "sha256": "ef1b44c79693556463fa34d00e51e30d6be51d1bd6280f2f6a4a2b29c6381aff",
-      "bytes": 434892
+      "sha256": "89000fa694d91925cd598d1321e07ec1c48fe7a627064c1dd20c1a99e2984e35",
+      "bytes": 435451
     },
     {
       "path": "cases/case-012/scenario.json",
@@ -331,8 +331,8 @@
     },
     {
       "path": "cases/case-017/scenario.json",
-      "sha256": "f9c7e4788e255f46349b93d89869ee2bed09a97c6746f5aa28259ba632b37262",
-      "bytes": 434768
+      "sha256": "a8ef2e32899127d5576fafa1e9bd08ae4aae6fea18ef122a4bb9f3572190ce1d",
+      "bytes": 435319
     },
     {
       "path": "materialize_refs.py",
@@ -341,8 +341,8 @@
     },
     {
       "path": "oracle/expected.json",
-      "sha256": "d7567d439bfa15636aa1a094279e2a06b862bc4b0b22bee7743dce24d8881edb",
-      "bytes": 13236
+      "sha256": "06d6887b2a1cbcf2905c92cdb6d4c44a008dffc309c33f64d15bbb63ee557713",
+      "bytes": 13282
     },
     {
       "path": "sources/actual-fields/config.json",

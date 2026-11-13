@@ -70,3 +70,45 @@ gate or pass is claimed, and all earlier failure records remain preserved. Evide
 `.tools/carrier-m5/diagnosis-second/reference-audit.json`, and generated package artifacts under
 `.tools/carrier-m5/corrected-delivery/`. The delivery run did not complete extracted tests, so this
 record makes no managed-PCAP result claim.
+
+## Third engineering gate: acceptance-result mismatches under diagnosis
+
+The third gate ran against frozen source `e98f528`. All fixtures reached the provider. The full suite
+ran 219 tests in 207.036 seconds and ended with 20 failures and no errors. The extracted suite ran
+140 tests in 171.778 seconds and also ended with 20 failures and no errors.
+
+The observed failures are outcome assertions: the positive normal case `case-009` returns
+`nonconformant`; the positive pre-change and post-change reviews are `blocked`; and targeted wrong-VLAN
+and wrong-VRF mismatch assertions fail. Terra is performing read-only diagnosis under
+`.tools/carrier-m5/diagnosis-third/`; the cause has not been established. These are test failures, not
+findings that the scenarios or provider are correct, and this record does not assign a cause.
+
+The fixture logical-reference graph check passed, along with eight Skill validators, Python 3.10
+grammar validation, all 80 fixture hashes, and the 17-case unique-scenario count. Evidence is retained
+in `.tools/carrier-m5/full-suite-r3.log`, `.tools/carrier-m5/delivery-r3.log`,
+`.tools/carrier-m5/fixture-check-r3.log`, `.tools/carrier-m5/auxiliary-r3.log`, and the diagnostic
+artifacts under `.tools/carrier-m5/diagnosis-third/`. The delivery run did not pass the extracted
+tests, so no managed-PCAP result or final acceptance pass is claimed. All earlier gate failures and
+diagnoses above remain preserved.
+
+## Third-gate diagnosis and correction scope
+
+The read-only diagnosis under `.tools/carrier-m5/diagnosis-third/` identified two independent
+reference-semantic issues behind the observed results. First, controlled alias fields were compared
+by literal spelling across distinct source namespaces instead of applying the checked five-row
+equivalence relation: a valid `declared_equal` relation must match aliases with different spellings,
+while `declared_different` must report a mismatch even when spellings match. Missing, malformed,
+conflicting, or inapplicable mappings remain unverified. Numeric values continue to use exact raw
+type/unit/value comparison; mappings do not convert or override numeric quantities. The relation is an
+operator source assertion, not authenticated truth.
+
+Second, `.tools/carrier-m5/diagnosis-third/qualified-run-audit.json` found 344 fixture references
+using logical run labels instead of the actual configured per-case M2 run IDs: 332 request refs and
+12 oracle refs. The fixture owner is replacing those labels with the configured IDs while preserving
+case semantics and expected outcomes. Terra is implementing the relation-valued comparison and its
+focused controls. Source references include
+`.tools/carrier-m5/diagnosis-third/detail.log`, `summary.log`, and `qualified-run-audit.json`.
+
+These corrections are in progress. They do not convert the third gate into a pass; all previous
+failure records remain, and renewed full/extracted gates, delivery verification, and independent
+review are still pending.

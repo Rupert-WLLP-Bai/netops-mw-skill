@@ -63,6 +63,9 @@ An assessment of a proposed or completed network change, including scope, impact
 **Evidence binding**:
 An explicit, time-bounded declaration associating a source observation with a service and resource.
 
+**Alias mapping**:
+A sourced assertion that two local identifiers denote the same or different domain value. Equal spellings across source namespaces do not establish equivalence, and different spellings do not establish a discrepancy.
+
 **Optical profile**:
 A sourced set of optical operating limits and applicability conditions for a specified equipment model.
 

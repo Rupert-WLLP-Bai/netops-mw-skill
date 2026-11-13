@@ -209,15 +209,19 @@ def _same_source_resource(a,b):
     return a['resource']==b['resource'] and _source(a)==_source(b) and _same_event(a,b)
 
 
-def _equivalent(declaration,expected,actual,static,authorities):
-    if not declaration: return False
+def _equivalence_relation(declaration,expected,actual,static,authorities):
+    """Resolve only a scoped source assertion naming the exact evidence pair."""
+    if not declaration: return None,[]
     names={'relation':'field_equivalence','expected_run':'equivalence_expected_run','expected_id':'equivalence_expected_id','actual_run':'equivalence_actual_run','actual_id':'equivalence_actual_id'}
     items={name:_static_read(declaration[name],static,authorities,metric) for name,metric in names.items()}
-    if any(item is None for item in items.values()): return False
-    if len({_source(item) for item in items.values()})!=1: return False
-    if any(_opposing(item,static,True) for item in items.values()): return False
+    if any(item is None for item in items.values()): return None,[]
+    if len({_source(item) for item in items.values()})!=1 or {item['resource'] for item in items.values()}!={actual['resource']}: return None,[]
+    opposing=[other for item in items.values() for other in _opposing(item,static,True)]
+    if opposing: return None,opposing
     values={name:item['row']['value'] for name,item in items.items()}
-    return values==dict(relation='declared_equal',expected_run=expected['key'][0],expected_id=expected['key'][1],actual_run=actual['key'][0],actual_id=actual['key'][1])
+    relation=values.pop('relation')
+    if relation not in ('declared_equal','declared_different') or values!=dict(expected_run=expected['key'][0],expected_id=expected['key'][1],actual_run=actual['key'][0],actual_id=actual['key'][1]): return None,[]
+    return relation,[]
 
 
 def _field_results(request,context,static,actual,authorities,inventory,gaps):
@@ -242,10 +246,20 @@ def _field_results(request,context,static,actual,authorities,inventory,gaps):
         elif actual_target['row']['value']!=target_name or not _same_source_resource(actual_item,actual_target): local.append('field_scope_mismatch')
         elif context is None or (target=='service' and actual_item['resource'] not in (request['service']['object_id'],request['delivery_scope']['circuit_id'])) or (target in ('endpoint_a','endpoint_b') and not _site_point(context,request['delivery_scope'][target+'_id'],actual_item['resource'])): local.append('field_scope_mismatch')
         elif field in ('mtu','bandwidth') and (not _number(expected['row']['value']) or not _number(actual_item['row']['value']) or expected['row']['unit']!=actual_item['row']['unit'] or expected['row']['unit'] in (None,'unknown') or (field=='mtu' and expected['row']['unit']!='bytes')): local.append('field_unit_mismatch')
+        elif field not in ('mtu','bandwidth') and (not isinstance(expected['row']['value'],str) or not isinstance(actual_item['row']['value'],str)): local.append('field_unit_mismatch')
         elif expected['row']['unit']!=actual_item['row']['unit']: local.append('field_unit_mismatch')
-        elif isinstance(expected['row']['value'],str) and _source(expected)!=_source(actual_item) and not _equivalent(entry['equivalence_evidence'],expected,actual_item,static,authorities): local.append('missing_field_equivalence')
         elif opposing: pass
-        elif expected['row']['value']==actual_item['row']['value'] and expected['row']['unit']==actual_item['row']['unit']: status='match'
+        elif isinstance(expected['row']['value'],str):
+            if not isinstance(actual_item['row']['value'],str): local.append('field_unit_mismatch')
+            elif _source(expected)==_source(actual_item): status='match' if expected['row']['value']==actual_item['row']['value'] else 'mismatch'
+            else:
+                relation,conflicts=_equivalence_relation(entry['equivalence_evidence'],expected,actual_item,static,authorities)
+                opposing.extend(conflicts)
+                if conflicts: local.append('conflicting_observations')
+                elif relation is None: local.append('missing_field_equivalence')
+                else: status='match' if relation=='declared_equal' else 'mismatch'
+        elif not _number(expected['row']['value']) or not _number(actual_item['row']['value']): local.append('field_unit_mismatch')
+        elif expected['row']['value']==actual_item['row']['value']: status='match'
         else: status='mismatch'
         if local: status='unverified'
         gaps.update(local)
