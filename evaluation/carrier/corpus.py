@@ -370,13 +370,9 @@ def _materialize_job(repo: Path, job: dict[str, Any], task_dir: Path, job_number
                 raise CorpusError("parent fixture source path exceeds limits")
         if len(source.get("row_keys", [])) > 4096:
             raise CorpusError("parent fixture logical row count exceeds limits")
-    request_run_names = {item["run_id"] for item in request.get("runs", [])}
-    needed_sources = [source for source in sources if source.get("run_key") in {name.removeprefix(f"{parent}-") for name in request_run_names}]
-    # Fixtures whose source run key differs from the request's run ID (M5) retain declared order.
-    if parent == "m5":
-        needed_sources = sources
-    if not needed_sources:
-        needed_sources = sources
+    # The source list is the parent fixture's explicit materialization plan.
+    # Run IDs are not required to be derivable from source run keys.
+    needed_sources = sources
 
     run_ids = {source["run_key"]: f"r{job_number:02d}{index:02d}" for index, source in enumerate(needed_sources, 1)}
     old_to_new = {}

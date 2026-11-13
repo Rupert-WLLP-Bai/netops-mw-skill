@@ -63,6 +63,18 @@ class CarrierCorpusTests(unittest.TestCase):
             with self.assertRaises(CorpusError):
                 materialize_case(ROOT, "case-999", Path(temporary))
 
+    def test_case_018_materializes_declared_source_whose_run_id_is_not_derived_from_run_key(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result = materialize_case(ROOT, "case-018", Path(temporary))
+            task = json.loads(result["task_path"].read_text(encoding="utf-8"))
+            request = task["jobs"][0]["request"]
+            run_ids = {run["run_id"] for run in request["runs"]}
+            self.assertEqual(run_ids, {"r0101", "r0102"})
+            self.assertTrue(any(binding["record"]["run_id"] == "r0102"
+                                for binding in request["bindings"]))
+            self.assertTrue(result["visible_refs_by_job"]["job-01"])
+            validate_oracle(result["oracle"], task)
+
     def test_identifier_valued_device_model_stays_equal_across_allowlist_and_record(self):
         identifiers = {}
         config = {
