@@ -134,7 +134,12 @@ class CarrierCorpusTests(unittest.TestCase):
             request = json.loads(missing_reverse_map["task_path"].read_text(encoding="utf-8"))["jobs"][0]["request"]
             direction_claims = [claim for claim in missing_reverse_map["oracle"]["jobs"][0]["claims"]
                                 if claim["kind"] == "test_result"]
-            self.assertEqual(len(direction_claims), len(request["test_results"]))
+            expected_scopes = {(item["criterion_id"], direction)
+                               for item in request["test_results"]
+                               for direction in ("A_to_B", "B_to_A")}
+            actual_scopes = {(claim["scope"]["criterion_id"], claim["scope"]["absolute_direction"])
+                             for claim in direction_claims}
+            self.assertEqual(actual_scopes, expected_scopes)
             self.assertEqual({claim["status"] for claim in direction_claims
                               if claim["scope"]["absolute_direction"] == "A_to_B"}, {"pass"})
             self.assertEqual({claim["status"] for claim in direction_claims
