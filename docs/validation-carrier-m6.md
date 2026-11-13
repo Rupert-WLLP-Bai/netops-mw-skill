@@ -74,7 +74,30 @@ and recall each 12/21. Resource localization and unknown token/cost fields remai
 and coverage shortfalls are measured baseline limitations; independent truth was not weakened to
 make them pass. No conclusion about an untested LLM follows from these results.
 
-Final test-only input correction, complete regression and independent Sol review are pending.
+## Final regression
+
+The test-only correction selects M6 cases 023 and 025 for the intended M5 calibration/direction
+inputs. The latter intentionally supplies only five forward measurements: its independently
+required matrix still contains ten criterion/direction scopes. The test now checks that complete
+scope set and retains the original forward-pass/reverse-unverified assertions. The first corrected
+focused run exposed the erroneous supplied-row-count assertion (9 tests, one failure); its log is
+`focused-corpus-v10.log`. The subsequent focused run passed nine tests in 5.640 seconds
+(`focused-corpus-v11.log`). No provider or truth was changed for either test correction.
+
+The sequential full-v11 process stopped before a terminal test result; its partial log is retained
+as interrupted, not passed. Frozen source `e643365873609397ace6fe2eda6f82b9a551b7a8` then passed
+all **257 tests across 18 test modules in 158.810 seconds**, using four independent module workers.
+Every module exited zero and reported a test count. The module commands, timings and counts are
+in `.tools/carrier-m6/full-v12/result.json`; individual logs are alongside it. Each command uses:
+
+```sh
+.tools/carrier-m1/schema-venv/bin/python -B -W error::ResourceWarning -m unittest discover -s tests -p test_MODULE.py -v
+```
+
+The runtime, scripts, Skills and fixture trees are byte-identical to `956a265`
+(`git diff 956a265 -- evaluation scripts skills tests/fixtures` is empty), so the completed v9
+36-case/replay/package gates apply to this final test correction without rebuilding unchanged
+artifacts. Independent Sol Standards and Spec review follows these completed gates.
 
 Controlled-lab injection plans are unexecuted. No live LLM, MobileWork, native Windows, real-device
 or external security acceptance is claimed. Actual M7 client/Windows/security validation remains
