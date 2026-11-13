@@ -24,7 +24,8 @@ The parent retains audit output under `<output-dir>/<case-id>/report.json`.
 
 The current bootstrap targets x86-64 Linux with Landlock ABI 3 through 11 and seccomp-BPF.
 It handles the required file rights through ABI 3, additional ioctl rights at ABI 5+, and UNIX
-resolution rights at ABI 9+; syscall filtering also denies ioctl and socket operations. ABI 12+
+resolution rights at ABI 9+; syscall filtering denies socket operations and ioctl requests except
+`FIOCLEX` (`0x5451`), which sets close-on-exec on a file descriptor. ABI 12+
 is rejected until its additional interfaces are represented. This is an implementation support
 range; the validation record separately identifies the environment actually exercised.
 Linux filesystem/syscall restrictions must install successfully. Unsupported setup yields

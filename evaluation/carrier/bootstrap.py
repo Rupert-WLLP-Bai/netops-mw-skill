@@ -27,13 +27,15 @@ _PR_SET_SECCOMP = 22
 _SECCOMP_MODE_FILTER = 2
 _AUDIT_ARCH_X86_64 = 0xC000003E
 _X32_SYSCALL_BIT = 0x40000000
+_FIOCLEX = 0x5451
 _SECCOMP_RET_KILL_PROCESS = 0x80000000
 _SECCOMP_RET_ERRNO = 0x00050000
 _SECCOMP_RET_ALLOW = 0x7FFF0000
 
 # Landlock filesystem rights through ABI 3 cover every path mutation needed here.
-# Device ioctl is denied directly by seccomp; ABI 5 can additionally handle it
-# in Landlock. A missing required path right never weakens the filesystem policy.
+# Device ioctl is denied by seccomp except FIOCLEX (close-on-exec); ABI 5 can
+# additionally handle device ioctls in Landlock. A missing path right never weakens
+# the filesystem policy.
 _EXECUTE = 1 << 0
 _WRITE_FILE = 1 << 1
 _READ_FILE = 1 << 2
@@ -68,6 +70,12 @@ class _RulesetAttr(ctypes.Structure):
 
 
 class _PathBeneathAttr(ctypes.Structure):
+    # This packed UAPI has only uint64 + int32 fields, with no bitfields. The
+    # Microsoft ctypes layout plus pack=1 places them at offsets 0 and 8 and
+    # gives the required 12-byte Linux structure. Select it explicitly on 3.14+
+    # to avoid the deprecated implicit-layout behavior; older Python keeps pack=1.
+    if sys.version_info >= (3, 14):
+        _layout_ = 'ms'
     _pack_ = 1
     _fields_ = [('allowed_access', ctypes.c_uint64), ('parent_fd', ctypes.c_int32)]
 
@@ -223,8 +231,8 @@ _DENIED_SYSCALLS = {
     # Metadata mutation not mediated by Landlock filesystem rules
     90, 91, 92, 93, 94, 132, 188, 189, 190, 194, 195, 196, 197, 198, 199,
     235, 260, 261, 268, 280, 452,
-    # io_uring, ptrace-family access, pidfd acquisition and device ioctl
-    425, 426, 427, 101, 310, 311, 438, 434, 424, 16,
+    # io_uring, ptrace-family access and pidfd acquisition
+    425, 426, 427, 101, 310, 311, 438, 434, 424,
     # Handle-based path access, mount and namespace routes
     155, 161, 165, 166, 303, 304, 272, 308, 428, 429, 430, 431, 432,
     433, 442,
@@ -235,7 +243,7 @@ _DENIED_SYSCALLS = {
 
 def _seccomp_filter() -> tuple[_SockFilter, ...]:
     # Classic BPF: architecture mismatch and x32 enter are fatal; explicit deny
-    # entries return EPERM, leaving Python's normal spawn/exec syscalls available.
+    # entries return EPERM. ioctl permits only FIOCLEX for Python's script FD.
     code = [
         _SockFilter(0x20, 0, 0, 4),                         # LD arch
         _SockFilter(0x15, 1, 0, _AUDIT_ARCH_X86_64),       # JEQ arch
@@ -250,6 +258,13 @@ def _seccomp_filter() -> tuple[_SockFilter, ...]:
         _SockFilter(0x20, 0, 0, 0),                         # LD nr again
         _SockFilter(0x15, 0, 1, 435),                        # JEQ clone3
         _SockFilter(0x06, 0, 0, _SECCOMP_RET_ERRNO | errno.ENOSYS),
+        _SockFilter(0x20, 0, 0, 0),                         # LD nr
+        _SockFilter(0x15, 0, 4, 16),                         # JEQ ioctl
+        _SockFilter(0x20, 0, 0, 24),                        # LD ioctl command
+        _SockFilter(0x15, 0, 1, _FIOCLEX),                  # only FIOCLEX is allowed
+        _SockFilter(0x06, 0, 0, _SECCOMP_RET_ALLOW),
+        _SockFilter(0x06, 0, 0, _SECCOMP_RET_ERRNO | errno.EPERM),
+        _SockFilter(0x20, 0, 0, 0),                         # LD nr for deny table
     ]
     for number in sorted(_DENIED_SYSCALLS):
         code.append(_SockFilter(0x15, 0, 1, number))         # JEQ nr

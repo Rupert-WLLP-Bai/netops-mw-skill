@@ -25,6 +25,20 @@ MAX_DEPTH = 8
 IMPORT_TIMEOUT_SECONDS = 20
 SUMMARY_FILES = ("manifest.json", "evidence.jsonl", "diagnosis.json", "report.md")
 BUNDLE_FILES = (*SUMMARY_FILES, "carrier-visible.json")
+IDENTIFIER_VALUE_METRICS = {
+    "device_model", "service_vlan_expected", "service_vlan_actual",
+    "route_prefix", "service_prefix", "route_vrf", "service_vrf", "flow_scope",
+    "ecmp_path", "next_hop", "traceroute_hop", "lag_member_id", "qos_class",
+    "instrument_id", "equivalence_expected_id", "equivalence_actual_id",
+    "equivalence_expected_run", "equivalence_actual_run", "change_scope",
+    "change_approval_reference", "rollback_owner",
+    "actual_circuit", "actual_endpoint", "actual_ip_prefix", "actual_qos",
+    "actual_routing", "actual_security", "actual_sla_profile", "actual_vlan", "actual_vrf",
+    "expected_circuit", "expected_endpoint", "expected_ip_prefix", "expected_qos",
+    "expected_routing", "expected_security", "expected_sla_profile", "expected_vlan", "expected_vrf",
+    "current_circuit", "current_endpoint", "current_ip_prefix", "current_qos",
+    "current_routing", "current_security", "current_sla_profile", "current_vlan", "current_vrf",
+}
 SOURCE_ROOTS = {
     "m3": Path("tests/fixtures/carrier-m3"),
     "m4": Path("tests/fixtures/carrier-m4"),
@@ -167,6 +181,16 @@ def _remap(value: Any, identifiers: dict[str, str], run_ids: dict[str, str], *, 
            opaque_prefix: str = "q00") -> Any:
     """Remap identifier-bearing fields while preserving evidence semantics."""
     if isinstance(value, dict):
+        if "metric" in value and "value" in value and value.get("metric") in IDENTIFIER_VALUE_METRICS:
+            result = {name: _remap(child, identifiers, run_ids, key=name, opaque_prefix=opaque_prefix)
+                      for name, child in value.items() if name != "value"}
+            result["value"] = _remap_identifier(value["value"], identifiers, opaque_prefix)
+            return result
+        if key == "value_allowlists":
+            return {metric: [_remap_identifier(item, identifiers, opaque_prefix) for item in values]
+                    if metric in IDENTIFIER_VALUE_METRICS else
+                    [_remap(child, identifiers, run_ids, key=metric, opaque_prefix=opaque_prefix) for child in values]
+                    for metric, values in value.items()}
         if key == "pseudonyms":
             return {identifiers.setdefault(name, f"{opaque_prefix}{len(identifiers) + 1:03d}"):
                     _remap(child, identifiers, run_ids, key="source_native_id", opaque_prefix=opaque_prefix)
@@ -193,6 +217,13 @@ def _remap(value: Any, identifiers: dict[str, str], run_ids: dict[str, str], *, 
             return identifiers.setdefault(value, f"{opaque_prefix}{len(identifiers) + 1:03d}")
         return value
     return value
+
+
+def _remap_identifier(value: Any, identifiers: dict[str, str], opaque_prefix: str) -> Any:
+    if (not isinstance(value, str) or value in {"", "null"} or value.startswith("$")
+            or value.startswith("ev-") or re.fullmatch(r"r\d{4}", value)):
+        return value
+    return identifiers.setdefault(value, f"{opaque_prefix}{len(identifiers) + 1:03d}")
 
 
 def _resolve_tokens(value: Any, row_ids: dict[str, dict[str, str]], run_ids: dict[str, str]) -> Any:
@@ -272,7 +303,7 @@ def _import_source(repo: Path, parent_root: Path, source: dict[str, Any], source
     suffix = Path(source["input_path"]).suffix or ".json"
     input_name = "input" + suffix
     input_path = source_dir / input_name
-    input_path.write_text(json.dumps(input_data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    input_path.write_text(_serialize_source(input_data), encoding="utf-8")
     config_path = attempt / f"{stem}-config.json"
     config_path.write_text(json.dumps(source_config, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     out_dir = attempt / f"{stem}-bundle"
@@ -299,6 +330,21 @@ def _import_source(repo: Path, parent_root: Path, source: dict[str, Any], source
     keys = row_keys or [f"#{index}" for index in range(1, len(evidence) + 1)]
     ids = {key: row["id"] for key, row in zip(keys, evidence)}
     return out_dir, ids, source_config["run_id"]
+
+
+def _serialize_source(input_data: Any) -> str:
+    """Write each telemetry record on its own line to honor M2's line cap."""
+    if isinstance(input_data, dict) and isinstance(input_data.get("records"), list):
+        header = {key: value for key, value in input_data.items() if key != "records"}
+        encoded_header = json.dumps(header, ensure_ascii=False, separators=(",", ":"))
+        if not encoded_header.endswith("}"):
+            raise CorpusError("malformed telemetry source header")
+        encoded_records = ",\n".join(
+            json.dumps(record, ensure_ascii=False, separators=(",", ":"))
+            for record in input_data["records"]
+        )
+        return encoded_header[:-1] + ',"records":[\n' + encoded_records + "\n]}"
+    return json.dumps(input_data, ensure_ascii=False, separators=(",", ":"))
 
 
 def _materialize_job(repo: Path, job: dict[str, Any], task_dir: Path, job_number: int,

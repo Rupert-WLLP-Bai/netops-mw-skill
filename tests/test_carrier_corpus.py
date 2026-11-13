@@ -7,7 +7,7 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-from evaluation.carrier.corpus import CorpusError, load_catalog, materialize_case
+from evaluation.carrier.corpus import CorpusError, _remap, _serialize_source, load_catalog, materialize_case
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,6 +60,43 @@ class CarrierCorpusTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             with self.assertRaises(CorpusError):
                 materialize_case(ROOT, "case-999", Path(temporary))
+
+    def test_identifier_valued_device_model_stays_equal_across_allowlist_and_record(self):
+        identifiers = {}
+        config = {
+            "value_allowlists": {"device_model": ["synthetic-model-m3"]},
+            "pseudonyms": {"fixture-access-resource": "resource-m3"},
+        }
+        records = {"records": [{"metric": "device_model", "value": "synthetic-model-m3",
+                                "object_id": "fixture-access-resource"}]}
+        profile = {"device_model": "synthetic-model-m3", "profile_id": "resource-m3"}
+        remapped_config = _remap(config, identifiers, {}, opaque_prefix="q01")
+        remapped_records = _remap(records, identifiers, {}, opaque_prefix="q01")
+        remapped_profile = _remap(profile, identifiers, {}, opaque_prefix="q01")
+        configured_model = remapped_config["value_allowlists"]["device_model"][0]
+        observed_model = remapped_records["records"][0]["value"]
+        self.assertEqual(configured_model, observed_model)
+        self.assertEqual(configured_model, remapped_profile["device_model"])
+        self.assertNotEqual(configured_model, "synthetic-model-m3")
+
+    def test_m5_acceptance_materialization_resolves_staged_rows_and_splits_telemetry_lines(self):
+        source = json.loads((ROOT / "tests/fixtures/carrier-m5/sources/actual-tests/input.json").read_text(encoding="utf-8"))
+        lines = _serialize_source(source).splitlines()
+        self.assertTrue(all(len(line.encode("utf-8")) <= 8192 for line in lines))
+        self.assertGreater(len(lines), len(source["records"]))
+        with tempfile.TemporaryDirectory() as temporary:
+            result = materialize_case(ROOT, "case-021", Path(temporary))
+            task = json.loads(result["task_path"].read_text(encoding="utf-8"))
+            request = task["jobs"][0]["request"]
+            serialized = json.dumps(request)
+            self.assertNotIn("$row", serialized)
+            self.assertNotIn("$ID:", serialized)
+            self.assertNotIn("$RUN_ID:", serialized)
+            self.assertGreaterEqual(len(request["runs"]), 5)
+            for run in request["runs"]:
+                bundle = Path(run["run_dir"])
+                self.assertTrue((bundle / "carrier-visible.json").is_file())
+                self.assertTrue((bundle / "manifest.json").is_file())
 
 
 if __name__ == "__main__":

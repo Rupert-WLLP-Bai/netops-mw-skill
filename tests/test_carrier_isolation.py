@@ -37,38 +37,50 @@ class CarrierIsolationTests(unittest.TestCase):
             sibling_root.mkdir()
             oracle = oracle_root / 'expected.json'
             sibling = sibling_root / 'case.json'
+            control = visible / 'control.txt'
             oracle.write_text('{"secret":"parent-only"}', encoding='utf-8')
             sibling.write_text('{"sibling":"private"}', encoding='utf-8')
+            control.write_text('visible control', encoding='utf-8')
             before = {path: (path.read_bytes(), path.stat().st_mode, path.stat().st_mtime_ns)
                       for path in (oracle, sibling)}
             helper = (
-                'import ctypes,errno,json,os,socket,sys\n'
+                'import ctypes,errno,fcntl,json,os,socket,sys\n'
                 'def denied(fn):\n'
                 ' try: fn(); return False\n'
                 ' except OSError as exc: return exc.errno in (errno.EACCES,errno.EPERM)\n'
-                'def attempts(oracle,sibling):\n'
+                'def ioctl_controls(control):\n'
+                ' fd=os.open(control,os.O_RDONLY)\n'
+                ' try:\n'
+                '  allowed=fcntl.ioctl(fd,0x5451)==0\n'
+                '  try: fcntl.ioctl(fd,0x5452); other_denied=False\n'
+                '  except OSError as exc: other_denied=exc.errno==errno.EPERM\n'
+                '  return allowed,other_denied\n'
+                ' finally: os.close(fd)\n'
+                'def attempts(oracle,sibling,control):\n'
                 ' return {"read":denied(lambda:open(oracle).read()),'
                 '"truncate":denied(lambda:os.open(oracle,os.O_WRONLY|os.O_TRUNC)),'
                 '"unlink":denied(lambda:os.unlink(sibling)),'
                 '"chmod":denied(lambda:os.chmod(oracle,0o600)),'
                 '"socket":denied(lambda:socket.socket()),'
                 '"io_uring":(lambda r: r == -1 and ctypes.get_errno() in '
-                '(errno.EPERM,errno.ENOSYS))(ctypes.CDLL(None,use_errno=True).syscall(425,1,None))}\n')
+                '(errno.EPERM,errno.ENOSYS))(ctypes.CDLL(None,use_errno=True).syscall(425,1,None)), '
+                '"ioctl_fioclex,ioctl_other":ioctl_controls(control)}\n')
             child = code / 'child.py'
-            child.write_text(helper + 'print(json.dumps(attempts(*sys.argv[1:3])))\n',
+            child.write_text(helper + 'print(json.dumps(attempts(*sys.argv[1:4])))\n',
                              encoding='utf-8')
             probe = code / 'probe.py'
             probe.write_text(
                 helper +
                 'import subprocess\n'
-                'oracle,sibling=sys.argv[1:3]\n'
-                'direct=attempts(oracle,sibling)\n'
+                'oracle,sibling=sys.argv[1:3]; control=sys.argv[4]\n'
+                'direct=attempts(oracle,sibling,control)\n'
                 'child=subprocess.run([sys.executable,"-B","-I","-S",sys.argv[3],'
-                'oracle,sibling],capture_output=True,text=True,timeout=8)\n'
+                'oracle,sibling,control],capture_output=True,text=True,timeout=8)\n'
                 'print(json.dumps({"direct":direct,"child":json.loads(child.stdout)}))\n',
                 encoding='utf-8')
             result = isolation.run_isolated(
-                [sys.executable, '-I', '-S', str(probe), str(oracle), str(sibling), str(child)],
+                [sys.executable, '-I', '-S', str(probe), str(oracle), str(sibling),
+                 str(child), str(control)],
                 read_roots=[visible, code], write_root=writable,
                 blocked_roots=[REPO, oracle_root, sibling_root], timeout_seconds=15,
                 output_limit_bytes=65536)
@@ -76,10 +88,12 @@ class CarrierIsolationTests(unittest.TestCase):
             report = json.loads(result['stdout'])
             self.assertEqual(report['direct'],
                              {'read': True, 'truncate': True, 'unlink': True, 'chmod': True,
-                              'socket': True, 'io_uring': True})
+                              'socket': True, 'io_uring': True,
+                              'ioctl_fioclex,ioctl_other': [True, True]})
             self.assertEqual(report['child'],
                              {'read': True, 'truncate': True, 'unlink': True, 'chmod': True,
-                              'socket': True, 'io_uring': True})
+                              'socket': True, 'io_uring': True,
+                              'ioctl_fioclex,ioctl_other': [True, True]})
             for path, expected in before.items():
                 self.assertEqual((path.read_bytes(), path.stat().st_mode,
                                   path.stat().st_mtime_ns), expected)
