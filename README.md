@@ -1,12 +1,12 @@
 # Internet Access Triage and Evidence Localization
 
-> **Unfinished checkpoint:** The final suite review found one P1 and three P2 controller defects. See [the handoff](docs/HANDOFF-2026-11-13.md), [the review](docs/review-network-skill-suite-2026-11-13.md), and [issue #1](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/1) before using or continuing this work. Existing passing checks do not constitute release approval.
+> **Controller fixes verified:** The four findings in [issue #1](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/1) are fixed at `354b402`. All 125 tests, nine real-PCAP cases, extracted-package checks, and [Sol re-review](docs/review-network-skill-suite-issue1.md) passed. See the [current validation record](docs/validation-network-skill-suite-issue1.md) for package hashes and remaining host/platform acceptance limits.
 
 A runnable Skill for one target and symptom: bounded local collection, explicit counterevidence, and at most two supported investigation directions. It also analyzes an existing PCAP independently of live probing.
 
 ## Network skill suite
 
-The versioned suite combines the existing collector with four direct-entry skills: incident coordination, offline capture analysis, recovery verification, and handoff drafting. The incident skill includes an optional local case controller for evidence, budgets, decisions, and recovery records; the other new skills also work directly from supplied inputs. They do not perform repairs or send handoffs. The [suite validation record](docs/validation-network-skill-suite.md) describes the checks and remaining limits.
+The versioned suite combines the existing collector with four direct-entry skills: incident coordination, offline capture analysis, recovery verification, and handoff drafting. The incident skill includes an optional local case controller for evidence, budgets, decisions, and recovery records; the other new skills also work directly from supplied inputs. They do not perform repairs or send handoffs. The [current suite validation record](docs/validation-network-skill-suite-issue1.md) describes the checks and remaining limits.
 
 A local build is available at `dist/network-skill-suite-0.1.0.zip` with its adjacent manifest in this workspace. Build a new archive from source with `python3 -B scripts/build_suite.py --out dist/network-skill-suite-new.zip`; the builder refuses to overwrite an archive or manifest. Extract the five skill directories and use the host's supported discovery or explicit loading method. Discovery and target-host installation have not been established by the local package tests. The inventory describes the optional collector interface; it does not require an assumed sibling installation path.
 
@@ -66,7 +66,9 @@ The initial validation platform is Linux/WSL. Native Windows, actual MobileWork 
 
 | Document | Purpose |
 | --- | --- |
-| [Suite validation](docs/validation-network-skill-suite.md) | Suite tests, real-capture checks, delivery, and limitations |
+| [Current suite validation](docs/validation-network-skill-suite-issue1.md) | Controller fixes, 125 tests, restored nine-file corpus, reproducible packages, and limitations |
+| [Suite re-review](docs/review-network-skill-suite-issue1.md) | Final Sol standards and specification verdicts for the corrected source |
+| [Earlier suite validation](docs/validation-network-skill-suite.md) | Historical checks before issue #1 corrections |
 | [Implementation plan](docs/delivery-plan.md) | Scope, tasks, twelve core cases, release criteria |
 | [v0.1 validation](docs/validation-v0.1-review-fixes-2026-11-12.md) | Test, candidate package, extraction checks, and outstanding work |
 | [Final scoped review](docs/review-v0.1-2026-11-12.md) | Independent review verdict and exclusions |

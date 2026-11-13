@@ -1,5 +1,9 @@
 # Final review: network skill suite
 
+> **Follow-up:** The four findings in this frozen-source review were corrected at `354b402` and passed
+> [final Sol re-review](review-network-skill-suite-issue1.md). The original verdict and reproductions
+> below are retained as historical evidence; see the [new validation record](validation-network-skill-suite-issue1.md).
+
 > Transfer note: this report reviews the frozen implementation at `44dbedf`. The handoff evidence bundle retains the exact original reproduction as `reproduce-original.txt` and supplies `reproduce-portable.py`, which uses a fresh temporary directory. Restore the evidence bundle using [the handoff instructions](HANDOFF-2026-11-13.md) before running it. The original review cases and SQLite files are not distributed; the portable script regenerates them temporarily.
 
 Reviewed branch `feat/network-skill-suite` at frozen HEAD `44dbedf3b714e5b4d9bb18ce365d0db12baf4167`, against base `1d197d143ff8efa92d6d4ce73f250c3a0317be8a`, on 2026-11-13.
