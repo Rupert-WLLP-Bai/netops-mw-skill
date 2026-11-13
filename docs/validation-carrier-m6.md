@@ -16,6 +16,21 @@ The correction also preserves the existing importer's line-size limit when seria
 M5 inputs. No checks run during authoring; refreeze, final gates and independent Sol review
 remain pending.
 
+Subsequent frozen focused runs retained these results:
+
+| Run | Result | Diagnosed correction |
+| --- | --- | --- |
+| v2, `53f594e` | Corpus 6 and scoring 10 passed; isolation 4/5 passed | Permit read/write on the exact null device for subprocess input |
+| v3, `50fa155` | Isolation 4/5 passed | Use `fcntl` for adapter pipe nonblocking flags; retain the ioctl restriction |
+| v4, `c7bfa40` | Isolation 4/5 passed | Permit directory reads for the existing confined reader's ancestor traversal |
+| v5, `5f44f74` | Isolation 4/5 passed | Copy the provider's schema dependency and preserve its scripts/schemas layout |
+
+Each failed isolation run retained its working oracle/sibling denial, output cap, process-group
+timeout cleanup and unavailable-setup control. The actual provider control remained a failure
+until the complete dependency tree was supplied. See `focused-isolation-v2.log` through
+`focused-isolation-v5.log` and the corresponding `diagnose-*`/`isolation-strace-*` logs under
+`.tools/carrier-m6/`. No failed run is counted as release success.
+
 The existing collector, incident runtime, four diagnosis states and 25-second Internet collection
 budget are protected. Developer evaluation files and oracle must remain outside every Skill archive.
 M5's exact-source package validation is historical evidence, not a new M6 run.

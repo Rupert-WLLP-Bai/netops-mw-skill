@@ -120,6 +120,8 @@ class CarrierIsolationTests(unittest.TestCase):
                 shutil.copy2(source_scripts / name, product / 'scripts' / name)
             shutil.copytree(source_scripts / 'case_runtime',
                             product / 'scripts' / 'case_runtime')
+            shutil.copytree(REPO / 'skills' / 'netops-incident' / 'schemas',
+                            product / 'schemas')
             writable = root / 'trial-tmp'
             writable.mkdir()
             result = isolation.run_isolated(

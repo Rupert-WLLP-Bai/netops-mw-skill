@@ -62,10 +62,16 @@ def _prepare_output_dir(output_dir: Path, replay_dir: Path | None = None) -> Pat
 def _copy_code(repo: Path, code: Path) -> None:
     product_source = repo / "skills" / "netops-incident" / "scripts"
     product_target = code / "product"
-    product_target.mkdir(parents=True)
+    scripts_target = product_target / "scripts"
+    scripts_target.mkdir(parents=True)
     for name in ("diagnose_access.py", "diagnose_transport.py", "review_service.py"):
-        shutil.copy2(product_source / name, product_target / name)
-    shutil.copytree(product_source / "case_runtime", product_target / "case_runtime")
+        shutil.copy2(product_source / name, scripts_target / name)
+    shutil.copytree(product_source / "case_runtime", scripts_target / "case_runtime")
+    schema_source = repo / "skills" / "netops-incident" / "schemas"
+    schema_target = product_target / "schemas"
+    schema_target.mkdir()
+    for name in ("service-context.schema.json", "carrier-evidence.schema.json"):
+        shutil.copy2(schema_source / name, schema_target / name)
     package = repo / "evaluation" / "carrier"
     for name in ("adapter.py", "bootstrap.py", "isolation.py", "contract.py"):
         source = package / name
