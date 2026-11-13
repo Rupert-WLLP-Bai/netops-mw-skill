@@ -8,6 +8,7 @@ from collections import Counter
 from pathlib import Path
 
 from evaluation.carrier.corpus import CorpusError, _remap, _serialize_source, load_catalog, materialize_case
+from evaluation.carrier.contract import validate_oracle
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +51,7 @@ class CarrierCorpusTests(unittest.TestCase):
             self.assertNotIn("true_fault", serialized)
             self.assertNotIn("oracle", serialized)
             self.assertEqual(result["oracle"]["task_id"], task["task_id"])
+            validate_oracle(result["oracle"], task)
             self.assertTrue(all(Path(job["request"]["runs"][0]["run_dir"]).is_relative_to(visible)
                                 for job in task["jobs"]))
             self.assertTrue(result["visible_refs_by_job"]["job-01"])

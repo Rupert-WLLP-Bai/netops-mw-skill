@@ -467,7 +467,7 @@ def _adapt_oracle(job: dict[str, Any], source: dict[str, Any], row_ids: dict[str
                            "counter_refs": []})
         service_states = {"technical": source.get("technical_status"), "acceptance": source.get("acceptance_status"),
                           "change": source.get("change_status")}
-        return {"schema_version": 1, "job_id": job["job_id"], "expected_state": None,
+        return {"job_id": job["job_id"], "expected_state": None,
                 "service_states": service_states, "required_gaps": source.get("required_gaps", []),
                 "claims": claims, "prohibited_codes": [], "forbid_causal_links": True}
     claims = []
@@ -478,7 +478,7 @@ def _adapt_oracle(job: dict[str, Any], source: dict[str, Any], row_ids: dict[str
                        "scope": claim.get("scope", {}), "layer": claim.get("layer"),
                        "fault_class": bool(claim.get("fault_class", False)), "support_sets": support_sets,
                        "counter_refs": counter_refs})
-    return {"schema_version": 1, "job_id": job["job_id"], "expected_state": enrich.get("expected_state") or source.get("status"),
+    return {"job_id": job["job_id"], "expected_state": enrich.get("expected_state") or source.get("status"),
             "service_states": {"technical": None, "acceptance": None, "change": None},
             "required_gaps": enrich.get("required_gaps", []), "claims": claims,
             "prohibited_codes": enrich.get("prohibited_codes", source.get("prohibited_codes", [])),
