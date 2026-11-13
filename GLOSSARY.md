@@ -51,6 +51,12 @@ An agreement that defines measurable service commitments and the conditions unde
 **Acceptance criterion**:
 A stated condition used to decide whether a service or delivery result meets its agreed requirements.
 
+**Evidence binding**:
+An explicit, time-bounded declaration associating a source observation with a service and resource.
+
+**Optical profile**:
+A sourced set of optical operating limits and applicability conditions for a specified equipment model.
+
 ## Network layers
 
 **Endpoint/LAN**:

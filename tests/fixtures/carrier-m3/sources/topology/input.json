@@ -1,0 +1,12 @@
+{
+  "format": "topology-json-v1",
+  "version": 1,
+  "service_id": "fixture-service",
+  "objects": [
+    {"id": "fixture-service", "type": "service", "layer": null},
+    {"id": "fixture-access-resource", "type": "access_line", "layer": "access"}
+  ],
+  "links": [
+    {"from_id": "fixture-service", "to_id": "fixture-access-resource", "relation": "serves", "state": "verified", "confidence": "high"}
+  ]
+}

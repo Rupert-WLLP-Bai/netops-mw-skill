@@ -1,0 +1,18 @@
+{
+  "format": "telemetry-json-v1",
+  "run_id": "m3-clock-unknown",
+  "source": "synthetic-access-source",
+  "actor": "synthetic-reviewer",
+  "authorization_ref": "fixture-only",
+  "collected_at": "2026-11-13T00:09:00Z",
+  "reference_time": "2026-11-13T00:10:00Z",
+  "max_age_seconds": 3600,
+  "timezone": "UTC",
+  "clock_quality": "unknown",
+  "clock_uncertainty_seconds": null,
+  "metric_allowlist": ["pppoe_auth", "dhcp_lease"],
+  "unit_allowlist": [],
+  "relation_allowlist": ["serves"],
+  "value_allowlists": {"pppoe_auth": ["accept", "reject"], "dhcp_lease": ["assigned", "failed"]},
+  "pseudonyms": {"fixture-access-resource": "resource-m3"}
+}

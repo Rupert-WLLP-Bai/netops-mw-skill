@@ -8,8 +8,8 @@ superseded by that explicit authorization. Offline/device/production boundaries 
 | --- | --- | --- |
 | Design PR #4 | Merged, `04587e2` | Historical design basis retained |
 | M1 / #5 / PR #12 | Merged, `b2e7ee5`; source `f244b65`; 141 full and 62 extracted tests; final Sol pass | No implementation work remains |
-| M2 / #6 | Verified at `f78c897`; final 162-test full suite, 83-test extraction and Sol Standards/Spec both pass | Open separate PR and merge |
-| M3 / #7 | Open | Access domain and at least 12 evaluated cases |
+| M2 / #6 / PR #13 | Merged, `147c2af`; source `f78c897`; 162 full and 83 extracted tests; final Sol pass | No implementation work remains |
+| M3 / #7 | In progress on `feat/carrier-m3-access-diagnostics` | Access domain and at least 12 evaluated cases, final checks and Sol review |
 | M4 / #8 | Open | IP bearer/transport domain and at least 12 cases |
 | M5 / #9 | Open | Service acceptance/change review and at least eight cases |
 | M6 / #10 | Open | At least 36 scenarios, independent scoring, hidden/visible isolation and experiment validity |

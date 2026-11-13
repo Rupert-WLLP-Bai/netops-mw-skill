@@ -1,0 +1,38 @@
+{
+  "format": "telemetry-json-v1",
+  "run_id": "m3-observations",
+  "source": "synthetic-access-source",
+  "actor": "synthetic-reviewer",
+  "authorization_ref": "fixture-only",
+  "collected_at": "2026-11-13T00:09:00Z",
+  "reference_time": "2026-11-13T00:10:00Z",
+  "max_age_seconds": 3600,
+  "timezone": "UTC",
+  "clock_quality": "synchronized",
+  "clock_uncertainty_seconds": 1,
+  "metric_allowlist": [
+    "optical_rx_power", "optical_tx_power", "optical_rx_lower_limit", "optical_tx_lower_limit",
+    "device_model", "los_state", "lof_state", "pon_session_state", "fec_count", "crc_count",
+    "pppoe_auth", "ipoe_auth", "aaa_result", "dhcp_lease", "dhcp_pool",
+    "service_vlan_expected", "service_vlan_actual", "forwarding_state", "application_state", "wifi_state"
+  ],
+  "unit_allowlist": ["dBm", "count", "1", "state", "vlan"],
+  "relation_allowlist": ["serves"],
+  "value_allowlists": {
+    "device_model": ["synthetic-model-m3"],
+    "los_state": ["active", "clear", "unknown"],
+    "lof_state": ["active", "clear", "unknown"],
+    "pon_session_state": ["up", "down", "unknown"],
+    "pppoe_auth": ["accept", "reject", "unknown"],
+    "ipoe_auth": ["accept", "reject", "unknown"],
+    "aaa_result": ["accept", "reject", "unknown"],
+    "dhcp_lease": ["assigned", "failed", "unknown"],
+    "dhcp_pool": ["available", "exhausted", "unknown"],
+    "service_vlan_expected": ["vlan-100", "vlan-200"],
+    "service_vlan_actual": ["vlan-100", "vlan-200"],
+    "forwarding_state": ["pass", "fail", "unknown"],
+    "application_state": ["pass", "fail", "unknown"],
+    "wifi_state": ["pass", "fail", "unknown"]
+  },
+  "pseudonyms": {"fixture-access-resource": "resource-m3"}
+}

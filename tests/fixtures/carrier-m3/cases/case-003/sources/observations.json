@@ -1,0 +1,10 @@
+{
+  "format": "telemetry-json-v1", "version": 1,
+  "records": [
+    {"metric": "optical_rx_power", "value": -18.0, "unit": "dBm", "direction": "ingress", "denominator": "1", "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:07:00Z", "object_id": "fixture-access-resource"},
+    {"metric": "optical_rx_power", "value": -18.2, "unit": "dBm", "direction": "ingress", "denominator": "1", "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:08:00Z", "object_id": "fixture-access-resource"},
+    {"metric": "optical_rx_lower_limit", "value": -20.0, "unit": "dBm", "direction": "ingress", "denominator": "1", "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:06:00Z", "object_id": "fixture-access-resource"},
+    {"metric": "device_model", "value": "synthetic-model-m3", "unit": null, "direction": "unknown", "denominator": null, "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:06:00Z", "object_id": "fixture-access-resource"},
+    {"metric": "wifi_state", "value": "fail", "unit": null, "direction": "ingress", "denominator": null, "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:08:30Z", "object_id": "fixture-access-resource"}
+  ]
+}

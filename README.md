@@ -6,9 +6,9 @@ A runnable Skill for one target and symptom: bounded local collection, explicit 
 
 ## Network skill suite
 
-The versioned suite combines the existing collector with four direct-entry skills: incident coordination, offline capture analysis, recovery verification, and handoff drafting. The incident skill includes an optional local case controller for evidence, budgets, decisions, and recovery records; the other new skills also work directly from supplied inputs. They do not perform repairs or send handoffs. The [current suite validation record](docs/validation-network-skill-suite-issue1.md) describes the checks and remaining limits.
+The versioned suite combines the existing collector, incident coordination, offline capture analysis, recovery verification, handoff drafting, and carrier domain diagnostics. The incident skill includes an optional local case controller for evidence, budgets, decisions, and recovery records. Focused Skills also work directly from supplied inputs. They do not perform repairs or send handoffs. The [milestone tracker](docs/implementation/carrier-completion-tracker.md) records current implementation and validation status.
 
-A local build is available at `dist/network-skill-suite-0.1.0.zip` with its adjacent manifest in this workspace. Build a new archive from source with `python3 -B scripts/build_suite.py --out dist/network-skill-suite-new.zip`; the builder refuses to overwrite an archive or manifest. Extract the five skill directories and use the host's supported discovery or explicit loading method. Discovery and target-host installation have not been established by the local package tests. The inventory describes the optional collector interface; it does not require an assumed sibling installation path.
+Build the current source with `python3 -B scripts/build_suite.py --out dist/network-skill-suite-new.zip`; the builder refuses to overwrite an archive or manifest. Extract the Skill directories listed in [the inventory](skills/suite-inventory.json) and use the host's supported discovery or explicit loading method. Earlier local archives describe their own source snapshots. Discovery and target-host installation have not been established by local package tests. Optional providers are discovered explicitly; no sibling installation path is assumed.
 
 The case CLI lives at `skills/netops-incident/scripts/case.py`. Run it with `--help` and read the [case contract](skills/netops-incident/references/case-contract.md) for JSON input, authorization, evidence, and lifecycle details. For standalone capture analysis use the existing offline command below; recovery verification and handoff drafting can also use supplied records without the controller.
 
@@ -21,9 +21,8 @@ defines source-qualified identifiers, declared topology relationships, raw measu
 redaction hashes and comparison gaps. Context changes invalidate earlier verification and decision eligibility;
 legacy records without carrier fields retain their existing behavior.
 
-M1 supplies contracts and validation for offline operator-provided records. Access diagnostics, transport
-diagnostics, vendor parsers, service acceptance, and live platform integration are later milestones in
-[the carrier expansion](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/3).
+M1 supplies contracts and validation for offline operator-provided records. Domain analysis builds on
+these contracts through [the carrier expansion](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/3).
 See the [M1 implementation plan](docs/implementation/carrier-m1-plan.md) for scope and validation order.
 The [M1 validation record](docs/validation-carrier-m1.md) records 141 passing tests, 62 tests against
 an independent package extraction, reproducible package hashes and [final Sol review](docs/review-carrier-m1.md).
@@ -42,6 +41,18 @@ establish service health, source authenticity or a fault cause. See the
 [M2 plan](docs/implementation/carrier-m2-plan.md) for implementation and verification scope. The
 [M2 validation record](docs/validation-carrier-m2.md) records final regression and reproducible packages;
 [Sol review](docs/review-carrier-m2.md) passed both review axes.
+
+### Access and subscriber diagnostics (M3)
+
+[telecom-access-diagnostics](skills/telecom-access-diagnostics/SKILL.md) supports offline FTTH/PON,
+optical, subscriber authentication, DHCP and VLAN evidence. It can be used manually from supplied
+records or with the explicitly discovered incident-owned `scripts/diagnose_access.py` provider.
+The optional CLI checks imported run hashes, current evidence age, source-qualified bindings and
+profile applicability before deriving scoped findings. It does not mutate a case or operate equipment.
+Authentication, address assignment, forwarding and application behavior remain separate conclusions.
+Read the [access reference](skills/telecom-access-diagnostics/references/access-diagnostics.md),
+[provider contract](skills/netops-incident/references/access-analysis.md), and
+[M3 plan](docs/implementation/carrier-m3-plan.md) for inputs and limitations.
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 

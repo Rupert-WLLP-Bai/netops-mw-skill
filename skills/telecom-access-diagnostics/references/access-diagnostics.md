@@ -1,0 +1,28 @@
+# Access diagnostics reference
+
+## Manual offline workflow
+
+1. Identify the service, reported impact, original vantage, incident window, reference time, and the supplied evidence bundles. Mark missing scope and provenance explicitly.
+2. Establish source and collection provenance for each record. Use source-qualified aliases only with an explicit operator binding to the selected service and resource. An alias match, hostname, or similar label across runs does not prove identity.
+3. Check collection age and event age independently at the incident reference time. Require known clock quality and uncertainty before ordering events. Preserve counter reset, wrap, sampling interval, direction, unit, and denominator as supplied.
+4. Compare only compatible observations in the declared window and mapping. Keep evidence for different layers separate: optical and PON state, subscriber authentication, DHCP, service VLAN, forwarding, Wi-Fi, and application evidence do not substitute for one another.
+5. State observations before hypotheses. Give each finding the narrowest supported layer, run-qualified support, actual counterevidence, and explicit limitations. Name an observed resource only when the evidence and contract permit it; a mapped measurement resource alone does not identify a faulty device.
+6. When evidence is stale, unbound, conflicting, incomparable, or absent, preserve the gap and withhold the narrower conclusion. A positive observation does not establish the next layer's outcome; an empty fault list does not establish health or recovery.
+
+## Observation boundaries
+
+Use only explicitly allowlisted typed records from the supplied carrier evidence. The supported vocabulary may include optical power and cited profile limits; LOS/LOF and PON session state; FEC/CRC counters; PPPoE, IPoE, or AAA outcomes; DHCP lease or pool state; expected/actual service VLAN; and forwarding, application, or Wi-Fi state. Values are source observations, not universal vendor semantics. Unknown metrics remain unused and visible as a coverage gap; do not translate command text, vendor phrases, or free-form values into a diagnosis.
+
+An optical profile is applicable only when its cited limit and observed device-model evidence match the mapped device, resource, direction, unit, and validity interval. Do not invent thresholds or infer a model from a label. If a supported profile is unknown or its evidence is absent, report the missing profile input and leave the profile-dependent conclusion unsupported. A PON flap requires ordered, comparable session observations. Counter trends require comparable ordered samples with known interval and consistent semantics; resets or wraps block a derived delta. Authentication rejection is evidence about authentication only. DHCP failure, pool exhaustion, VLAN mismatch, forwarding failure, Wi-Fi failure, and application failure must each be supported at their own scope.
+
+## Optional incident-owned provider
+
+When an installed provider is discoverable through the host's supported mechanism and its Python runtime is available, inspect its bundled `references/access-analysis.md` before use. Do not assume a sibling Skill path or construct paths based on this Skill's location. The provider accepts an explicit JSON request, verifies supplied run hashes and M1/M2 references, recomputes freshness at the request's reference time, and emits deterministic JSON without changing a case. The provider does not collect from devices, access a network, import a run, or decide that the service recovered.
+
+If the provider is missing or incompatible, continue manually when the supplied records are sufficient. Otherwise report the precise missing inputs or capability. Do not install dependencies, substitute a live probe, or treat a provider error as evidence about network state.
+
+The [DHCP protocol overview](https://www.rfc-editor.org/info/rfc2131/), [PPPoE specification](https://www.rfc-editor.org/info/rfc2516/), and [RADIUS authentication protocol](https://www.rfc-editor.org/info/rfc2865/) are terminology references only. They do not define vendor metric semantics, prove a deployed implementation's behavior, or supply optical limits.
+
+## Reporting
+
+For each supported conclusion, record the observed fact, scoped hypothesis, source and timestamp, evidence IDs, mapped service/resource, direction and comparison basis, counterevidence, and remaining unknowns. Preserve actual status and time values; do not label an incident recovered without the agreed service criterion and independent verification over its required stability window. Do not perform or recommend an operational change as though it were already authorized or completed.

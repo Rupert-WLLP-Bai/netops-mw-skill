@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / 'skills'
-NAMES = ('internet-access-triage', 'netops-incident', 'netops-pcap-analysis', 'netops-verify-recovery', 'netops-handoff')
+NAMES = ('internet-access-triage', 'netops-incident', 'netops-pcap-analysis', 'netops-verify-recovery', 'netops-handoff', 'telecom-access-diagnostics')
 
 class SuiteSkillTests(unittest.TestCase):
     def test_skill_inventory_frontmatter(self):
