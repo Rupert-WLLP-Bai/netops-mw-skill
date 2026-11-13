@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "origin": "Self-authored synthetic M6 catalog that composes self-authored M3, M4, and M5 fixtures. No customer or third-party operational data is included.",
+  "source_families": [
+    "carrier-m3",
+    "carrier-m4",
+    "carrier-m5"
+  ],
+  "fixture_only": true
+}
