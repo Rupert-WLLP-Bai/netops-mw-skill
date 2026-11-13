@@ -97,7 +97,29 @@ in `.tools/carrier-m6/full-v12/result.json`; individual logs are alongside it. E
 The runtime, scripts, Skills and fixture trees are byte-identical to `956a265`
 (`git diff 956a265 -- evaluation scripts skills tests/fixtures` is empty), so the completed v9
 36-case/replay/package gates apply to this final test correction without rebuilding unchanged
-artifacts. Independent Sol Standards and Spec review follows these completed gates.
+artifacts.
+
+## Independent review correction and final gates
+
+Sol R1 found one P2 scoring defect: a complete required support set plus a fabricated or other-job
+reference could retain grounding-dependent credit. Source `7b9c83c4825c4a2b6a801d8c53725cbd0fd21450`
+requires every supplied support reference to belong to that job's independent evidence index.
+Two new controls deny grounding, grounded class and layer credit while preserving separate state
+and claim-recall results. No provider, fixture or hidden truth changed.
+
+The frozen correction passed 12 focused scoring tests (`focused-scoring-v13.log`) and all
+**259 tests across 18 modules in 165.638 seconds** (`full-v13/result.json`). All 36 restricted cases /
+44 actual jobs completed again (`all-v13.log`), and fresh actual replay compared 36 cases with
+zero mismatches (`replay-v13.log`). The measured dimension counts above stayed identical.
+Python 3.10 grammar passed again for evaluation sources (`grammar-v13.log`). Packaged Skill sources
+remain byte-identical to the completed v9 package/extracted-runtime gate; only developer scoring
+and its tests changed. Independent final re-review follows these gates.
+
+R1 Standards also recorded one nonblocking P3 maintainability suggestion: reuse shared task
+validation in the adapter. The parent validates the task before invocation; this duplication does
+not affect the completed corpus or grant extra evidence access. It remains a disclosed follow-up
+rather than expanding this release correction. Both original reports are retained locally as
+`sol-standards-r1.md` and `sol-spec-r1.md`.
 
 Controlled-lab injection plans are unexecuted. No live LLM, MobileWork, native Windows, real-device
 or external security acceptance is claimed. Actual M7 client/Windows/security validation remains
