@@ -1,0 +1,351 @@
+{
+  "status": "designed_not_executed",
+  "notice": "Designed operator scenarios; not real incident records, passing replay tests, or directly runtime-compatible v0.1 evidence fixtures. All examples use reserved example names and documentation IPs.",
+  "diagnosis_contract": "Use existing four scoped statuses and at most two evidence-supported candidate domains. Missing optional evidence limits comparisons but does not erase valid target observations; use insufficient_evidence for a requested conclusion when its essential evidence is missing.",
+  "source_registry": {
+    "curl": "https://curl.se/docs/manpage.html",
+    "dns": "https://www.rfc-editor.org/rfc/rfc1035",
+    "dnssec": "https://www.rfc-editor.org/rfc/rfc8914",
+    "ecs": "https://www.rfc-editor.org/rfc/rfc7871",
+    "happy": "https://www.rfc-editor.org/rfc/rfc8305",
+    "tls": "https://www.rfc-editor.org/rfc/rfc6066",
+    "alpn": "https://www.rfc-editor.org/rfc/rfc7301",
+    "mtr": "https://github.com/traviscross/mtr/blob/master/man/mtr.8.in",
+    "icmp": "https://www.rfc-editor.org/rfc/rfc1812#section-4.3.2.8",
+    "trippy": "https://github.com/fujiapple852/trippy/releases",
+    "pmtu": "https://www.rfc-editor.org/rfc/rfc8201",
+    "h3": "https://www.rfc-editor.org/rfc/rfc9114",
+    "flent": "https://flent.org/tests.html",
+    "tcp": "https://www.wireshark.org/docs/wsug_html_chunked/ChAdvTCPAnalysis.html",
+    "capture": "https://www.wireshark.org/docs/wsug_html_chunked/ChAdvReassemblySection.html",
+    "socket": "https://git.kernel.org/pub/scm/network/iproute2/iproute2.git/tree/man/man8/ss.8",
+    "stats": "https://docs.kernel.org/networking/statistics.html",
+    "global": "https://github.com/jsdelivr/globalping",
+    "atlas": "https://atlas.ripe.net/docs/getting-started/user-defined-measurements.html",
+    "apnic": "https://blog.apnic.net/2025/03/11/ipv6-is-hard/",
+    "google_dns": "https://developers.google.com/speed/public-dns/docs/troubleshooting/domains"
+  },
+  "cases": [
+    {
+      "id": "DEEP-01",
+      "status": "designed_not_executed",
+      "title": "DNS resolver or CDN steering",
+      "user_input": "Our users say https://shop.example is slow with resolver 192.0.2.53. Is DNS slow?",
+      "symptom": "Slow request with resolver-specific answers",
+      "competing_hypotheses": "Slow resolver processing; resolver-dependent endpoint steering; server delay",
+      "proposed_tool_sequence": "Query each permitted resolver for A/AAAA and time; compare normal and hostname-preserving pinned HTTPS to a common approved address.",
+      "required_evidence": "Resolver, transport, response code, TTL/answers, timings, actual IP, family, proxy, hostname, SNI and verification.",
+      "negative_controls_falsifiers": "Same resolver and same IP in repeated near-time requests; healthy matched control.",
+      "allowed_conclusion": "Report observed resolver response or request phase within matched conditions.",
+      "prohibited_overclaims": "Different answers prove resolver CPU or DNS processing is slow.",
+      "v0_1_support": "DNS and curl partial; matched normal/pinned comparison exists for replay, but live pinned collection and comparison are missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Use a local authoritative DNS and HTTPS server with two resolver responses; independently delay DNS or HTTP and assert correct scoped output.",
+      "source_ids": [
+        "curl",
+        "dns",
+        "ecs"
+      ]
+    },
+    {
+      "id": "DEEP-02",
+      "status": "designed_not_executed",
+      "title": "DNSSEC and extended errors",
+      "user_input": "https://secure.example sometimes fails to resolve; can you check the resolver?",
+      "symptom": "Intermittent SERVFAIL",
+      "competing_hypotheses": "Validation failure; unreachable authority; resolver or transport failure",
+      "proposed_tool_sequence": "Query configured authorized resolver and capture status plus EDE if returned; compare same question at an approved independent resolver.",
+      "required_evidence": "Query type, transport, status, EDE code/text if present, time, resolver and responses.",
+      "negative_controls_falsifiers": "Same resolver successfully resolves an approved control name; second resolver resolves the same name.",
+      "allowed_conclusion": "Report SERVFAIL and returned EDE as resolver-provided evidence only.",
+      "prohibited_overclaims": "A missing EDE proves DNSSEC is healthy; EDE proves the exact failing server.",
+      "v0_1_support": "DNS partial; EDE and validated comparison missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Local DNS test server returns SERVFAIL with and without EDE; verify missingness and literal code retention.",
+      "source_ids": [
+        "dns",
+        "dnssec",
+        "google_dns"
+      ]
+    },
+    {
+      "id": "DEEP-03",
+      "status": "designed_not_executed",
+      "title": "DNS UDP truncation",
+      "user_input": "The name files.example fails only on our office resolver.",
+      "symptom": "Name lookup fails on one transport",
+      "competing_hypotheses": "Truncated UDP without TCP fallback; resolver failure; filtering",
+      "proposed_tool_sequence": "Compare bounded explicit UDP and TCP queries for the same name, record TC flag and responses.",
+      "required_evidence": "Resolver, query, transport, response flags, answer and timeout.",
+      "negative_controls_falsifiers": "Small response on the same resolver succeeds over both transports.",
+      "allowed_conclusion": "A transport-specific response difference is observed.",
+      "prohibited_overclaims": "A UDP timeout proves a firewall or a broken authoritative server.",
+      "v0_1_support": "DNS partial; transport fallback and TC evidence missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Local DNS server returns TC on UDP and answer on TCP, plus an unrelated timeout; verify distinctions.",
+      "source_ids": [
+        "dns",
+        "google_dns"
+      ]
+    },
+    {
+      "id": "DEEP-04",
+      "status": "designed_not_executed",
+      "title": "IPv6 fallback",
+      "user_input": "https://portal.example loads eventually but is slow on dual-stack laptops.",
+      "symptom": "Normal request slower than expected",
+      "competing_hypotheses": "IPv6 connectivity degradation; both families slow; server delay",
+      "proposed_tool_sequence": "Repeat normal and separately forced IPv4 and IPv6 HTTPS with identical hostname and verified TLS.",
+      "required_evidence": "Actual address/family, connection and request results, timings, window and proxy.",
+      "negative_controls_falsifiers": "Repeat both families to approved control and repeat original.",
+      "allowed_conclusion": "Report observed family-specific difference and incomplete fallback visibility.",
+      "prohibited_overclaims": "A forced IPv6 failure proves a routing leak or normal client fallback.",
+      "v0_1_support": "curl partial; controlled family comparison missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Local dual-stack listener delays or rejects IPv6 only; verify force modes and normal address records.",
+      "source_ids": [
+        "curl",
+        "happy",
+        "apnic"
+      ]
+    },
+    {
+      "id": "DEEP-05",
+      "status": "designed_not_executed",
+      "title": "Split VPN and HTTP 403",
+      "user_input": "https://intranet.example returns 403 while I am on the VPN, but works off VPN.",
+      "symptom": "HTTP authorization failure correlated with VPN",
+      "competing_hypotheses": "Different egress or policy; DNS steering; expired credentials",
+      "proposed_tool_sequence": "Compare authorized on/off VPN observations without changing the VPN; record family, IP, proxy, status and server identity.",
+      "required_evidence": "Redacted URL, response status, actual address/family, route context, timing and comparable identity.",
+      "negative_controls_falsifiers": "Same account and request on original path after comparison; other permitted service on each path.",
+      "allowed_conclusion": "Report a 403 scoped to observed context.",
+      "prohibited_overclaims": "Identify a firewall rule or instruct credential changes based only on 403.",
+      "v0_1_support": "HTTP and context partial; cross-context comparison missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Use local endpoints returning 403 based on controlled source/context; verify that status stays an application observation.",
+      "source_ids": [
+        "curl",
+        "happy",
+        "apnic"
+      ]
+    },
+    {
+      "id": "DEEP-06",
+      "status": "designed_not_executed",
+      "title": "HTTPS identity",
+      "user_input": "https://billing.example says certificate verification failed after an address change.",
+      "symptom": "TLS verification fails",
+      "competing_hypotheses": "Wrong certificate or SNI; trust chain problem; interception",
+      "proposed_tool_sequence": "Perform verified normal HTTPS and hostname-preserving pinned comparison to approved address; capture error and negotiated metadata where available.",
+      "required_evidence": "Hostname, SNI, verified certificate result, IP, proxy, ALPN, TLS error and time.",
+      "negative_controls_falsifiers": "Verified request to known-good authorized endpoint; original request repeated.",
+      "allowed_conclusion": "Report certificate verification failure for that connection.",
+      "prohibited_overclaims": "Disable verification or assert certificate ownership from error alone.",
+      "v0_1_support": "curl TLS partial; matched normal/pinned comparison exists for replay, but live pinned collection and comparison are missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Use local CA and virtual-host server with matching and mismatching certificates; assert verification remains enabled.",
+      "source_ids": [
+        "curl",
+        "tls",
+        "alpn"
+      ]
+    },
+    {
+      "id": "DEEP-07",
+      "status": "designed_not_executed",
+      "title": "Intermediate hop silence",
+      "user_input": "A trace to api.example shows a hop with missing replies. Is that router dropping traffic?",
+      "symptom": "Intermediate hop responses missing",
+      "competing_hypotheses": "ICMP rate limiting; forwarding loss; ECMP",
+      "proposed_tool_sequence": "Run one finite numeric path report and compare endpoint responses and HTTPS in same window.",
+      "required_evidence": "Probe type, cycles, hop response counts, destination responses, business result and time.",
+      "negative_controls_falsifiers": "Later hops and endpoint respond while the business request succeeds.",
+      "allowed_conclusion": "Report missing hop responses and downstream observations.",
+      "prohibited_overclaims": "Blame router or calculate forwarded packet loss from hop reply loss.",
+      "v0_1_support": "Ping and HTTP partial; path adapter missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Replay versioned path samples with missing middle-hop replies and normal destination; assert no router blame.",
+      "source_ids": [
+        "mtr",
+        "icmp"
+      ]
+    },
+    {
+      "id": "DEEP-08",
+      "status": "designed_not_executed",
+      "title": "Path variation and ECMP",
+      "user_input": "The hops to app.example change on each trace. Is the route flapping?",
+      "symptom": "Different intermediate addresses",
+      "competing_hypotheses": "ECMP per-flow variation; actual route change; asymmetric replies",
+      "proposed_tool_sequence": "Compare repeated bounded flow-aware reports with fixed tuple where supported, timestamps and destination outcomes.",
+      "required_evidence": "Protocol, ports/strategy, hop hosts, family, counts and timestamps.",
+      "negative_controls_falsifiers": "Repeated fixed-flow traces and stable endpoint results.",
+      "allowed_conclusion": "Report observed path variation and method.",
+      "prohibited_overclaims": "Infer routing instability or geographical location from hop variation alone.",
+      "v0_1_support": "Path adapter missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Replay flow-aware multi-address samples and changed-flow samples; preserve both without asserting flapping.",
+      "source_ids": [
+        "trippy"
+      ]
+    },
+    {
+      "id": "DEEP-09",
+      "status": "designed_not_executed",
+      "title": "PMTU and tunnel",
+      "user_input": "Small requests to upload.example work through the tunnel, but larger uploads stall.",
+      "symptom": "Large transfer failure",
+      "competing_hypotheses": "PMTU black hole; upload server limit; tunnel congestion",
+      "proposed_tool_sequence": "Record tunnel/interface context; compare authorized small and size-sensitive bounded probes and PMTU discovery.",
+      "required_evidence": "Probe protocol and sizes, family, PMTU feedback, endpoint result, tunnel context, time.",
+      "negative_controls_falsifiers": "Same small request succeeds and an approved alternate path is measured.",
+      "allowed_conclusion": "Report size-dependent observations and PMTU as a candidate if supported.",
+      "prohibited_overclaims": "Prove a black hole from silence or change MTU automatically.",
+      "v0_1_support": "Small HTTP partial; PMTU and size comparison missing",
+      "recommended_phase": "later_path",
+      "proposed_local_test_plan": "Local isolated tunnel with known MTU and filtered ICMP, followed by restored feedback; verify recovery and no automatic mutation.",
+      "source_ids": [
+        "pmtu",
+        "apnic"
+      ]
+    },
+    {
+      "id": "DEEP-10",
+      "status": "designed_not_executed",
+      "title": "HTTP/3 and TCP",
+      "user_input": "video.example works in a browser sometimes but fails when HTTP/3 is used.",
+      "symptom": "Protocol-specific failure",
+      "competing_hypotheses": "UDP/QUIC filtering; HTTP/3 service failure; TCP path difference",
+      "proposed_tool_sequence": "If client supports it, compare bounded HTTP/3 and HTTP/2 requests to the same hostname and record actual negotiation and result.",
+      "required_evidence": "Requested and negotiated version, address/family, status, error, proxy and timing.",
+      "negative_controls_falsifiers": "Repeat HTTP/2 and HTTP/3 on same approved alternative path.",
+      "allowed_conclusion": "Report protocol-specific behavior where negotiation is proven.",
+      "prohibited_overclaims": "Claim UDP firewall rule or HTTP/3 support merely from a fallback success.",
+      "v0_1_support": "HTTP and negotiated http_version metadata exist; controlled HTTP/3 versus HTTP/2 selection and comparison are missing",
+      "recommended_phase": "later_protocol",
+      "proposed_local_test_plan": "Local HTTP/2 and HTTP/3 services with UDP blocked in an isolated network; verify fallback is distinguished from HTTP/3 success.",
+      "source_ids": [
+        "curl",
+        "h3"
+      ]
+    },
+    {
+      "id": "DEEP-11",
+      "status": "designed_not_executed",
+      "title": "Latency under load",
+      "user_input": "Calls to voice.example become choppy while someone uploads.",
+      "symptom": "Interactive latency increases during upload",
+      "competing_hypotheses": "Queueing; host CPU contention; remote service issue",
+      "proposed_tool_sequence": "With explicit test authorization, compare repeated idle, bounded load and recovery windows with throughput and latency.",
+      "required_evidence": "Load direction/rate, interval samples, latency, endpoints, CPU/context and recovery.",
+      "negative_controls_falsifiers": "Repeated idle and post-load windows and an unloaded control.",
+      "allowed_conclusion": "Report repeatable load-associated latency within tested scope.",
+      "prohibited_overclaims": "Declare bufferbloat or name a queue without independent evidence.",
+      "v0_1_support": "Finite ping partial; load and repeated windows missing",
+      "recommended_phase": "later_load",
+      "proposed_local_test_plan": "Isolated test server and controlled bottleneck; validate injection independently, remove load, and verify recovery.",
+      "source_ids": [
+        "flent"
+      ]
+    },
+    {
+      "id": "DEEP-12",
+      "status": "designed_not_executed",
+      "title": "Retransmission or capture artifact",
+      "user_input": "This capture of api.example shows TCP retransmissions. Where is the loss?",
+      "symptom": "TCP analysis flags",
+      "competing_hypotheses": "Actual retransmission; reordering; capture drops or midstream capture",
+      "proposed_tool_sequence": "Analyze offline capture with frame references and capture metadata; compare opposite-end capture if available.",
+      "required_evidence": "Capture hash, frame IDs, stream, timing, flags, visibility, drops and truncation.",
+      "negative_controls_falsifiers": "Independent complete capture covering same flow and interval.",
+      "allowed_conclusion": "Report suspected retransmission or missing captured segments with limits.",
+      "prohibited_overclaims": "Compute path loss or blame a hop based on one capture.",
+      "v0_1_support": "Offline PCAP discovers fields and retains capture hash, timestamps, frame/stream metadata and expert flags in hashed raw events, plus summary and coverage; structured per-stream timeline, finding-to-frame links, richer capture-origin/drop metadata and opposite-end correlation are missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Use locally generated captures with known reorder, dropped capture frames and actual retransmission; assert distinct limitations.",
+      "source_ids": [
+        "tcp",
+        "capture"
+      ]
+    },
+    {
+      "id": "DEEP-13",
+      "status": "designed_not_executed",
+      "title": "TCP zero window",
+      "user_input": "The transfer from db.example pauses even though the route looks fine.",
+      "symptom": "Transfer stalls with possible zero window",
+      "competing_hypotheses": "Receiver application pressure; loss or path interruption",
+      "proposed_tool_sequence": "Inspect offline TCP window and optional scoped socket details in a matching time window.",
+      "required_evidence": "Frame references, direction, advertised window, connection identity, timestamps and socket visibility.",
+      "negative_controls_falsifiers": "Matched healthy transfer and receiver window reopening.",
+      "allowed_conclusion": "Report observed receiver-advertised zero window for the flow.",
+      "prohibited_overclaims": "Name the process or blame the network without endpoint evidence.",
+      "v0_1_support": "Offline PCAP retains and counts zero-window flags where supported; detailed advertised-window and socket correlation are missing",
+      "recommended_phase": "later_telemetry",
+      "proposed_local_test_plan": "Local receiver deliberately stops reading then resumes; verify zero-window observation and scope.",
+      "source_ids": [
+        "tcp",
+        "socket"
+      ]
+    },
+    {
+      "id": "DEEP-14",
+      "status": "designed_not_executed",
+      "title": "Interface counters",
+      "user_input": "The connection to backup.example drops during backups. Are there interface errors?",
+      "symptom": "Possible local interface errors",
+      "competing_hypotheses": "NIC errors; unrelated shared traffic; remote path failure",
+      "proposed_tool_sequence": "Read relevant route/interface and two timestamped snapshots of read-only interface and driver counters.",
+      "required_evidence": "Interface identity, counter names, units, driver, timestamps, values and reset/missing state.",
+      "negative_controls_falsifiers": "Same interface idle interval and known-good control flow.",
+      "allowed_conclusion": "Report counter deltas on the interface during the window.",
+      "prohibited_overclaims": "Attribute shared counters to one flow or equate every driver counter with drops.",
+      "v0_1_support": "Read-only context partial; typed deltas missing",
+      "recommended_phase": "later_telemetry",
+      "proposed_local_test_plan": "Use a controlled virtual interface with known counter changes and reset; test missing/driver-specific counters.",
+      "source_ids": [
+        "stats"
+      ]
+    },
+    {
+      "id": "DEEP-15",
+      "status": "designed_not_executed",
+      "title": "External vantage",
+      "user_input": "Is service.example unreachable only from our network?",
+      "symptom": "A local target request fails",
+      "competing_hypotheses": "Local path issue; wider provider outage; service selection",
+      "proposed_tool_sequence": "After explicit disclosure approval, compare bounded local observation with selected external probes and record public measurement identifiers.",
+      "required_evidence": "Public target, probe location/ASN/ID, time, protocol, actual address and completion.",
+      "negative_controls_falsifiers": "A known permitted control from the same probes and repeated local target.",
+      "allowed_conclusion": "Report observed differences among named vantage points.",
+      "prohibited_overclaims": "Claim global outage or local blame from a few nonrepresentative probes.",
+      "v0_1_support": "Local HTTP partial; external vantage missing",
+      "recommended_phase": "later_external",
+      "proposed_local_test_plan": "Use a mocked API and predefined probe outputs including unavailable/partial probes; verify disclosure and cost limits.",
+      "source_ids": [
+        "global",
+        "atlas"
+      ]
+    },
+    {
+      "id": "DEEP-16",
+      "status": "designed_not_executed",
+      "title": "Intermittent normal window",
+      "user_input": "Users say dashboard.example failed yesterday, but it works now. Is it fixed?",
+      "symptom": "Historical intermittent complaint",
+      "competing_hypotheses": "Recovered transient failure; not reproduced; insufficient coverage",
+      "proposed_tool_sequence": "Run bounded normal target checks and approved control; record time and missing capabilities.",
+      "required_evidence": "Window, sample counts, HTTP status, actual endpoint and failed/unavailable measurements.",
+      "negative_controls_falsifiers": "Known-good control and repeated original during available window.",
+      "allowed_conclusion": "A valid short target success supports not_reproduced; the same success with optional DNS, ping or control absent still supports not_reproduced with limitations. Missing required target observations or evidence essential to a specifically requested comparison supports insufficient_evidence for that requested conclusion.",
+      "prohibited_overclaims": "Claim permanent health, deny historical fault or infer a root cause.",
+      "v0_1_support": "Existing scoped states and HTTP partial; longer observation missing",
+      "recommended_phase": "v0.2",
+      "proposed_local_test_plan": "Check three cases: valid short target success yields not_reproduced; the same success with optional DNS, ping or control absent remains not_reproduced with limitations; missing required target observation or evidence essential to a specifically requested comparison yields insufficient_evidence for that requested conclusion.",
+      "source_ids": [
+        "curl"
+      ]
+    }
+  ]
+}

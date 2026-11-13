@@ -1,0 +1,432 @@
+{
+  "status": "designed_not_executed",
+  "notice": "Ten designed lifecycle journeys; no real incident, tool execution, measurement, change, or passing test is claimed. Names are reserved examples. These are not v0.1 runtime fixtures.",
+  "shared_contract": "Workflow states are separate from the existing four scoped diagnosis states. Human or external owners perform any action under their own authority; this research authorizes no changes or external messages. Budget, provenance, same affected vantage and identity, verification, stabilization, non-success exits and reopen rules follow closed-loop-workflow-proposal.md. An independently documented recovery without a known action can proceed through the same original-flow verification and stabilization gates; do not invent an action or cause. Insufficient evidence remains unresolved.",
+  "source_registry": {
+    "ZSM": "https://www.etsi.org/deliver/etsi_gs/ZSM/001_099/00901/01.01.01_60/gs_ZSM00901v010101p.pdf",
+    "INTENT": "https://www.rfc-editor.org/rfc/rfc9315.html",
+    "ASSURANCE": "https://www.rfc-editor.org/rfc/rfc9417.html",
+    "NETBOX": "https://netboxlabs.com/docs/netbox/getting-started/planning/",
+    "PROM": "https://github.com/prometheus/snmp_exporter/blob/main/README.md",
+    "GNMI": "https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md",
+    "SUZIEQ": "https://suzieq.readthedocs.io/en/latest/",
+    "PYATS": "https://developer.cisco.com/docs/pyats/introduction/",
+    "NAPALM": "https://napalm.readthedocs.io/en/latest/validate/index.html",
+    "BATFISH": "https://github.com/batfish/batfish/blob/master/docs/symbolic_engine/README.md",
+    "ORQUESTA": "https://docs.stackstorm.com/orquesta/operations.html",
+    "JIRA": "https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/",
+    "TMF621OAS": "https://github.com/tmforum-apis/TMF621_TroubleTicket/blob/main/TMF621-Trouble_Ticket-v5.0.1.oas.yaml",
+    "ALERT": "https://prometheus.io/docs/alerting/latest/alertmanager/",
+    "CURL": "https://curl.se/docs/manpage.html",
+    "ECS": "https://www.rfc-editor.org/rfc/rfc7871",
+    "HAPPY": "https://www.rfc-editor.org/rfc/rfc8305",
+    "PMTU": "https://www.rfc-editor.org/rfc/rfc8201",
+    "TCP": "https://www.wireshark.org/docs/wsug_html_chunked/ChAdvTCPAnalysis.html",
+    "FLENT": "https://flent.org/tests.html",
+    "BGP": "https://www.rfc-editor.org/rfc/rfc7908",
+    "IF": "https://docs.kernel.org/networking/statistics.html",
+    "PPPOE": "https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/application-services/b-application-services/m_bba-pppoe-baa-xe.html",
+    "OPTIC": "https://www.juniper.net/documentation/us/en/software/junos/cli-reference/topics/ref/command/show-interfaces-diagnostics-optics-ex-series.html",
+    "DHCP": "https://www.rfc-editor.org/rfc/rfc2131"
+  },
+  "cases": [
+    {
+      "id": "CL-01",
+      "status": "designed_not_executed",
+      "title": "DNS resolver versus CDN steering",
+      "starting_input": "A user on an office client reports slow shop.example checkout with a specified resolver.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Scope the client, checkout account, resolver, proxy, family and approved comparable endpoint; record baseline and source of topology."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Compare permitted resolver answers and timing, and hostname-preserving normal versus pinned requests to a common approved IP; retain TLS validation and actual IP."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Delayed lookup on matched repeated requests supports a resolver-stage direction; different CDN IPs with matched-IP request parity support steering as a possibility, not resolver CPU causation."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "Only if evidence supports a misconfigured local resolver and its owner agrees, propose a reviewed resolver correction with backup, preconditions, rollback and operator action record; otherwise draft owner handoff."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "Repeat checkout on the original client/account and path, compare agreed SLI and monitor the owner-defined window; if no matching endpoint or vantage exists, remain unresolved."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Local two-resolver HTTPS lab independently delays DNS or HTTP; same-IP negative control prevents attributing CDN selection to resolver processing.",
+      "source_ids": [
+        "CURL",
+        "ECS",
+        "ASSURANCE"
+      ]
+    },
+    {
+      "id": "CL-02",
+      "status": "designed_not_executed",
+      "title": "Address family and split VPN",
+      "starting_input": "A remote user reports application failures while VPN is connected.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Capture client, account, app operation, VPN profile and authorized routes, resolver, proxy and actual IPv4/IPv6 use; map affected and unaffected scopes."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Compare permitted matched application attempts on the actual VPN path and each family, with timestamps, identities and route evidence; distinguish VPN bypass from a comparable path."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Family-specific failure suggests a family/path direction; both fail on VPN while authorized non-VPN control works suggests VPN policy or path, not a proven device defect."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "If a documented route or DNS policy mismatch is confirmed, propose owner-reviewed profile correction and rollback; otherwise hand off to VPN owner. A family workaround is mitigation, not repair proof."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "After recorded owner action, repeat same operation from original VPN client and identity with the originally affected family and agreed monitoring; if route or family differs, record limits and stay unresolved."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Local dual-stack VPN lab disables one family or changes split route separately; unchanged family and same VPN identity are controls.",
+      "source_ids": [
+        "HAPPY",
+        "CURL",
+        "NETBOX"
+      ]
+    },
+    {
+      "id": "CL-03",
+      "status": "designed_not_executed",
+      "title": "PPPoE and path MTU",
+      "starting_input": "A subscriber reports small requests work but larger uploads stall over PPPoE.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Record CPE, subscriber session identifier with redaction, original upload and identity, link/tunnel path and owner; inspect permitted existing CPE/BNG session and interface evidence."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Compare bounded size-sensitive transfer evidence and authorized PMTU indications with a small control, recording family, encapsulation and ICMP visibility."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Size-dependent failure with consistent path evidence supports PMTU direction; server-side failures or different routes are alternatives and missing ICMP is inconclusive."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "Only with supported path evidence, ask the access owner to review tunnel MTU/MSS end to end, record proposed diff, rollback and risks; no automatic device change."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "Owner records action; repeat original-sized business upload from the subscriber identity and path, then monitor agreed SLI and window; absent original vantage stays unresolved."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Isolated PPPoE/tunnel lab varies MTU and ICMP feedback independently; a small upload and unaffected route serve as controls.",
+      "source_ids": [
+        "PMTU",
+        "PPPOE",
+        "ASSURANCE"
+      ]
+    },
+    {
+      "id": "CL-04",
+      "status": "designed_not_executed",
+      "title": "Interface errors and optical field handoff",
+      "starting_input": "An office service intermittently fails and an access interface reports errors.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Map affected service to both interface ends and owner from timestamped inventory, noting unknown cabling and source freshness."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Review permitted error counter deltas, resets, rates, link state and module diagnostics at both ends; record units, device-reported vendor thresholds and timestamps."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Correlated error growth and optical evidence support physical investigation; an optic alert alone does not locate a break or prove a specific component defective."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "Draft field-owner handoff with port IDs, observations, access constraints and requested inspection. Do not prescribe replacement until that owner validates it; no remote configuration change."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "After a recorded justified repair or independently documented recovery without a known action, verify the original client application operation and account, path/family where relevant, and error-counter behavior; monitor the agreed SLI and stability window. Inaccessible client, inadequate evidence, failed checks or incomplete coverage remain unresolved."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Local test inputs simulate reset counter, stale topology and optic alarm without errors; assert none alone closes or identifies a cable fault. A spontaneous-recovery fixture with no action must pass only after the same original-flow and stabilization checks; do not invent a repair or cause.",
+      "source_ids": [
+        "IF",
+        "OPTIC",
+        "NETBOX"
+      ]
+    },
+    {
+      "id": "CL-05",
+      "status": "designed_not_executed",
+      "title": "BGP route leak and routing owner",
+      "starting_input": "A branch reports loss of an external business application and a route appears unexpected.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Record affected prefix/service, branch vantage, ASN/VRF, intended policy, owner, topology gaps and observation time."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Compare permitted route and peer snapshots to approved policy and independent observations; use optional offline modeled differential analysis only with declared snapshot limitations."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "An unexpected route consistent with a leak supports routing-owner investigation; incomplete views do not prove origin, responsibility or worldwide impact."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "Draft a routing-owner handoff with affected prefixes, evidence, time, uncertainty and requested policy review; no BGP change by the Skill."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "After a recorded justified owner action or independently documented recovery without a known action, verify the original branch application operation and account, path/family where relevant and routes, then monitor the agreed SLI and stability window. An inaccessible original path, inadequate evidence, failed checks or incomplete coverage remain unresolved."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Offline fixture changes a route policy in one snapshot and omits an external peer in another; assert modeled changes and unknown boundaries are distinct. A spontaneous-recovery fixture with no action must pass only after the same original-flow and stabilization checks; do not invent an action or cause.",
+      "source_ids": [
+        "BGP",
+        "BATFISH",
+        "ASSURANCE"
+      ]
+    },
+    {
+      "id": "CL-06",
+      "status": "designed_not_executed",
+      "title": "Receiver zero window",
+      "starting_input": "A client reports that a specific upload intermittently stalls.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Record original sender/receiver, identity, application operation, time and authorized capture location; document capture loss and encryption visibility."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Inspect bounded offline TCP evidence for advertised zero window and reopening with frame references; correlate permitted receiver socket or application data and unaffected flow."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "A receiver-advertised zero window is capture-scoped evidence of receive-side flow control, not proof of the specific receiver process or a network link failure."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "If receiver owner corroborates an application bottleneck, propose their reviewed mitigation and rollback; otherwise hand off receiver evidence and avoid network tuning."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "After owner records action, repeat same business upload from the original client/account and monitor application SLI; capture indicators alone cannot close recovery."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Local sender/receiver lab pauses receiver reads versus induced packet loss; separate capture-loss and unrelated-flow negative controls.",
+      "source_ids": [
+        "TCP",
+        "ASSURANCE"
+      ]
+    },
+    {
+      "id": "CL-07",
+      "status": "designed_not_executed",
+      "title": "Upload queueing in a controlled lab",
+      "starting_input": "A user reports interactive requests slow during heavy upload.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Define original interactive operation, client and workload; a separate consenting isolated lab owns traffic endpoints and hard bandwidth, duration and concurrency caps."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Only in the authorized lab compare idle, load and recovery windows with queue and interface evidence and same interactive flow; record independent load effectiveness and cleanup."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Repeated load-correlated latency supports queueing direction, not proof of a particular buffer or production root cause; compare host and server saturation alternatives."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "If production evidence and service owner justify it, propose owner-reviewed shaping or queue policy with diff, rollback and side effects; a lab finding alone triggers investigation, not change."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "After authorized human action, verify original business flow under representative permitted workload and monitor agreed SLI; if representative load is unavailable, remain unresolved."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Isolated lab compares capped upload against no-load control, verifies return to baseline and removes generators; failed injection or cleanup invalidates experiment.",
+      "source_ids": [
+        "FLENT",
+        "IF",
+        "ASSURANCE"
+      ]
+    },
+    {
+      "id": "CL-08",
+      "status": "designed_not_executed",
+      "title": "Intermittent failure and failed verification",
+      "starting_input": "Users report intermittent checkout failures; a short initial observation is successful.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Preserve historical complaint, affected accounts, occurrence windows, prior changes and baseline; initial limited success may be not_reproduced, not permanent health."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Collect repeated permitted time-window evidence under budget and distinguish data gaps; compare a stable control and original operation."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Only if later correlated change evidence supports a candidate should an operator propose a reversible mitigation; without it continue observation or hand off unresolved."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "Record owner action, preconditions, backup and rollback trigger. If original checkout fails again during verification or stability window, record failure and request owner rollback; no automatic retry."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "After recorded rollback, verify original business flow and rollback state. If failure persists, action outcome is unknown or vantage is missing, hand off unresolved and reopen on new evidence."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Local fault scheduler creates intermittent failures and a simulated mitigation that fails verification; assert no success from one good sample and preserve rollback history.",
+      "source_ids": [
+        "ORQUESTA",
+        "ALERT",
+        "ASSURANCE"
+      ]
+    },
+    {
+      "id": "CL-09",
+      "status": "designed_not_executed",
+      "title": "PPPoE discovery versus authentication",
+      "starting_input": "A subscriber cannot start a broadband session.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Identify redacted subscriber/session, CPE and BNG owner, onset and intended access path; check existing local link/addressing and authorized records."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Read available CPE/BNG session state and AAA events with times and provenance; distinguish discovery with no session from established session with explicit authentication reject, and absent logs from either."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Discovery failure suggests an access path direction; a recorded authentication reject supports AAA owner investigation, without guessing credentials or billing cause."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "Draft a targeted access or AAA owner handoff with evidence and unknowns; no credential reset, debug toggle, broad scan or device change."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "If the owner records a justified action, check the original subscriber session and original application/account, then agreed stability. A session alone is insufficient for closure; unavailable user means unresolved."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Local sample records separately model no discovery, explicit AAA reject, missing AAA events and a healthy control; assert correct handoff and no invented cause.",
+      "source_ids": [
+        "PPPOE",
+        "ASSURANCE"
+      ]
+    },
+    {
+      "id": "CL-10",
+      "status": "designed_not_executed",
+      "title": "DHCP, default gateway and local link",
+      "starting_input": "An office client cannot reach its business application.",
+      "ordered_stages": [
+        {
+          "stage": "intake_scope_baseline",
+          "design": "Record affected client/interface/VLAN, business operation and account, lease age, local topology and ownership; inspect existing read-only address, default route and ARP/ND state before DNS."
+        },
+        {
+          "stage": "collection_and_discriminating_tests",
+          "design": "Compare permitted lease and gateway-neighbor evidence with a same-segment authorized control and local link counters; retain timestamps and unknown VLAN or stale inventory."
+        },
+        {
+          "stage": "hypotheses_and_branches",
+          "design": "Missing address, absent gateway or unresolved neighbor narrows the local access direction but does not prove a DHCP server or switch fault; DNS diagnosis requires usable local path evidence."
+        },
+        {
+          "stage": "operator_action_or_handoff",
+          "design": "Hand off evidence to the access owner; only when a specific mismatch is independently confirmed propose their reviewed correction, backup and rollback."
+        },
+        {
+          "stage": "recovery_and_monitoring",
+          "design": "After recorded action verify lease/neighbor plus the original client/account business flow and monitor the owner-defined SLI; a gateway ping alone is insufficient."
+        }
+      ],
+      "allowed_terminal_outcomes": {
+        "closed_recovered": "Only after recorded action or independently documented recovery, original affected vantage and same application flow/identity pass, and owner-defined stabilization coverage and SLI pass. Root-cause certainty remains separate.",
+        "closed_unresolved": "Use for an administrative handoff or reasoned stop when service recovery cannot be established; retain owner, next step, uncertainty and evidence.",
+        "cancelled": "Record cancellation, actor, pending work and any unknown external action outcome; it is not recovery."
+      },
+      "failure_and_reopen": "On failed or inconclusive verification, recurrence, insufficient coverage, exhausted budget or unavailable vantage, return to investigation or hand off unresolved. If a rollback trigger is met, have the owner assess and record rollback and reverify; reconcile any unknown external action before repeat. Reopen a linked episode on recurrence or new evidence.",
+      "negative_control_and_local_test_design": "Isolated local DHCP lab separately removes lease, gateway route and neighbor reachability; same-segment healthy client and stale inventory are negative controls.",
+      "source_ids": [
+        "DHCP",
+        "IF",
+        "NETBOX"
+      ]
+    }
+  ]
+}

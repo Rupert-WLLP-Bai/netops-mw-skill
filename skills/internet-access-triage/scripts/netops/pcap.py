@@ -160,10 +160,26 @@ def _summarize_events(raw: bytes, valid_fields: set[str]) -> tuple[dict[str, Any
             udp_streams.add(udp_stream)
         if "dns.id" in valid_fields and _values(layers, "dns.id"):
             counts["dns_frames"] += 1
-            if _first(layers, "dns.flags.response") in ("1", 1, True):
-                counts["dns_responses"] += 1
-            else:
+            direction_values = _values(layers, "dns.flags.response")
+            directions: set[bool] = set()
+            unknown_direction = not direction_values
+            for value in direction_values:
+                if isinstance(value, bool):
+                    directions.add(value)
+                elif isinstance(value, int) and value in (0, 1):
+                    directions.add(bool(value))
+                elif isinstance(value, str) and value.lower() in ("0", "1", "false", "true"):
+                    directions.add(value.lower() in ("1", "true"))
+                else:
+                    unknown_direction = True
+            if False in directions:
                 counts["dns_queries"] += 1
+            if True in directions:
+                counts["dns_responses"] += 1
+            if len(directions) == 2:
+                counts["dns_mixed_direction_frames"] += 1
+            if unknown_direction:
+                counts["dns_direction_unknown_frames"] += 1
             for code in _values(layers, "dns.flags.rcode"):
                 counts[f"dns_rcode_{code}"] += 1
         if ("tls.record.content_type" in valid_fields and _values(layers, "tls.record.content_type")) or (
@@ -208,6 +224,8 @@ def _summarize_events(raw: bytes, valid_fields: set[str]) -> tuple[dict[str, Any
         "dns_frames": {"dns.id"},
         "dns_queries": {"dns.id", "dns.flags.response"},
         "dns_responses": {"dns.id", "dns.flags.response"},
+        "dns_direction_unknown_frames": {"dns.id", "dns.flags.response"},
+        "dns_mixed_direction_frames": {"dns.id", "dns.flags.response"},
         "dns_response_code_frame_counts": {"dns.id", "dns.flags.rcode"},
         "tls_frames": {"tls.record.content_type", "tls.handshake.type"},
         "http_request_messages": {"http.request.method"},
@@ -245,6 +263,8 @@ def _summarize_events(raw: bytes, valid_fields: set[str]) -> tuple[dict[str, Any
         "dns_frames": observed_count("dns_frames"),
         "dns_queries": observed_count("dns_queries"),
         "dns_responses": observed_count("dns_responses"),
+        "dns_direction_unknown_frames": observed_count("dns_direction_unknown_frames"),
+        "dns_mixed_direction_frames": observed_count("dns_mixed_direction_frames"),
         "dns_response_code_frame_counts": ({key.removeprefix("dns_rcode_"): value
                                              for key, value in counts.items() if key.startswith("dns_rcode_")}
                                             if available("dns_response_code_frame_counts") else None),
