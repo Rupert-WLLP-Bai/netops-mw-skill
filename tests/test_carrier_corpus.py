@@ -124,13 +124,13 @@ class CarrierCorpusTests(unittest.TestCase):
 
     def test_m5_complete_matrix_uses_calibration_and_direction_source_facts(self):
         with tempfile.TemporaryDirectory() as temporary:
-            calibration_gap = materialize_case(ROOT, "case-016", Path(temporary) / "calibration")
+            calibration_gap = materialize_case(ROOT, "case-023", Path(temporary) / "calibration")
             calibration_claims = [claim for claim in calibration_gap["oracle"]["jobs"][0]["claims"]
                                   if claim["kind"] == "test_result"]
             self.assertEqual(len(calibration_claims), 10)
             self.assertTrue(all(claim["status"] == "unverified" for claim in calibration_claims))
 
-            missing_reverse_map = materialize_case(ROOT, "case-006", Path(temporary) / "direction")
+            missing_reverse_map = materialize_case(ROOT, "case-025", Path(temporary) / "direction")
             request = json.loads(missing_reverse_map["task_path"].read_text(encoding="utf-8"))["jobs"][0]["request"]
             direction_claims = [claim for claim in missing_reverse_map["oracle"]["jobs"][0]["claims"]
                                 if claim["kind"] == "test_result"]
