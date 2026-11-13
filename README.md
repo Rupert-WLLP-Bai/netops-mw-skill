@@ -102,7 +102,9 @@ The [M7 plan](docs/implementation/carrier-m7-plan.md) prepares versioned suite/i
 portable representative inputs, user prompts and acceptance records. The
 [validation record](docs/validation-carrier-m7.md) separates engineering checks from user-deferred
 MobileWork, native Windows and external security assessment. Actual client verdicts and screenshots
-remain pending user validation.
+remain pending user validation. Engineering checks passed 264 source tests, 153 extracted-runtime
+tests, nine reproducible archives and the exact published sample commands. The
+[independent final Sol review](docs/review-carrier-m7.md) has no remaining blocking findings.
 
 Build one independent package with `python3 -B scripts/build_skill.py --skill netops-incident --out dist/netops-incident-new.zip`.
 Build the complete handoff with `python3 -B scripts/build_handoff.py --out /tmp/netops-handoff-new`;

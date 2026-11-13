@@ -16,7 +16,7 @@ Environment: Kali 2026.3 under WSL2 Linux 6.18.58.1, x86-64, Python 3.14.7.
 | Exact archive membership/hash/license verification and clean extraction | Passed for all nine archives and eight independent Skill roots |
 | Fresh extracted runtime regression | 153 tests in six independently executed modules, all exited zero |
 | Extracted offline normal/changed/error provider checks | Passed against the independent incident ZIP; details below |
-| Independent final Sol Standards and Spec review | Pending review of the frozen, verified change |
+| Independent final Sol Standards and Spec review | Complete: 0 hard Standards breaches, 2 nonblocking P3 suggestions; 0 remaining Spec findings |
 | Actual MobileWork V-01/V-02/V-03 | `pending_user`; explicitly deferred |
 | Native Windows execution | `pending_user`; Linux/WSL does not substitute |
 | External 43 static / 17 dynamic security assessment | `pending_user`; no report exists here |
@@ -111,4 +111,4 @@ signoff pending. Actual command transcripts and output files are retained beside
 ```
 
 This guide-only correction does not invalidate the unchanged 264-test source regression or
-153-test extracted-runtime regression. Final independent re-review follows these completed gates.
+153-test extracted-runtime regression. Final independent re-review passed after these completed gates; the [separate review axes](review-carrier-m7.md) retain two nonblocking maintenance suggestions.
