@@ -13,7 +13,7 @@ superseded by that explicit authorization. Offline/device/production boundaries 
 | M4 / #8 / PR #15 | Merged, `8b210eb`; source `45a0743`; 210 full / 131 extracted tests, 12 cases and final Sol R3 pass | No implementation work remains |
 | M5 / #9 / PR #16 | Merged, `6a7eed1`; source `f1c8441`; 232 full / 153 extracted tests, 17 cases and final Sol pass | No implementation work remains |
 | M6 / #10 / PR #17 | Merged, `cda6492`; source `7b9c83c`; 259 full / 153 extracted tests; 36 cases / 44 jobs and matching replay; final Sol review | No implementation work remains; one nonblocking maintainability suggestion is disclosed |
-| M7 / #11 | Authoring on `feat/carrier-m7-release-handoff`; user-owned execution deferred | Prepare and verify versioned packages, representative inputs, prompts, criteria and short report; independent review, PR and merge |
+| M7 / #11 | Engineering verified on `feat/carrier-m7-release-handoff`: 264 full / 153 extracted tests; nine reproducible archives and 103-file handoff | Final independent review, short report layout, PR and merge; actual client/platform/security execution remains user-owned |
 
 Terra/Luna implemented the earlier milestones. After the environment restart, the user explicitly
 approved Luna implementation and independent Sol review for the remaining work because Terra is

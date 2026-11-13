@@ -11,11 +11,12 @@ Environment: Kali 2026.3 under WSL2 Linux 6.18.58.1, x86-64, Python 3.14.7.
 | Evidence class | Current state |
 | --- | --- |
 | Initial complete engineering regression | 264 tests across 21 modules; one new builder test error, retained as failed |
+| Final complete engineering regression | Passed: 264 tests across 21 modules in 160.074 seconds at `eebcaab` |
 | Suite and eight individual deterministic builds | Passed; two complete handoffs byte-identical, 103 files each |
 | Exact archive membership/hash/license verification and clean extraction | Passed for all nine archives and eight independent Skill roots |
 | Fresh extracted runtime regression | 153 tests in six independently executed modules, all exited zero |
 | Extracted offline normal/changed/error provider checks | Passed against the independent incident ZIP; details below |
-| Independent final Sol Standards and Spec review | Pending final engineering gates |
+| Independent final Sol Standards and Spec review | Pending review of the frozen, verified change |
 | Actual MobileWork V-01/V-02/V-03 | `pending_user`; explicitly deferred |
 | Native Windows execution | `pending_user`; Linux/WSL does not substitute |
 | External 43 static / 17 dynamic security assessment | `pending_user`; no report exists here |
@@ -71,4 +72,21 @@ can be rerun with `python -B -W error::ResourceWarning -m unittest discover -s t
 Eight Skill validators passed (`skill-validators-v1.log`). Python 3.10 grammar passed for 42 sources
 (`grammar-v1.log`); this is not actual Python 3.10 runtime or Windows validation.
 
-Final correction regression, output-equivalence check and independent Sol review remain pending.
+## Final correction gates
+
+After the cache correction froze at `eebcaab07c6e6d42162b9a1dbfef3111c928ab68`, both focused
+standalone-builder tests passed. The complete regression then passed all 264 tests across 21 modules
+in 160.074 seconds (`.tools/carrier-m7/full-v2/result.json`). Two fresh complete handoffs each
+matched every byte of all 103 files in the previously verified handoff, including manifests and
+hash ledgers (`.tools/carrier-m7/rebuild-v2/result.json`). The fresh extracted 153-test regression
+and three sample checks therefore apply to those unchanged artifacts; they were not rerun merely
+for nonpackaged validation prose or the separate Word layout.
+
+```sh
+.tools/carrier-m1/schema-venv/bin/python -B .tools/carrier-common/run_parallel_tests.py .tools/carrier-m7/full-v2
+.tools/carrier-m1/schema-venv/bin/python -B .tools/carrier-common/rebuild_m7_compare.py
+```
+
+The focused run is retained in `focused-release-v2.log`. All gate processes finished before the
+independent final Sol review. Actual client, native Windows and external security verdicts remain
+pending user execution.
