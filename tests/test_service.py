@@ -386,6 +386,107 @@ class ServiceReviewTests(unittest.TestCase):
                 result=self.review(variant)
                 self.assertEqual(result['change_review']['status'],'blocked'); self.assertEqual(result['acceptance_status'],'blocked')
 
+    def test_actual_metadata_direction_and_independent_event_scope(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        baseline,_=self.materialize(scenario); self.assertEqual(self.review(baseline)['technical_status'],'conformant')
+        source=next(item for item in scenario['sources'] if item['run_key']=='actual-fields')
+        target_index=source['row_keys'].index('target_vlan_endpoint_a')
+        def reverse_field_target(data): data['records'][target_index]['direction']='ingress'; return data
+        request,_=self.materialize(scenario,{'actual-fields':reverse_field_target})
+        self.assertIn('field_scope_mismatch',self.review(request)['gaps'])
+        for index in (1,2,3,4,6):
+            with self.subTest(wrong_direction_record=index):
+                def reverse_metadata(data): data['records'][index]['direction']='ingress'; return data
+                request,_=self.materialize(scenario,{'actual-tests':reverse_metadata}); result=self.review(request)
+                row=next(item for item in result['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+                self.assertEqual(row['status'],'unverified')
+                self.assertIn('missing_calibration' if index==6 else 'missing_test_evidence',row['gaps'])
+                if index==1: self.assertIsNone(row['method_ref'])
+                if index==6: self.assertIsNone(row['instrument_ref'])
+        variant=copy.deepcopy(scenario); source=next(item for item in variant['sources'] if item['run_key']=='actual-tests'); source['row_keys'].append('independent_measurement')
+        def earlier(data):
+            data['records'].append(dict(data['records'][0],value=1100,event_time='2026-11-13T00:07:00Z')); return data
+        request,ids=self.materialize(variant,{'actual-tests':earlier}); selected=request['test_results'][0]['measurement_evidence']
+        binding=copy.deepcopy(next(item for item in request['bindings'] if item['record']==selected))
+        binding['record']=dict(run_id=selected['run_id'],evidence_id=ids['actual-tests']['independent_measurement']); request['bindings'].append(binding)
+        result=self.review(request); self.assertEqual(result['technical_status'],'conformant'); self.assertNotIn('conflicting_observations',result['gaps'])
+        def simultaneous(data):
+            data['records'].append(dict(data['records'][0],value=1100)); return data
+        request,ids=self.materialize(variant,{'actual-tests':simultaneous}); selected=request['test_results'][0]['measurement_evidence']
+        binding=copy.deepcopy(next(item for item in request['bindings'] if item['record']==selected))
+        binding['record']=dict(run_id=selected['run_id'],evidence_id=ids['actual-tests']['independent_measurement']); request['bindings'].append(binding)
+        result=self.review(request); self.assertIn('conflicting_observations',result['gaps'])
+        self.assertIn(binding['record'],result['counterevidence']); self.assertNotEqual(result['technical_status'],'conformant')
+
+    def test_invalid_physical_values_do_not_pass_acceptance(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        for metric,value in [('measured_latency',-5),('measured_throughput',-1),('measured_loss',-1),('measured_jitter',-1),('measured_ip_mtu',0),('measured_ip_mtu',1500.5)]:
+            with self.subTest(metric=metric,value=value):
+                def mutate(data):
+                    for row in data['records']:
+                        if row['metric']==metric: row['value']=value
+                    return data
+                request,_=self.materialize(scenario,{'actual-tests':mutate}); result=self.review(request)
+                self.assertNotEqual(result['technical_status'],'conformant'); self.assertIn('test_measurement_mismatch',result['gaps'])
+
+    def test_change_plan_semantics_direction_and_uncertainty(self):
+        for case_id in ('case-010','case-011'):
+            scenario=json.loads((FIXTURES/'cases'/case_id/'scenario.json').read_text())
+            baseline,_=self.materialize(scenario); self.assertEqual(self.review(baseline)['change_review']['status'],'ready_for_human_review')
+            for metric,value in [('planned_postcheck_comparator','unsupported-comparator'),('planned_postcheck_direction','unsupported-direction'),('planned_postcheck_criterion','not-a-number'),('planned_postcheck_criterion',-1)]:
+                with self.subTest(case=case_id,metric=metric):
+                    def mutate(data):
+                        for row in data['records']:
+                            if row['metric']==metric: row['value']=value
+                        return data
+                    def allow(config):
+                        if isinstance(value,str): config['value_allowlists'].setdefault(metric,[]).append(value)
+                        return config
+                    request,_=self.materialize(scenario,{'change':mutate},{'change':allow})
+                    self.assertEqual(self.review(request)['change_review']['status'],'blocked')
+            if case_id=='case-011':
+                for metric in ('postcheck_method','postcheck_direction','postcheck_window_start','postcheck_window_end'):
+                    def reverse_metadata(data):
+                        for row in data['records']:
+                            if row['metric']==metric: row['direction']='ingress'
+                        return data
+                    request,_=self.materialize(scenario,{'change':reverse_metadata}); self.assertEqual(self.review(request)['change_review']['status'],'blocked')
+                def uncertain(config): config['clock_uncertainty_seconds']=1; return config
+                request,_=self.materialize(scenario,config_overrides={'change':uncertain}); self.assertEqual(self.review(request)['change_review']['status'],'blocked')
+                def extend_window(data):
+                    for row in data['records']:
+                        if row['metric']=='postcheck_window_end': row['value']+=1
+                    return data
+                request,_=self.materialize(scenario,{'change':extend_window},{'change':uncertain})
+                self.assertEqual(self.review(request)['change_review']['status'],'ready_for_human_review')
+
+    def test_unavailable_method_is_not_cited_or_confused_with_static_clock_gaps(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text()); request,_=self.materialize(scenario)
+        request['test_results'][0]['method_evidence']=dict(request['test_results'][0]['measurement_evidence'],evidence_id='ev-ffffffffffff')
+        result=self.review(request); row=next(item for item in result['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+        self.assertEqual(row['status'],'unverified'); self.assertIsNone(row['method_ref']); self.assertNotIn('ev-ffffffffffff',result['draft_report'])
+        self.assertNotIn('clock_uncertain',result['gaps'])
+
+    def test_foreign_change_approval_cannot_authorize_selected_plan(self):
+        scenario=json.loads((FIXTURES/'cases/case-011/scenario.json').read_text())
+        source=next(item for item in scenario['sources'] if item['run_key']=='change')
+        source['row_keys'].extend(['foreign_current','foreign_valid_from','foreign_valid_until'])
+        def foreign(data):
+            approval=next(row for row in data['records'] if row['metric']=='change_approval'); approval['object_id']='fixture-foreign-change'
+            for metric in ('static_current','static_valid_from','static_valid_until'):
+                original=next(row for row in data['records'] if row['metric']==metric and row['object_id']=='fixture-change')
+                data['records'].append(dict(original,object_id='fixture-foreign-change'))
+            return data
+        def alias(config): config['pseudonyms']['fixture-foreign-change']='foreign-change-plan'; return config
+        request,ids=self.materialize(scenario,{'change':foreign},{'change':alias})
+        rid='m5-change-post'; approval=dict(run_id=rid,evidence_id=ids['change']['approval'])
+        binding=next(item for item in request['bindings'] if item['record']==approval); binding['source_native_id']='foreign-change-plan'
+        def ref(label): return dict(run_id=rid,evidence_id=ids['change'][label])
+        for label in ('foreign_current','foreign_valid_from','foreign_valid_until'): request['bindings'].append(dict(binding,record=ref(label)))
+        request['static_authorities'].append(dict(source='synthetic-change-source',source_native_id='foreign-change-plan',current_evidence=ref('foreign_current'),valid_from_evidence=ref('foreign_valid_from'),valid_until_evidence=ref('foreign_valid_until')))
+        result=self.review(request); self.assertEqual(result['change_review']['status'],'blocked'); self.assertEqual(result['acceptance_status'],'blocked')
+        self.assertIsNone(result['change_review']['evidence_refs']['approval_evidence'])
+
     def test_strict_input_and_public_file_boundaries(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

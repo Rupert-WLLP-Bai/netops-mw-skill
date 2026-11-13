@@ -1,6 +1,6 @@
 # Carrier M5 validation record
 
-This record covers issue #9, “C4 / M5: Add enterprise service delivery, circuit acceptance and change-review workflows,” following the M4 merge. It records implementation and validation evidence as it becomes available. No validation pass is claimed at this authoring stage; independent review and user-owned platform/security acceptance remain separate gates.
+This record covers issue #9, “C4 / M5: Add enterprise service delivery, circuit acceptance and change-review workflows,” following the M4 merge. The R6 engineering gate passed at frozen source `155e00c` before review. Both independent Sol reviews have now completed and require corrections; the work is in a correction phase, not final review approval or user-owned platform/security acceptance.
 
 ## Scope and boundaries
 
@@ -143,3 +143,70 @@ The correction is tests-only: Terra is preserving an immutable `baseline_result`
 positive case while keeping the unknown-direction negative assertions. All 17 visible oracle cases
 and the other focused controls passed in this run. No full-suite or extracted-suite gate was launched;
 this focused run is not an overall M5 pass. Evidence is `.tools/carrier-m5/service-check-r5.log`.
+
+## R6 final engineering gate passed; Sol reviews pending
+
+The final engineering gate passed at frozen source `155e00c`. The full suite ran 221 tests in
+238.726 seconds with no failures or skips. The clean extracted suite ran 142 tests in 201.647 seconds
+with no failures or skips. Eight Skill validators, Python 3.10 grammar validation, all 80 fixture
+hashes, and the 17 unique-scenario count passed.
+
+The reproducible suite archive contains 61 files, is 675971 bytes, and has SHA-256
+`9f796ddc6fcb6c7fc2a398d304ae7a07962a84a74caabd87561ec20f74199475`. Two suite builds and their
+manifests were identical, all eight individual Skill archives were produced, and all member hashes
+were checked. The managed offline PCAP check passed with the existing input hash
+`92e06382a4f2e12bd569a104ceeecf908b89ccdb801f3dc4ae430b0f1a967f9b`, with no live network
+collection. The original 16-file `internet-access-triage` collector remains SHA-256
+`f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`.
+
+The commands were:
+
+```sh
+.tools/carrier-m1/schema-venv/bin/python -B -W error::ResourceWarning -m unittest discover -s tests -v > .tools/carrier-m5/full-suite-r6.log 2>&1
+CARRIER_PHASE=m5 CARRIER_VERIFY_OUT=.tools/carrier-m5/r6-delivery .tools/carrier-m1/schema-venv/bin/python -B .tools/carrier-common/verify_delivery.py > .tools/carrier-m5/delivery-r6.log 2>&1
+```
+
+Evidence is retained in `.tools/carrier-m5/full-suite-r6.log`,
+`.tools/carrier-m5/delivery-r6.log`, `.tools/carrier-m5/auxiliary-r6.log`,
+`.tools/carrier-m5/skill-validators-r6.json`, and the duplicate builds, manifests, extracted-test
+log, verification record, and eight individual Skill archives under `.tools/carrier-m5/r6-delivery/`.
+The engineering gate is complete; both independent Sol reviews remain active and pending. Actual M7
+MobileWork, native Windows, production interoperability, and external-security validation remain
+user-deferred.
+
+## Sol review findings: corrections required
+
+The two independent Sol reviews examined frozen source `155e00c` against merged M4 `8b210eb`.
+The Standards axis reported three P2 findings; the Spec axis reported five P2 findings. The
+pre-review R6 engineering gate above remains a successful gate at that source, but it is not a
+post-correction result or a final review pass.
+
+The findings identify seven correction categories, with planned-change semantics shared by both
+reviews: (1) actual and postcheck evidence must support the criterion's actual direction, not merely
+share its source/resource; (2) actual conflicts must be compared within compatible role, scope, and
+time rather than treating measurements as timeless static facts; (3) planned postcheck metric,
+method, criterion, comparator, and direction must be validated in both pre-change and post-change
+reviews; (4) supported physical measurements must satisfy their nonnegative domains, with L3 MTU a
+positive integral packet-size quantity; (5) approval and related change metadata must be tied to the
+selected change's checked source identity; (6) the complete event-time uncertainty interval must
+fit inside the applicable actual window; and (7) output references must point only to validated,
+applicable evidence, with unavailable roles represented as null and unrelated static gaps excluded.
+
+Terra's implementation report maps these cases to existing gaps: `missing_test_evidence` or
+`change_review_incomplete` for unusable direction-role support; `conflicting_observations` only for
+role-compatible actual observations with overlapping event-time uncertainty; `change_review_incomplete`
+for absent or unsupported planned semantics and mismatched selected-change identity;
+`test_measurement_mismatch` or `missing_criterion_evidence` for invalid measurement/criterion domains;
+`test_window_mismatch` or `change_review_incomplete` when complete uncertainty does not fit the
+actual window. Actual configured field values and their field-target rows must also carry equal
+direction metadata; both can explicitly be `unknown`, while a mismatch uses `field_scope_mismatch`.
+No new gap codes or output fields were added. The provider and manual references now state these
+rules and retain existing gap vocabulary. Terra confirmed the documented behavior
+matches the statically completed correction implementation. For planned checks, `eq` accepts a
+controlled enum or finite numeric criterion; `gte`/`lte` require a finite numeric criterion with an
+explicit unit, with the physical-domain rules applied for supported capability metrics. No renewed
+checks, tests, package builds, or post-correction review results are recorded here. Evidence:
+`.tools/carrier-m5/sol-standards.md` and
+`.tools/carrier-m5/sol-spec.md`. Earlier gate failures and the successful pre-review R6 record
+remain preserved. Actual M7 MobileWork, native Windows, production interoperability, and
+external-security validation remain user-deferred.

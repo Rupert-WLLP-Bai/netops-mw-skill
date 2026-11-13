@@ -86,6 +86,11 @@ def _number(value):
     return not isinstance(value,bool) and isinstance(value,(int,float)) and math.isfinite(value)
 
 
+def _physical(metric,value):
+    if not _number(value) or value<0: return False
+    return metric!='measured_ip_mtu' or (value>0 and int(value)==value)
+
+
 def _date(item):
     if not item or item['row']['unit']!='unix_s' or not _number(item['row']['value']): return None
     try: return datetime.fromtimestamp(item['row']['value'],timezone.utc)
@@ -181,6 +186,17 @@ def _static_read(ref,static,authorities,metric,identity=None):
     return item
 
 
+def _authority_resource(request,static,identity,resource):
+    entries=[entry for entry in request['static_authorities'] if (entry['source'],entry['source_native_id'])==identity]
+    if len(entries)!=1: return False
+    for name in ('current_evidence','valid_from_evidence','valid_until_evidence'):
+        ref=entries[0][name]
+        if ref is not None:
+            item=static.get(_ref(ref))
+            if not item or _source(item)!=identity or item['resource']!=resource: return False
+    return True
+
+
 def _inventory(spec,kind,static,evidence,authorities,listing=False):
     if spec is None: return None
     identity=(spec['source'],spec['source_native_id']); rid=spec['run_id']
@@ -210,6 +226,10 @@ def _same_source_resource(a,b):
     return a['resource']==b['resource'] and _source(a)==_source(b) and _same_event(a,b)
 
 
+def _same_actual_operation(a,b):
+    return _same_source_resource(a,b) and a['row']['direction'] in ('ingress','egress') and a['row']['direction']==b['row']['direction']
+
+
 def _equivalence_relation(declaration,expected,actual,static,authorities):
     """Resolve only a scoped source assertion naming the exact evidence pair."""
     if not declaration: return None,[]
@@ -233,7 +253,7 @@ def _field_results(request,context,static,actual,authorities,inventory,gaps):
     if inventory is None or declared!=set(inventory) or not REQUIRED.issubset(set(targets)): gaps.add('field_inventory_incomplete')
     results=[]
     for entry in entries:
-        field,target=entry['field'],entry['target']; target_name=field+'_'+target; local=[]; status='unverified'
+        field,target=entry['field'],entry['target']; target_name=field+'_'+target; local=[]; status='unverified'; verified_equivalence=None
         required=inventory.get(target_name) if inventory else None
         if not required or _nullable_ref(entry['required_evidence'])!=required['key'] or field not in {'circuit','endpoint','vlan','vrf','ip_prefix','bandwidth','mtu','qos','routing','security','sla_profile'} or target not in ('service','endpoint_a','endpoint_b'): local.append('unsupported_or_missing_field_requirement')
         if entry['applicability_evidence'] is not None or entry['inapplicability_reason_evidence'] is not None: local.append('human_applicability_review')
@@ -244,9 +264,9 @@ def _field_results(request,context,static,actual,authorities,inventory,gaps):
         opposing=(_opposing(expected,static,True) if expected else [])+(_opposing(actual_item,actual) if actual_item else [])+(_opposing(actual_target,actual) if actual_target else [])
         if opposing: local.append('conflicting_observations')
         if not expected or not actual_item or not actual_target: local.append('missing_field_evidence')
-        elif actual_target['row']['value']!=target_name or not _same_source_resource(actual_item,actual_target): local.append('field_scope_mismatch')
+        elif actual_target['row']['value']!=target_name or not _same_source_resource(actual_item,actual_target) or actual_item['row']['direction']!=actual_target['row']['direction']: local.append('field_scope_mismatch')
         elif context is None or (target=='service' and actual_item['resource'] not in (request['service']['object_id'],request['delivery_scope']['circuit_id'])) or (target in ('endpoint_a','endpoint_b') and not _site_point(context,request['delivery_scope'][target+'_id'],actual_item['resource'])): local.append('field_scope_mismatch')
-        elif field in ('mtu','bandwidth') and (not _number(expected['row']['value']) or not _number(actual_item['row']['value']) or expected['row']['unit']!=actual_item['row']['unit'] or expected['row']['unit'] in (None,'unknown') or (field=='mtu' and expected['row']['unit']!='bytes')): local.append('field_unit_mismatch')
+        elif field in ('mtu','bandwidth') and (not _number(expected['row']['value']) or not _number(actual_item['row']['value']) or expected['row']['value']<0 or actual_item['row']['value']<0 or expected['row']['unit']!=actual_item['row']['unit'] or expected['row']['unit'] in (None,'unknown') or (field=='mtu' and (expected['row']['unit']!='bytes' or not _physical('measured_ip_mtu',expected['row']['value']) or not _physical('measured_ip_mtu',actual_item['row']['value'])))): local.append('field_unit_mismatch')
         elif field not in ('mtu','bandwidth') and (not isinstance(expected['row']['value'],str) or not isinstance(actual_item['row']['value'],str)): local.append('field_unit_mismatch')
         elif expected['row']['unit']!=actual_item['row']['unit']: local.append('field_unit_mismatch')
         elif opposing: pass
@@ -258,13 +278,15 @@ def _field_results(request,context,static,actual,authorities,inventory,gaps):
                 opposing.extend(conflicts)
                 if conflicts: local.append('conflicting_observations')
                 elif relation is None: local.append('missing_field_equivalence')
-                else: status='match' if relation=='declared_equal' else 'mismatch'
+                else:
+                    verified_equivalence=entry['equivalence_evidence']; status='match' if relation=='declared_equal' else 'mismatch'
         elif not _number(expected['row']['value']) or not _number(actual_item['row']['value']): local.append('field_unit_mismatch')
         elif expected['row']['value']==actual_item['row']['value']: status='match'
         else: status='mismatch'
         if local: status='unverified'
         gaps.update(local)
-        results.append(dict(field=field,target=target,status=status,required_ref=entry['required_evidence'],expected_ref=entry['expected_evidence'],actual_ref=entry['actual_evidence'],actual_target_ref=entry['actual_target_evidence'],equivalence_ref=entry['equivalence_evidence'],topology_ref=_qualified(actual_item['topology_key']) if actual_item else None,counterevidence=[_qualified(item['key']) for item in opposing],gaps=local))
+        valid_actual=actual_item and actual_target and 'field_scope_mismatch' not in local
+        results.append(dict(field=field,target=target,status=status,required_ref=_qualified(required['key']) if required and _nullable_ref(entry['required_evidence'])==required['key'] else None,expected_ref=_qualified(expected['key']) if expected else None,actual_ref=_qualified(actual_item['key']) if valid_actual else None,actual_target_ref=_qualified(actual_target['key']) if valid_actual else None,equivalence_ref=verified_equivalence,topology_ref=_qualified(actual_item['topology_key']) if valid_actual else None,counterevidence=[_qualified(item['key']) for item in opposing],gaps=local))
     return results
 
 
@@ -289,7 +311,7 @@ def _criterion_data(entry,static,authorities):
     values={key:item['row']['value'] for key,item in result.items()}
     if CAPABILITIES.get(values['capability_evidence'])!=values['metric_evidence'] or values['aggregation_evidence'] not in ('mean','min','max','p95','p99','single') or values['comparator_evidence'] not in ('gte','lte','eq') or values['direction_evidence'] not in ('A_to_B','B_to_A','both') or values['calibration_policy_evidence'] not in ('required','not_required'): return None
     count=values['minimum_samples_evidence']
-    if not _number(count) or count<=0 or int(count)!=count or not _number(values['threshold_evidence']): return None
+    if not _number(count) or count<=0 or int(count)!=count or not _physical(values['metric_evidence'],values['threshold_evidence']): return None
     if result['threshold_evidence']['row']['unit'] in (None,'unknown') or (values['capability_evidence']=='l3_mtu' and result['threshold_evidence']['row']['unit']!='bytes'): return None
     first,last=_date(result['window_start_evidence']),_date(result['window_end_evidence'])
     if not first or not last or first>last: return None
@@ -342,7 +364,7 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
                 if not measurement: continue
                 mapped,mapping=_mapped_direction(measurement,request,context,actual)
                 if mapped==direction: candidates.append((result,measurement,mapping))
-            local=[]; opposing=[]; status='unverified'; chosen=candidates[0] if len(candidates)==1 else None
+            local=[]; opposing=[]; parts={}; instrument=None; calibrated=None; cstart=None; cend=None; status='unverified'; chosen=candidates[0] if len(candidates)==1 else None
             if not chosen:
                 local.append('missing_test_evidence' if not candidates else 'ambiguous_test_evidence')
                 if not candidates: local.append('missing_direction_mapping')
@@ -352,7 +374,13 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
                 result,measurement,mapping=chosen
                 roles={'method_evidence':'test_method','aggregation_evidence':'test_aggregation','window_start_evidence':'test_window_start','window_end_evidence':'test_window_end'}
                 parts={name:_read(result[name],actual,metric) for name,metric in roles.items()}
-                if any(not item or not _same_source_resource(measurement,item) for item in parts.values()): local.append('missing_test_evidence')
+                parts={name:item if item and _same_actual_operation(measurement,item) else None for name,item in parts.items()}
+                for key in ('window_start_evidence','window_end_evidence'):
+                    if parts[key] and _date(parts[key]) is None: parts[key]=None; local.append('test_window_mismatch')
+                instrument=_read(result['instrument_evidence'],actual,'instrument_id')
+                if instrument and not _same_actual_operation(measurement,instrument): instrument=None
+                if not _physical(values['metric_evidence'],measurement['row']['value']) or measurement['row']['unit']!=data['threshold_evidence']['row']['unit'] or measurement['row']['sample_count']<values['minimum_samples_evidence']: local.append('test_measurement_mismatch')
+                if any(not item for item in parts.values()): local.append('missing_test_evidence')
                 else:
                     for item in [measurement,mapping]+list(parts.values()): opposing.extend(_opposing(item,actual))
                     if opposing: local.append('conflicting_observations')
@@ -362,11 +390,13 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
                     uncertainty=timedelta(seconds=measurement['carrier']['clock_uncertainty_seconds'])
                     if not begin or not until or not (start<=begin<=event-uncertainty and event+uncertainty<=until<=end and approved_begin<=begin<=until<=approved_end): local.append('test_window_mismatch')
                     if parts['method_evidence']['row']['value']!=values['method_evidence'] or parts['aggregation_evidence']['row']['value']!=values['aggregation_evidence']: local.append('test_method_mismatch')
-                    if not _number(measurement['row']['value']) or measurement['row']['unit']!=data['threshold_evidence']['row']['unit'] or measurement['row']['sample_count']<values['minimum_samples_evidence']: local.append('test_measurement_mismatch')
                     if values['calibration_policy_evidence']=='required':
-                        instrument=_read(result['instrument_evidence'],actual,'instrument_id'); calibrated=_static_read(result['calibration_evidence'],static,authorities,'calibration_status')
+                        calibrated=_static_read(result['calibration_evidence'],static,authorities,'calibration_status')
                         cstart=_static_read(result['calibration_start_evidence'],static,authorities,'calibration_start'); cend=_static_read(result['calibration_end_evidence'],static,authorities,'calibration_end')
-                        if not all((instrument,calibrated,cstart,cend)) or not _same_source_resource(measurement,instrument) or any(item['resource']!=measurement['resource'] or _source(item)!=(measurement['carrier']['source'],instrument['row']['value']) for item in (calibrated,cstart,cend)) or calibrated['row']['value']!='valid' or not _date(cstart) or not _date(cend) or not begin or not until or not (_date(cstart)<=begin<=until<=_date(cend)): local.append('missing_calibration')
+                        if instrument:
+                            calibrated,cstart,cend=(item if item and item['resource']==measurement['resource'] and _source(item)==(measurement['carrier']['source'],instrument['row']['value']) else None for item in (calibrated,cstart,cend))
+                        else: calibrated=cstart=cend=None
+                        if not all((instrument,calibrated,cstart,cend)) or calibrated['row']['value']!='valid' or not _date(cstart) or not _date(cend) or not begin or not until or not (_date(cstart)<=begin<=until<=_date(cend)): local.append('missing_calibration')
                         elif any(_opposing(item,static,True) for item in (calibrated,cstart,cend)):
                             local.append('conflicting_observations')
                             for item in (calibrated,cstart,cend): opposing.extend(_opposing(item,static,True))
@@ -374,7 +404,7 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
                         value=measurement['row']['value']; threshold=values['threshold_evidence']; comparator=values['comparator_evidence']
                         passed={'gte':value>=threshold,'lte':value<=threshold,'eq':value==threshold}[comparator]; status='pass' if passed else 'fail'
             gaps.update(local)
-            matrix.append(dict(criterion_id=cid,absolute_direction=direction,status=status,measurement_point=measurement['resource'] if measurement and mapping else None,measurement_ref=result['measurement_evidence'] if result else None,criterion_refs=[_qualified(item['key']) for item in data.values()],method_ref=result['method_evidence'] if result else None,window_refs=[result['window_start_evidence'],result['window_end_evidence']] if result else [],instrument_ref=result['instrument_evidence'] if result else None,calibration_refs=[result[key] for key in ('calibration_evidence','calibration_start_evidence','calibration_end_evidence') if result and result[key]],topology_ref=_qualified(measurement['topology_key']) if measurement else None,direction_mapping_ref=_qualified(mapping['key']) if mapping else None,counterevidence=[_qualified(item['key']) for item in opposing],gaps=local))
+            matrix.append(dict(criterion_id=cid,absolute_direction=direction,status=status,measurement_point=measurement['resource'] if measurement and mapping else None,measurement_ref=_qualified(measurement['key']) if measurement else None,criterion_refs=[_qualified(item['key']) for item in data.values()],method_ref=_qualified(parts['method_evidence']['key']) if parts.get('method_evidence') else None,window_refs=[_qualified(parts[key]['key']) for key in ('window_start_evidence','window_end_evidence') if parts.get(key)],instrument_ref=_qualified(instrument['key']) if instrument else None,calibration_refs=[_qualified(item['key']) for item in (calibrated,cstart,cend) if item],topology_ref=_qualified(measurement['topology_key']) if measurement else None,direction_mapping_ref=_qualified(mapping['key']) if mapping else None,counterevidence=[_qualified(item['key']) for item in opposing],gaps=local))
     if any(directions!={'A_to_B','B_to_A'} for directions in capability.values()): gaps.add('criterion_inventory_incomplete')
     return matrix
 
@@ -387,9 +417,18 @@ def _change(request,context,static,actual,evidence,authorities,reference):
     roles={'scope_evidence':'change_scope','impact_evidence':'change_impact','planned_start_evidence':'change_window_start','planned_end_evidence':'change_window_end','approval_evidence':'change_approval','approval_reference_evidence':'change_approval_reference','rollback_trigger_evidence':'rollback_trigger','rollback_owner_evidence':'rollback_owner'}
     items={name:_static_read(change[name],static,authorities,metric) for name,metric in roles.items()}
     risks=[_static_read(ref,static,authorities,'residual_risk') for ref in change['residual_risk_evidence']]
-    if any(item is None for item in items.values()) or not risks or any(item is None for item in risks): local.append('change_review_incomplete')
     scope=items['scope_evidence']
-    if scope and (scope['row']['value'] not in (request['service']['object_id'],request['delivery_scope']['circuit_id']) or scope['resource'] not in (request['service']['object_id'],request['delivery_scope']['circuit_id'])): local.append('change_review_incomplete')
+    if scope and (scope['row']['value'] not in (request['service']['object_id'],request['delivery_scope']['circuit_id']) or scope['resource'] not in (request['service']['object_id'],request['delivery_scope']['circuit_id'])):
+        local.append('change_review_incomplete'); scope=None; items['scope_evidence']=None
+    if scope:
+        for name,item in items.items():
+            if item and (_source(item)!=_source(scope) or item['resource']!=scope['resource'] or not _authority_resource(request,static,_source(item),scope['resource'])): items[name]=None
+        risks=[item if item and _source(item)==_source(scope) and item['resource']==scope['resource'] else None for item in risks]
+        if items['scope_evidence'] is None:
+            scope=None; items={name:None for name in roles}; risks=[None for _ in risks]
+    else:
+        items={name:None for name in roles}; risks=[None for _ in risks]
+    if any(item is None for item in items.values()) or not risks or any(item is None for item in risks): local.append('change_review_incomplete')
     begin=_date(items['planned_start_evidence']); end=_date(items['planned_end_evidence'])
     if not begin or not end or begin>end: local.append('change_review_incomplete')
     change_authorities=set()
@@ -400,6 +439,10 @@ def _change(request,context,static,actual,evidence,authorities,reference):
     if not approval or approval['carrier']['event_time'] is None or approval['row']['value'] not in (('pending','approved') if change['phase']=='pre_change' else ('approved',)): local.append('change_review_incomplete')
     elif change['phase']=='post_change' and (not begin or timestamp(approval['carrier']['event_time'])+timedelta(seconds=approval['carrier']['clock_uncertainty_seconds'] or 0)>begin): local.append('change_review_incomplete')
     inventory=_inventory(change['check_inventory'],'change_check',static,evidence,change_authorities)
+    if not scope or not change['check_inventory'] or (change['check_inventory']['source'],change['check_inventory']['source_native_id'])!=_source(scope): inventory=None
+    if inventory is not None:
+        spec=change['check_inventory']; inv_refs=[spec['approval_evidence'],spec['count_evidence']]+spec['entry_evidence']
+        if any(not ref or not static.get(_ref(ref)) or static[_ref(ref)]['resource']!=scope['resource'] for ref in inv_refs): inventory=None
     check_ids=[entry['check_id'] for entry in change['checks']]
     if len(check_ids)!=len(set(check_ids)): raise CaseError('duplicate change check')
     if inventory is None or set(check_ids)!=set(inventory) or not check_ids: local.append('change_review_incomplete')
@@ -408,26 +451,39 @@ def _change(request,context,static,actual,evidence,authorities,reference):
         ident=check['check_id']; required=inventory.get(ident) if inventory else None; check_gaps=[]
         if not required or _nullable_ref(check['required_evidence'])!=required['key']: check_gaps.append('change_review_incomplete')
         plans={name:_static_read(check[name],static,authorities,metric) for name,metric in plan_roles.items()}
-        if any(not item or _source(item)[1]!=ident or _source(item) not in change_authorities for item in plans.values()): check_gaps.append('change_review_incomplete')
+        if any(not item or _source(item)[1]!=ident or _source(item) not in change_authorities or not _authority_resource(request,static,_source(item),item['resource']) for item in plans.values()): check_gaps.append('change_review_incomplete')
         if all(plans.values()) and len({_source(item) for item in plans.values()})!=1: check_gaps.append('change_review_incomplete')
         pre=_read(check['precheck_evidence'],actual,'precheck_status')
-        if not pre or pre['row']['value']!='pass' or _source(pre)[1]!=ident or not all(plans.values()) or _source(pre)!=_source(plans['planned_metric_evidence']) or not begin or timestamp(pre['carrier']['event_time'])+timedelta(seconds=pre['carrier']['clock_uncertainty_seconds'])>=begin: check_gaps.append('change_review_incomplete')
+        pre_valid=bool(pre and scope and _source(pre)[1]==ident and _source(pre)[0]==_source(scope)[0] and plans['planned_metric_evidence'] and _source(pre)==_source(plans['planned_metric_evidence']) and pre['resource']==plans['planned_metric_evidence']['resource'] and begin and timestamp(pre['carrier']['event_time'])+timedelta(seconds=pre['carrier']['clock_uncertainty_seconds'])<begin)
+        if not pre_valid or pre['row']['value']!='pass': check_gaps.append('change_review_incomplete')
+        if scope and all(plans.values()) and (not pre or _source(plans['planned_metric_evidence'])[0]!=_source(scope)[0] or any(item['resource']!=pre['resource'] for item in plans.values())): check_gaps.append('change_review_incomplete')
+        if all(plans.values()):
+            metric=plans['planned_metric_evidence']['row']['value']; method_value=plans['planned_method_evidence']['row']['value']; expected=plans['planned_criterion_evidence']['row']['value']; cmp=plans['planned_comparator_evidence']['row']['value']; direction_value=plans['planned_direction_evidence']['row']['value']
+            valid_value=(_number(expected) and plans['planned_criterion_evidence']['row']['unit'] not in (None,'unknown')) or (isinstance(expected,str) and cmp=='eq')
+            if not isinstance(metric,str) or not isinstance(method_value,str) or cmp not in ('eq','gte','lte') or direction_value not in ('A_to_B','B_to_A') or not valid_value or (cmp in ('gte','lte') and not _number(expected)) or (metric in CAPABILITIES.values() and not _physical(metric,expected)) or (metric=='measured_ip_mtu' and plans['planned_criterion_evidence']['row']['unit']!='bytes'): check_gaps.append('change_review_incomplete')
+        observed=method=direction=left=right=None
         if change['phase']=='post_change' and not check_gaps:
             metric=plans['planned_metric_evidence']['row']['value']; observed=_read(check['postcheck_evidence'],actual,metric)
             method=_read(check['postcheck_method_evidence'],actual,'postcheck_method'); direction=_read(check['postcheck_direction_evidence'],actual,'postcheck_direction')
             left=_read(check['postcheck_window_start_evidence'],actual,'postcheck_window_start'); right=_read(check['postcheck_window_end_evidence'],actual,'postcheck_window_end')
-            if not all((observed,method,direction,left,right)) or not all(_same_source_resource(observed,item) for item in (method,direction,left,right)) or _source(observed)[1]!=ident: check_gaps.append('change_review_incomplete')
+            if observed and (not pre or not _same_scope(pre,observed)): observed=None
+            if observed:
+                method,direction,left,right=(item if item and _same_actual_operation(observed,item) else None for item in (method,direction,left,right))
+                if left and _date(left) is None: left=None
+                if right and _date(right) is None: right=None
+            if not all((observed,method,direction,left,right)) or _source(observed)[1]!=ident: check_gaps.append('change_review_incomplete')
             else:
                 value=observed['row']['value']; expected=plans['planned_criterion_evidence']['row']['value']; cmp=plans['planned_comparator_evidence']['row']['value']
                 lo,hi=_date(left),_date(right); actual_event=timestamp(observed['carrier']['event_time'])
                 mapped,_=_mapped_direction(observed,request,context,actual)
                 compatible=method['row']['value']==plans['planned_method_evidence']['row']['value'] and direction['row']['value']==plans['planned_direction_evidence']['row']['value']==mapped and observed['row']['unit']==plans['planned_criterion_evidence']['row']['unit'] and _same_scope(pre,observed)
-                if not end or not lo or not hi or not end<lo<=actual_event<=hi or lo<timestamp(request['window_start']) or hi>timestamp(request['window_end']) or actual_event-timedelta(seconds=observed['carrier']['clock_uncertainty_seconds'])<=end or not compatible or cmp not in ('eq','gte','lte'): check_gaps.append('change_review_incomplete')
+                uncertainty=timedelta(seconds=observed['carrier']['clock_uncertainty_seconds'])
+                if not end or not lo or not hi or not end<lo<=actual_event-uncertainty or actual_event+uncertainty>hi or lo<timestamp(request['window_start']) or hi>timestamp(request['window_end']) or actual_event-uncertainty<=end or not compatible or cmp not in ('eq','gte','lte') or (metric in CAPABILITIES.values() and not _physical(metric,value)): check_gaps.append('change_review_incomplete')
                 elif cmp=='eq' and value!=expected: check_gaps.append('change_review_incomplete')
                 elif cmp in ('gte','lte') and (not _number(value) or not _number(expected) or (cmp=='gte' and value<expected) or (cmp=='lte' and value>expected)): check_gaps.append('change_review_incomplete')
         local.extend(check_gaps)
-        checks.append(dict(check_id=ident,status='unverified' if check_gaps else 'ready_for_human_review',required_ref=check['required_evidence'],precheck_ref=check['precheck_evidence'],postcheck_ref=check['postcheck_evidence'],plan_refs=[check[key] for key in plan_roles if check[key]],postcheck_method_ref=check['postcheck_method_evidence'],postcheck_direction_ref=check['postcheck_direction_evidence'],postcheck_window_refs=[check[key] for key in ('postcheck_window_start_evidence','postcheck_window_end_evidence') if check[key]],gaps=sorted(set(check_gaps))))
-    evidence_refs={key:change[key] for key in roles}; evidence_refs['residual_risk_evidence']=change['residual_risk_evidence']
+        checks.append(dict(check_id=ident,status='unverified' if check_gaps else 'ready_for_human_review',required_ref=_qualified(required['key']) if required else None,precheck_ref=_qualified(pre['key']) if pre_valid else None,postcheck_ref=_qualified(observed['key']) if observed else None,plan_refs=[_qualified(item['key']) for item in plans.values() if item and pre_valid and _source(item)==_source(pre) and item['resource']==pre['resource'] and _source(item) in change_authorities],postcheck_method_ref=_qualified(method['key']) if method else None,postcheck_direction_ref=_qualified(direction['key']) if direction else None,postcheck_window_refs=[_qualified(item['key']) for item in (left,right) if item],gaps=sorted(set(check_gaps))))
+    evidence_refs={key:_qualified(item['key']) if item and _source(item) in change_authorities else None for key,item in items.items()}; evidence_refs['residual_risk_evidence']=[_qualified(item['key']) for item in risks if item and _source(item) in change_authorities]
     return dict(status='blocked' if local else 'ready_for_human_review',checks=checks,gaps=sorted(set(local)),evidence_refs=evidence_refs)
 
 
@@ -466,14 +522,25 @@ def _report(result,scope):
 def analyze(request):
     reference,start,end=_validate(request); runs,evidence=_load_runs(request)
     context=_topology(request,runs,evidence,reference,start,end)
-    actual,actual_gaps=_collect_bound(request,runs,evidence,reference,start,end)
+    actual,_=_collect_bound(request,runs,evidence,reference,start,end)
     static={}
     if context is not None:
         for binding in request['bindings']:
             item=_static_binding(binding,request,runs,evidence,reference,start,end)
             if item: static[item['key']]=item
     authorities=_authority_set(request,static,reference,start,end)
-    gaps=set()
+    gaps=set(); actual_refs=set()
+    for field in request['fields']:
+        actual_refs.update(_nullable_ref(field[key]) for key in ('actual_evidence','actual_target_evidence') if field[key])
+    for result in request['test_results']:
+        actual_refs.update(_nullable_ref(result[key]) for key in RESULT-{'criterion_id','calibration_evidence','calibration_start_evidence','calibration_end_evidence'} if result[key])
+    technical_actual_refs=set(actual_refs)
+    for mapping in request['direction_mappings']:
+        if mapping['mapping_evidence']: actual_refs.add(_ref(mapping['mapping_evidence']))
+    if request['change_review']:
+        for check in request['change_review']['checks']:
+            for key in ('precheck_evidence','postcheck_evidence','postcheck_method_evidence','postcheck_direction_evidence','postcheck_window_start_evidence','postcheck_window_end_evidence'):
+                if check[key]: actual_refs.add(_ref(check[key]))
     def conflicts(value):
         found=set(); pending=[value]
         while pending:
@@ -481,13 +548,14 @@ def analyze(request):
             if isinstance(part,dict):
                 if set(part)=={'run_id','evidence_id'}:
                     key=_ref(part)
-                    for pool,is_static in ((static,True),(actual,False)):
+                    pools=((actual,False),) if key in actual_refs else ((static,True),)
+                    for pool,is_static in pools:
                         selected=pool.get(key)
                         if selected: found.update(item['key'] for item in _opposing(selected,pool,is_static))
                 else: pending.extend(part.values())
             elif isinstance(part,list): pending.extend(part)
         return found
-    counterevidence=conflicts({key:value for key,value in request.items() if key!='change_review'})
+    counterevidence=conflicts({key:value for key,value in request.items() if key not in ('change_review','bindings')})
     if counterevidence: gaps.add('conflicting_observations')
     if context is None: gaps.add('invalid_delivery_scope')
     field_inventory=_inventory(request['field_inventory'],'field',static,evidence,authorities)
@@ -513,14 +581,12 @@ def analyze(request):
     if change_conflicts:
         change['status']='blocked'; change['gaps']=sorted(set(change['gaps']) | {'conflicting_observations'}); counterevidence.update(change_conflicts)
     # Static rows may legitimately be old or undated; report freshness gaps only for actual rows.
-    actual_refs=set()
-    for field in request['fields']:
-        actual_refs.update(_nullable_ref(field[key]) for key in ('actual_evidence','actual_target_evidence') if field[key])
-    for result in request['test_results']:
-        actual_refs.update(_nullable_ref(result[key]) for key in RESULT-{'criterion_id','calibration_evidence','calibration_start_evidence','calibration_end_evidence'} if result[key])
-    for mapping in request['direction_mappings']:
-        if mapping['mapping_evidence']: actual_refs.add(_ref(mapping['mapping_evidence']))
-    if any(ref not in actual for ref in actual_refs): gaps.update(actual_gaps)
+    missing_actual=technical_actual_refs-set(actual)
+    if missing_actual:
+        bindings=[binding for binding in request['bindings'] if _ref(binding['record']) in missing_actual]
+        if missing_actual-{_ref(binding['record']) for binding in bindings}: gaps.add('missing_evidence')
+        _,missing_gaps=_collect_bound(dict(request,bindings=bindings),runs,evidence,reference,start,end)
+        gaps.update(missing_gaps)
     bad=any(item['status']=='mismatch' for item in fields) or any(item['status']=='fail' for item in matrix)
     complete=not gaps and len(fields)>=len(REQUIRED) and matrix and all(item['status']=='match' for item in fields) and all(item['status']=='pass' for item in matrix)
     technical='nonconformant' if bad else 'conformant' if complete else 'unverified'
