@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import hashlib
 import importlib.util
 import json
@@ -10,6 +11,7 @@ import sys
 from pathlib import Path
 
 
+@lru_cache(maxsize=1)
 def _load_suite_builder():
     path = Path(__file__).resolve().with_name('build_suite.py')
     spec = importlib.util.spec_from_file_location('netops_suite_builder', path)
