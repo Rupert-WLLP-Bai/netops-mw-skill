@@ -53,6 +53,8 @@ Authentication, address assignment, forwarding and application behavior remain s
 Read the [access reference](skills/telecom-access-diagnostics/references/access-diagnostics.md),
 [provider contract](skills/netops-incident/references/access-analysis.md), and
 [M3 plan](docs/implementation/carrier-m3-plan.md) for inputs and limitations.
+The [M3 validation record](docs/validation-carrier-m3.md) records 185 full and 106 extracted tests,
+reproducible packages and the [final Sol reviews](docs/review-carrier-m3.md).
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 

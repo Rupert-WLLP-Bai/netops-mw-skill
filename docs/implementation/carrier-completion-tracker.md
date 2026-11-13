@@ -9,7 +9,7 @@ superseded by that explicit authorization. Offline/device/production boundaries 
 | Design PR #4 | Merged, `04587e2` | Historical design basis retained |
 | M1 / #5 / PR #12 | Merged, `b2e7ee5`; source `f244b65`; 141 full and 62 extracted tests; final Sol pass | No implementation work remains |
 | M2 / #6 / PR #13 | Merged, `147c2af`; source `f78c897`; 162 full and 83 extracted tests; final Sol pass | No implementation work remains |
-| M3 / #7 | Initial frozen `5cfc8e2`: 178 full / 99 extracted tests and 12 cases passed; final Sol review requested corrections | Correct optical conflicts, operation-specific direction coverage, counter limitations, strict UTF-8 and PON documentation; freeze, final checks and re-review |
+| M3 / #7 | Verified source `60e7e8b`; 185 full / 106 extracted tests, 12 cases and final Sol R3 Standards/Spec pass | Open separate PR and merge |
 | M4 / #8 | Open | IP bearer/transport domain and at least 12 cases |
 | M5 / #9 | Open | Service acceptance/change review and at least eight cases |
 | M6 / #10 | Open | At least 36 scenarios, independent scoring, hidden/visible isolation and experiment validity |

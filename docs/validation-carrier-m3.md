@@ -1,6 +1,31 @@
-# Carrier M3 initial validation gate
+# Carrier M3 validation record
 
-This report records the initial local engineering verification for issue #7 at source commit `5cfc8e2`. It covers offline access analysis, the standalone `telecom-access-diagnostics` Skill, and suite packaging. Subsequent Sol Standards and Spec reviews found three required corrections and reopened implementation. The figures and package hash below are initial-gate evidence only; final correction-phase verification and review results are pending and must be recorded separately. This report does not establish MobileWork, native Windows, vendor interoperability, live-network, or external-security acceptance.
+This report preserves the M3 validation chronology for issue #7. The authoritative final engineering gate passed at frozen source commit `60e7e8b`; final Sol R3 Standards and Spec reviews both passed with zero remaining findings. See [the final review](review-carrier-m3.md). Earlier gates and their findings are retained below. This report does not establish MobileWork, native Windows, vendor interoperability, live-network, or external-security acceptance.
+
+## Final R3 engineering gate
+
+| Check | Result |
+| --- | --- |
+| Full repository suite | 185 tests passed in 102.539 seconds; no skips |
+| Clean extracted suite | 106 tests passed in 69.161 seconds; no skips |
+| Combined suite archive | 48 files, 477,692 bytes; SHA-256 `d3d9d4e80f1ed5735edba9c2fabb97453ce3955bc9f666b4ace10f86d0342b9a` |
+| Package verification | Two suite builds/manifests identical; all member hashes checked; all six individual Skill archives reproducible |
+| Standalone Internet collector | Unchanged 16-file archive; SHA-256 `f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a` |
+| Managed PCAP regression | Passed for retained capture SHA-256 `92e06382a4f2e12bd569a104ceeecf908b89ccdb801f3dc4ae430b0f1a967f9b`; no live collection |
+
+The final full-suite command was:
+
+```text
+.tools/carrier-m1/schema-venv/bin/python -B -W error::ResourceWarning -m unittest discover -s tests -v
+```
+
+The final package verification command was:
+
+```text
+CARRIER_PHASE=m3 CARRIER_VERIFY_OUT=.tools/carrier-m3/r3-delivery .tools/carrier-m1/schema-venv/bin/python -B .tools/carrier-common/verify_delivery.py
+```
+
+Retained R3 evidence: `.tools/carrier-m3/full-suite-r3.log`, `.tools/carrier-m3/delivery-r3.log`, `.tools/carrier-m3/r3-delivery/delivery-verification.json`, and `.tools/carrier-m3/r3-delivery/extracted-tests.log`. Final independent R3 review reports are retained at `.tools/carrier-m3/sol-standards-r3.md` and `.tools/carrier-m3/sol-spec-r3.md`; both passed at the same frozen source.
 
 ## Initial-gate results
 
@@ -21,7 +46,7 @@ The initial delivery manifest records that all archive member hashes were checke
 
 After the Sol-driven corrections, the next full-suite run executed 183 tests in 102.592 seconds and failed one test: `test_reverse_direction_requires_same_supported_operation_and_scope`. The independent extracted run executed 104 tests in 68.256 seconds and failed the same assertion. Both logs show the expected `missing_reverse_direction` gap remained because the new positive reverse-direction input had `sample_interval_seconds: null`, while its ingress baseline declared 60 seconds. The analyzer correctly treats those fields as incompatible, so the test input did not satisfy its own no-gap expectation.
 
-Terra will correct only that positive test input to use a 60-second interval, preserving the assertion that the compatible pair removes the gap and retaining a separate incompatible-interval negative case. No expected product result is being changed to force a pass. This correction-gate attempt remains failed; rerun results, package verification, and final review are pending. Evidence is retained in `.tools/carrier-m3/full-suite-reviewed.log` and `.tools/carrier-m3/delivery-reviewed.log`.
+Terra then corrected only that positive test input to use a 60-second interval, preserving the assertion that the compatible pair removes the gap and retaining a separate incompatible-interval negative case. No expected product result was changed to force a pass. This correction-gate attempt remains a failed historical run; its subsequent successful pre-R2 rerun is recorded next. Evidence is retained in `.tools/carrier-m3/full-suite-reviewed.log` and `.tools/carrier-m3/delivery-reviewed.log`.
 
 ## Successful pre-R2 gate
 
@@ -37,17 +62,17 @@ After correcting that positive fixture input, the pre-R2 full suite passed 183 t
 
 The corresponding delivery records are `.tools/carrier-m3/delivery-corrected-input.log` and `.tools/carrier-m3/corrected-input-delivery/delivery-verification.json`. This is the successful pre-R2 gate only; the suite hash is not claimed as the final corrected release hash.
 
-## R2 finding pending
+## R2 finding and R3 follow-up
 
-R2 Standards and Spec reviews found one shared P2: enum/VLAN early-return handling bypasses the sample-count eligibility gate. Terra is correcting the implementation with uniform eligibility and public categorical/VLAN controls for zero, null, and positive sample counts. Final tests, package verification, and the R3 re-review have not run and remain pending. The pre-R2 passing results above do not cover this correction.
+R2 Standards and Spec reviews found one shared P2: enum/VLAN early-return handling bypasses the sample-count eligibility gate. Terra corrected the implementation with uniform eligibility and public categorical/VLAN controls for zero, null, and positive sample counts. The final R3 engineering gate above ran after that correction and passed. Both Sol R3 reviews independently repeated the categorical/VLAN controls and closed the remaining finding.
 
 ## Review findings and correction phase
 
-The first Sol review round identified four unique P2 issues and one P3 contract mismatch: contradictory optical observations were omitted instead of retained as counterevidence; unsupported or missing observations could falsely satisfy reverse-direction coverage; strict UTF-8 decoding was missing on the new request path; counter semantics, sample-count, and interval gaps could disappear; and the provider documentation described only up/down/up although down/up/down was also accepted. The sampling-gap issue appeared in both review tracks. The successful pre-R2 gate followed those corrections. The shared R2 P2 described above remains open; R3 review and final verification are pending, and no final pass is claimed.
+The first Sol review round identified four unique P2 issues and one P3 contract mismatch: contradictory optical observations were omitted instead of retained as counterevidence; unsupported or missing observations could falsely satisfy reverse-direction coverage; strict UTF-8 decoding was missing on the new request path; counter semantics, sample-count, and interval gaps could disappear; and the provider documentation described only up/down/up although down/up/down was also accepted. The sampling-gap issue appeared in both review tracks. The successful pre-R2 gate followed those corrections. The remaining R2 P2 was then corrected and included in the final R3 engineering gate. Both final R3 reviews passed with zero remaining findings. Earlier reviews and their reproductions remain retained separately.
 
 ## Delivery helper correction
 
-The first delivery verification failed after the full test suite had ended. Its archive verifier reused a mutable `ZipInfo` object and changed in-memory read offsets; Python's ZIP reader then reported mismatched member names and headers. The helper was corrected to use `copy.copy` for the entry before reading it. No product source changed for this correction. The original failure is retained in `.tools/carrier-m3/delivery.log`; the rerun and passing delivery record are in `.tools/carrier-m3/delivery-fixed-helper.log` and `.tools/carrier-m3/delivery-fixed-helper/`.
+The first delivery verification failed while the full test suite was still running; the parent let that suite finish before correcting the verification helper. Its archive verifier reused a mutable `ZipInfo` object and changed in-memory read offsets; Python's ZIP reader then reported mismatched member names and headers. The helper was corrected to clone the metadata with `copy.copy` before writing each independent archive entry. No product source changed for this correction. The original failure is retained in `.tools/carrier-m3/delivery.log`; the rerun and passing delivery record are in `.tools/carrier-m3/delivery-fixed-helper.log` and `.tools/carrier-m3/delivery-fixed-helper/`.
 
 ## M3 behavior and evidence scope
 
@@ -57,16 +82,18 @@ The provider consumes checked local M2 evidence and M1 topology bindings. It emi
 
 ## Dependencies and platform limits
 
-Packaged M3 provider and Skill code use the Python standard library. Any independent schema-validation dependency was confined to the existing M1 validation environment and is not a packaged runtime dependency. Validation ran locally under Linux on WSL2. The results do not establish native Windows behavior, execution in the actual MobileWork client, compatibility with vendor-specific exports, or external security acceptance. Those user-owned M7 validations remain pending.
+Packaged M3 provider code uses Python 3.10+ and the standard library. Product code and self-authored synthetic inputs use Apache-2.0; no third-party parser or data was copied. External TShark was invoked for the retained capture and was not redistributed. Any independent schema-validation dependency was confined to the existing M1 validation environment and is not a packaged runtime dependency. Validation ran locally under Linux on WSL2. The results do not establish native Windows behavior, execution in the actual MobileWork client, compatibility with vendor-specific exports, or external security acceptance. Those user-owned M7 validations remain pending.
 
 ## Retained evidence
 
 - `.tools/carrier-m3/full-suite.log` — initial repository suite output.
 - `.tools/carrier-m3/skill-validators.json` — all six Skill validation results.
-- `.tools/carrier-m3/delivery-fixed-helper/delivery-verification.json` — final package hashes, member counts, archive checks, extracted-suite result, and managed PCAP record.
-- `.tools/carrier-m3/delivery-fixed-helper/extracted-tests.log` — clean extracted-suite output.
+- `.tools/carrier-m3/delivery-fixed-helper/delivery-verification.json` — initial-gate package hashes, member counts, archive checks, extracted-suite result, and managed PCAP record.
+- `.tools/carrier-m3/delivery-fixed-helper/extracted-tests.log` — initial clean extracted-suite output.
 - `.tools/carrier-m3/delivery.log` — preserved initial delivery-helper failure.
 - `.tools/carrier-m3/delivery-fixed-helper.log` — corrected delivery rerun output.
+- `.tools/carrier-m3/full-suite-r3.log` and `.tools/carrier-m3/delivery-r3.log` — final R3 engineering verification commands and output.
+- `.tools/carrier-m3/r3-delivery/delivery-verification.json` and `.tools/carrier-m3/r3-delivery/extracted-tests.log` — final R3 package verification and extracted-suite output.
 - `.tools/carrier-m3/full-suite-reviewed.log` and `.tools/carrier-m3/delivery-reviewed.log` — retained failed correction-gate outputs.
 - `.tools/carrier-m3/full-suite-corrected-input.log` and `.tools/carrier-m3/delivery-corrected-input.log` — passing pre-R2 rerun after the interval fixture correction.
 - `.tools/carrier-m3/corrected-input-delivery/delivery-verification.json` and `.tools/carrier-m3/corrected-input-delivery/extracted-tests.log` — pre-R2 package verification and extracted-suite output.
