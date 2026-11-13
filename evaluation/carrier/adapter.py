@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
 import os
 import selectors
@@ -68,7 +69,9 @@ def _run_bounded(command: list[str], timeout: float):
     selector = selectors.DefaultSelector()
     streams = {'stdout': process.stdout, 'stderr': process.stderr}
     for name, stream in streams.items():
-        os.set_blocking(stream.fileno(), False)
+        descriptor = stream.fileno()
+        flags = fcntl.fcntl(descriptor, fcntl.F_GETFL)
+        fcntl.fcntl(descriptor, fcntl.F_SETFL, flags | os.O_NONBLOCK)
         selector.register(stream, selectors.EVENT_READ, name)
     chunks = {'stdout': bytearray(), 'stderr': bytearray()}
     total = 0
