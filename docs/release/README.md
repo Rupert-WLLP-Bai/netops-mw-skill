@@ -15,7 +15,7 @@ Use a fresh output directory when preparing the self-authored validation inputs.
 
 ## Run the three incident examples
 
-After extracting the handoff and the standalone `netops-incident` 0.2.0 package, place both directories side by side. From their parent directory, create a separate work folder and resolve each portable request. The materializer writes only the request file; preserve the command output in the work folder as the sample result.
+Extract the standalone `netops-incident` 0.2.0 ZIP into a `netops-incident/` directory at the handoff root, beside `validation-inputs/`, `guide/`, and `packages/`. Change to the handoff root and run the commands below. They create a separate `user-work/` folder for resolved requests and captured sample output; the materializer writes only the request file.
 
 ```sh
 mkdir -p user-work
