@@ -253,6 +253,30 @@ class AccessTests(unittest.TestCase):
         compatible = self.analyze(self.add_observations(request,'reverse-good',[row]))
         self.assertNotIn('missing_reverse_direction',compatible['gaps'])
 
+    def test_categorical_reverse_coverage_requires_positive_sample_count(self):
+        request = self.base(metric='application_state',value='fail')
+        row = dict(metric='application_state',value='pass',unit=None,direction='egress',denominator=None,sample_interval_seconds=60,sample_count=None,counter_semantics='gauge',reset_state='none',event_time='2026-01-01T00:08:00Z',object_id='raw-id')
+        for index,count in enumerate((None,0,0.0,1,1.0)):
+            with self.subTest(count=count):
+                row['sample_count'] = count
+                result = self.analyze(self.add_observations(request,'enum-count-'+str(index),[row]))
+                if count is None or count == 0:
+                    self.assertIn('missing_reverse_direction',result['gaps'])
+                else:
+                    self.assertNotIn('missing_reverse_direction',result['gaps'])
+
+    def test_vlan_reverse_coverage_requires_positive_sample_count(self):
+        request = self.base(metric='service_vlan_actual',value='vlan-100')
+        row = dict(metric='service_vlan_actual',value='vlan-100',unit=None,direction='egress',denominator=None,sample_interval_seconds=60,sample_count=None,counter_semantics='gauge',reset_state='none',event_time='2026-01-01T00:08:00Z',object_id='raw-id')
+        for index,count in enumerate((None,0,0.0,1,1.0)):
+            with self.subTest(count=count):
+                row['sample_count'] = count
+                result = self.analyze(self.add_observations(request,'vlan-count-'+str(index),[row]))
+                if count is None or count == 0:
+                    self.assertIn('missing_reverse_direction',result['gaps'])
+                else:
+                    self.assertNotIn('missing_reverse_direction',result['gaps'])
+
     def test_counter_missingness_and_known_gauge_remain_distinct(self):
         request = self.base(metric='fec_count',value=100)
         base_request = copy.deepcopy(request)

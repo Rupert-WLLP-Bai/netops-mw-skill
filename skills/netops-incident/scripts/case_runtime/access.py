@@ -215,10 +215,15 @@ def _same_event(a, b):
 def _coverage_eligible(item):
     row = item['row']; metric, value = row['metric'], row['value']
     if row['direction'] not in ('ingress','egress') or value is None or value == 'unknown': return False
+    count = row['sample_count']
+    try:
+        if isinstance(count,bool) or not isinstance(count,(int,float)) or not math.isfinite(count) or count <= 0: return False
+    except OverflowError:
+        return False
     if metric in ENUMS: return value in ENUMS[metric] and value != 'unknown'
     if metric in ('service_vlan_expected','service_vlan_actual'): return isinstance(value,str)
     if metric not in ('optical_rx_power','optical_tx_power','fec_count','crc_count'): return False
-    if not isinstance(value,(int,float)) or isinstance(value,bool) or not row['sample_count'] or row['unit'] in (None,'unknown'): return False
+    if not isinstance(value,(int,float)) or isinstance(value,bool) or row['unit'] in (None,'unknown'): return False
     if row['reset_state'] != 'none' or row['counter_semantics'] == 'unknown': return False
     if metric in ('optical_rx_power','optical_tx_power') and row['counter_semantics'] != 'gauge': return False
     if metric in ('fec_count','crc_count') and row['counter_semantics'] != 'gauge' and (row['denominator'] in (None,'0','unknown') or row['sample_interval_seconds'] is None): return False
