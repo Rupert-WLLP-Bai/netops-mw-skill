@@ -92,6 +92,8 @@ def strict_json(data, reject_duplicates=False):
             result[key] = value
         return result
     try:
+        if reject_duplicates and isinstance(data, (bytes, bytearray)):
+            data = data.decode('utf-8')
         return json.loads(data, object_pairs_hook=pairs if reject_duplicates else None, parse_constant=lambda value: (_ for _ in ()).throw(CaseError('non-finite JSON number')))
     except (UnicodeError, ValueError, RecursionError) as exc:
         raise CaseError('invalid JSON') from exc

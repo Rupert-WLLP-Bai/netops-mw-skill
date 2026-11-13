@@ -199,6 +199,112 @@ class AccessTests(unittest.TestCase):
         request['optical_profiles'] = [dict(profile_id='source-alias',device_model='model1',source='source1',valid_from='2026-01-01T00:00:00Z',valid_until='2026-01-01T00:09:00Z',direction='ingress',unit='dBm',limit_evidence=dict(run_id='opt1',evidence_id='ev-000000000003'),device_model_evidence=dict(run_id='opt1',evidence_id='ev-000000000004'))]
         return request
 
+    def add_observations(self, request, name, rows, alias='source-alias'):
+        metrics = sorted({row['metric'] for row in rows})
+        enum_values = {metric: sorted({row['value'] for row in rows if row['metric'] == metric and isinstance(row['value'],str)}) for metric in metrics}
+        enum_values = {metric: values for metric, values in enum_values.items() if values}
+        run = self.create_run(name,dict(format='telemetry-json-v1',version=1,records=rows),'telemetry-json-v1',{'raw-id':alias},metrics,enum_values)
+        result = copy.deepcopy(request); result['runs'].append(run)
+        template = request['bindings'][0]
+        result['bindings'].extend(dict(template,source_native_id=alias,record=dict(run_id=name,evidence_id='ev-'+format(index,'012x'))) for index in range(1,len(rows)+1))
+        return result
+
+    def test_conflicting_optical_samples_are_cited_and_do_not_establish_fault(self):
+        request = self.optical_request()
+        row = dict(metric='optical_rx_power',value=-18.0,unit='dBm',direction='ingress',denominator=None,sample_interval_seconds=None,sample_count=1,counter_semantics='gauge',reset_state='none',event_time='2026-01-01T00:08:00Z',object_id='raw-id')
+        result = self.analyze(self.add_observations(request,'normal2',[row]))
+        self.assertEqual(result['status'],'insufficient_evidence')
+        self.assertIn('conflicting_observations',result['gaps'])
+        self.assertNotIn('optical_degradation',{item['code'] for item in result['findings']})
+        conflict = next(item for item in result['findings'] if item['code'] == 'optical_conflict')
+        self.assertIn(dict(run_id='normal2',evidence_id='ev-000000000001'),conflict['counterevidence'])
+        row['direction'] = 'egress'
+        result = self.analyze(self.add_observations(request,'normal3',[row]))
+        self.assertIn('optical_degradation',{item['code'] for item in result['findings']})
+        self.assertNotIn('optical_conflict',{item['code'] for item in result['findings']})
+        row.update(direction='ingress',event_time='2026-01-01T00:07:30Z')
+        result = self.analyze(self.add_observations(request,'normal4',[row]))
+        self.assertIn('optical_degradation',{item['code'] for item in result['findings']})
+        self.assertNotIn('optical_conflict',{item['code'] for item in result['findings']})
+        row.update(event_time='2026-01-01T00:08:00Z',sample_count=2)
+        result = self.analyze(self.add_observations(request,'normal5',[row]))
+        self.assertIn('optical_degradation',{item['code'] for item in result['findings']})
+        self.assertNotIn('optical_conflict',{item['code'] for item in result['findings']})
+
+    def test_reverse_direction_requires_same_supported_operation_and_scope(self):
+        request = self.base(metric='application_state',value='fail')
+        row = dict(metric='unsupported_metric',value=None,unit=None,direction='egress',denominator=None,sample_interval_seconds=None,sample_count=None,counter_semantics='unknown',reset_state='unknown',event_time='2026-01-01T00:08:00Z',object_id='raw-id')
+        unsupported = self.analyze(self.add_observations(request,'reverse-unknown',[row]))
+        self.assertIn('missing_reverse_direction',unsupported['gaps'])
+        row.update(metric='wifi_state',value='pass',counter_semantics='gauge',reset_state='none',sample_count=1)
+        unrelated = self.analyze(self.add_observations(request,'reverse-unrelated',[row]))
+        self.assertIn('missing_reverse_direction',unrelated['gaps'])
+        row['metric'] = 'application_state'
+        wrong_scope = self.analyze(self.add_observations(request,'reverse-other',[row],alias='other-alias'))
+        self.assertIn('missing_reverse_direction',wrong_scope['gaps'])
+        row['event_time'] = '2026-01-01T00:07:00Z'
+        wrong_window = self.analyze(self.add_observations(request,'reverse-time',[row]))
+        self.assertIn('missing_reverse_direction',wrong_window['gaps'])
+        row['event_time'] = '2026-01-01T00:08:00Z'
+        compatible = self.analyze(self.add_observations(request,'reverse-good',[row]))
+        self.assertNotIn('missing_reverse_direction',compatible['gaps'])
+
+    def test_counter_missingness_and_known_gauge_remain_distinct(self):
+        request = self.base(metric='fec_count',value=100)
+        base_request = copy.deepcopy(request)
+        common = dict(metric='fec_count',unit=None,direction='ingress',denominator=None,sample_interval_seconds=None,sample_count=None,counter_semantics='unknown',reset_state='unknown',object_id='raw-id')
+        rows = [dict(common,value=100,event_time='2026-01-01T00:06:00Z'),dict(common,value=120,event_time='2026-01-01T00:08:00Z',sample_count=0)]
+        request = self.add_observations(request,'counter-unknown',rows)
+        request['runs'] = [run for run in request['runs'] if run['run_id'] != 'run1']
+        request['bindings'] = [binding for binding in request['bindings'] if binding['record']['run_id'] != 'run1']
+        result = self.analyze(request)
+        expected = {'unknown_counter_semantics','missing_sample_count','missing_sample_interval','missing_counter_unit','missing_counter_denominator','unknown_counter_reset_state'}
+        self.assertTrue(expected.issubset(result['gaps']))
+        self.assertNotIn('counter_increase',{item['code'] for item in result['findings']})
+        review_rows = [dict(row,counter_semantics='unknown',reset_state='none',sample_count=1,unit='packets',denominator='packets') for row in rows]
+        review_case = self.add_observations(base_request,'counter-review',review_rows)
+        review_case['runs'] = [run for run in review_case['runs'] if run['run_id'] != 'run1']
+        review_case['bindings'] = [binding for binding in review_case['bindings'] if binding['record']['run_id'] != 'run1']
+        review_result = self.analyze(review_case)
+        self.assertTrue({'unknown_counter_semantics','missing_sample_interval'}.issubset(review_result['gaps']))
+        self.assertNotIn('counter_increase',{item['code'] for item in review_result['findings']})
+        rows = [dict(row,counter_semantics='gauge',reset_state='none',sample_count=1,unit='packets') for row in rows]
+        gauge_case = self.add_observations(base_request,'counter-gauge',rows)
+        gauge_case['runs'] = [run for run in gauge_case['runs'] if run['run_id'] != 'run1']
+        gauge_case['bindings'] = [binding for binding in gauge_case['bindings'] if binding['record']['run_id'] != 'run1']
+        gauge = self.analyze(gauge_case)
+        self.assertIn('counter_semantics_not_cumulative',gauge['gaps'])
+        self.assertNotIn('unknown_counter_semantics',gauge['gaps'])
+        self.assertNotIn('missing_sample_interval',gauge['gaps'])
+        self.assertNotIn('missing_counter_denominator',gauge['gaps'])
+        wrapped_rows = [dict(row,counter_semantics='cumulative',reset_state='wrap',sample_count=1,unit='packets',denominator='packets',sample_interval_seconds=60) for row in rows]
+        wrapped_case = self.add_observations(base_request,'counter-wrap',wrapped_rows)
+        wrapped_case['runs'] = [run for run in wrapped_case['runs'] if run['run_id'] != 'run1']
+        wrapped_case['bindings'] = [binding for binding in wrapped_case['bindings'] if binding['record']['run_id'] != 'run1']
+        wrapped = self.analyze(wrapped_case)
+        self.assertIn('counter_reset',wrapped['gaps'])
+        self.assertNotIn('counter_increase',{item['code'] for item in wrapped['findings']})
+
+    def test_utf16_and_utf32_request_are_rejected(self):
+        request = self.base(); path = self.root/'encoded-request.json'
+        for encoding in ('utf-16','utf-32'):
+            path.write_bytes(json.dumps(request).encode(encoding))
+            result = subprocess.run([sys.executable,'-B',str(ANALYZER),'--input',str(path)],capture_output=True,text=True)
+            self.assertNotEqual(result.returncode,0)
+            self.assertEqual(result.stdout,'')
+        self.assertEqual(self.analyze(request)['status'],'fault_observed')
+
+    def test_both_ordered_pon_flap_sequences_and_nonflap(self):
+        request = self.base()
+        common = dict(metric='pon_session_state',unit=None,direction='ingress',denominator=None,sample_interval_seconds=None,sample_count=1,counter_semantics='gauge',reset_state='none',object_id='raw-id')
+        for suffix, sequence, expected in [('down-up-down',['down','up','down'],True),('up-down-up',['up','down','up'],True),('no-flap',['up','up','down'],False)]:
+            rows = [dict(common,value=value,event_time='2026-01-01T00:0'+str(index+5)+':00Z') for index,value in enumerate(sequence)]
+            case = self.add_observations(request,suffix,rows)
+            case['runs'] = [run for run in case['runs'] if run['run_id'] != 'run1']
+            case['bindings'] = [binding for binding in case['bindings'] if binding['record']['run_id'] != 'run1']
+            result = self.analyze(case)
+            self.assertEqual('pon_flap' in {item['code'] for item in result['findings']},expected)
+
     def test_optical_profile_provenance_and_model_are_required(self):
         request = self.optical_request()
         result = self.analyze(request)

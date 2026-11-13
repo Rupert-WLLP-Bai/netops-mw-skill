@@ -174,8 +174,8 @@ def _qualified(key):
 def _same(left, right):
     a, b = left['row'], right['row']
     if left['resource'] != right['resource'] or (left['carrier']['source'],left['carrier']['source_native_id']) != (right['carrier']['source'],right['carrier']['source_native_id']): return False
-    if a['direction'] != b['direction'] or a['direction'] not in ('ingress','egress','bidirectional') or a['unit'] is None or a['unit'] != b['unit']: return False
-    if a['denominator'] != b['denominator'] or a['denominator'] == '0' or a['sample_interval_seconds'] != b['sample_interval_seconds']: return False
+    if a['direction'] != b['direction'] or a['direction'] not in ('ingress','egress','bidirectional') or a['unit'] in (None,'unknown') or a['unit'] != b['unit']: return False
+    if a['denominator'] != b['denominator'] or a['denominator'] in ('0','unknown') or a['sample_interval_seconds'] != b['sample_interval_seconds']: return False
     if a['counter_semantics'] != b['counter_semantics']: return False
     if a['counter_semantics'] == 'cumulative' and (a['denominator'] is None or a['sample_interval_seconds'] is None): return False
     return True
@@ -210,6 +210,24 @@ def _same_event(a, b):
         return math.isfinite(uncertainty) and abs((timestamp(left['event_time']) - timestamp(right['event_time'])).total_seconds()) <= uncertainty
     except (ValueError, OverflowError):
         return False
+
+
+def _coverage_eligible(item):
+    row = item['row']; metric, value = row['metric'], row['value']
+    if row['direction'] not in ('ingress','egress') or value is None or value == 'unknown': return False
+    if metric in ENUMS: return value in ENUMS[metric] and value != 'unknown'
+    if metric in ('service_vlan_expected','service_vlan_actual'): return isinstance(value,str)
+    if metric not in ('optical_rx_power','optical_tx_power','fec_count','crc_count'): return False
+    if not isinstance(value,(int,float)) or isinstance(value,bool) or not row['sample_count'] or row['unit'] in (None,'unknown'): return False
+    if row['reset_state'] != 'none' or row['counter_semantics'] == 'unknown': return False
+    if metric in ('optical_rx_power','optical_tx_power') and row['counter_semantics'] != 'gauge': return False
+    if metric in ('fec_count','crc_count') and row['counter_semantics'] != 'gauge' and (row['denominator'] in (None,'0','unknown') or row['sample_interval_seconds'] is None): return False
+    return True
+
+
+def _reverse_compatible(left, right):
+    a,b = left['row'],right['row']
+    return (a['direction'],b['direction']) in (('ingress','egress'),('egress','ingress')) and a['metric'] == b['metric'] and left['resource'] == right['resource'] and (left['carrier']['source'],left['carrier']['source_native_id']) == (right['carrier']['source'],right['carrier']['source_native_id']) and all(a[key] == b[key] for key in ('unit','denominator','sample_interval_seconds','counter_semantics','reset_state')) and _same_event(left,right)
 
 
 def _optical_pairs(usable, profiles, evidence, runs, request, reference, start, end):
@@ -272,8 +290,8 @@ def analyze(request):
         entry = dict(item, key=key, topology_key=_ref(binding['topology_evidence']), resource=binding['resource_id'])
         usable[key] = entry
     observations = list(usable.values())
-    directions = {item['row']['direction'] for item in observations if item['row']['direction'] in ('ingress','egress')}
-    if directions != {'ingress','egress'}: gaps.add('missing_reverse_direction')
+    coverage = [item for item in observations if _coverage_eligible(item)]
+    if not coverage or any(not any(_reverse_compatible(item, other) for other in coverage) for item in coverage): gaps.add('missing_reverse_direction')
     findings = []
     def add(finding):
         if len(findings) >= 512: raise CaseError('finding budget exceeded')
@@ -290,17 +308,38 @@ def analyze(request):
         ('forwarding_state','fail'):('forwarding_failure','access','The source reported forwarding failure.'),
         ('application_state','fail'):('application_failure','destination_application','The source reported an application failure.')}
     opposites = {'los_state':'clear','lof_state':'clear','pppoe_auth':'accept','ipoe_auth':'accept','aaa_result':'accept','dhcp_lease':'assigned','dhcp_pool':'available','wifi_state':'pass','forwarding_state':'pass','application_state':'pass'}
+    optical_observations = [item for item in observations if item['row']['metric'] in ('optical_rx_power','optical_tx_power') and isinstance(item['row']['value'],(int,float)) and not isinstance(item['row']['value'],bool) and item['row']['counter_semantics'] == 'gauge' and item['row']['reset_state'] == 'none' and item['row']['sample_count'] and item['row']['unit'] is not None]
+    conflicted = set()
+    for index, first in enumerate(optical_observations):
+        for second in optical_observations[index+1:]:
+            if first['row']['metric'] == second['row']['metric'] and first['row']['value'] != second['row']['value'] and first['row']['sample_count'] == second['row']['sample_count'] and _same(first,second) and _same_event(first,second):
+                conflicted.update((first['key'],second['key']))
+                gaps.add('conflicting_observations')
+                conflict = _finding('optical_conflict','access',[first],'Comparable optical observations disagree at the same time.',[second])
+                conflict['limitations'].append('The disputed readings do not establish optical degradation.')
+                add(conflict)
     optics = _optical_pairs(usable, request['optical_profiles'], evidence, runs, request, reference, start, end)
     if any(item['row']['metric'] in ('optical_rx_power','optical_tx_power') for item in observations) and not optics: gaps.add('missing_comparable_optical_profile')
     normal_optics = []
     for first, second, limit, model, threshold in optics:
+        if first['key'] in conflicted or second['key'] in conflicted: continue
         if first['row']['value'] >= threshold and second['row']['value'] >= threshold:
             normal_optics.append((first,second,limit,model))
         if second['row']['value'] < first['row']['value'] and second['row']['value'] < threshold:
             add(_finding('optical_degradation','access',[first,second,limit,model],'Comparable optical readings declined below the cited profile limit.'))
     for item in observations:
         row = item['row']; metric, value = row['metric'], row['value']
-        if metric in ('fec_count','crc_count') and row['reset_state'] != 'none': gaps.add('counter_reset')
+        if metric in ('fec_count','crc_count'):
+            semantics = row['counter_semantics']
+            if semantics == 'unknown': gaps.add('unknown_counter_semantics')
+            elif semantics != 'cumulative': gaps.add('counter_semantics_not_cumulative')
+            if not row['sample_count']: gaps.add('missing_sample_count')
+            if row['unit'] in (None,'unknown'): gaps.add('missing_counter_unit')
+            if semantics != 'gauge':
+                if row['sample_interval_seconds'] is None: gaps.add('missing_sample_interval')
+                if row['denominator'] in (None,'0','unknown'): gaps.add('missing_counter_denominator')
+            if row['reset_state'] in ('reset','wrap'): gaps.add('counter_reset')
+            elif row['reset_state'] == 'unknown': gaps.add('unknown_counter_reset_state')
         if row['direction'] not in ('ingress','egress','bidirectional'):
             if metric != 'device_model': gaps.add('missing_direction')
             continue
@@ -348,7 +387,7 @@ def analyze(request):
         key = json.dumps(finding,sort_keys=True,separators=(',',':'))
         if key not in seen: seen.add(key); unique.append(finding)
     if len(unique) > 512: raise CaseError('finding budget exceeded')
-    has_fault_observation = any(finding['code'] != 'counter_increase' for finding in unique)
+    has_fault_observation = any(finding['code'] not in ('counter_increase','optical_conflict') for finding in unique)
     return dict(schema_version=1, status='fault_observed' if has_fault_observation else 'insufficient_evidence', service=request['service'], findings=unique, gaps=sorted(gaps), next_checks=['Obtain scoped, current and comparable evidence for unresolved gaps.'] if gaps else [])
 
 
