@@ -42,7 +42,7 @@ def reopen_case(case_dir, data):
         return {'reason': data['reason'], 'prior_episode_id': previous}
     return transact(case_dir, data, 'reopen', change)
 
-def preflight(state, data):
+def preflight(state, data, conn):
     if state['status'] in TERMINAL:
         raise CaseError('case is terminal')
     if any(op['status'] == 'in_flight' for op in state['operations']):
@@ -64,6 +64,13 @@ def preflight(state, data):
     decision = next((d for d in state['decisions'] if d['event_id'] == data.get('decision_event_id')), None)
     if not decision or not decision.get('next_test') or decision.get('scope') != state['scope']:
         raise CaseError('current authorized decision required')
+    # Older operations retain their original decision in the durable event payload.
+    import json
+    attempted = (json.loads(row[0]).get('decision_event_id') for row in conn.execute("SELECT payload FROM events WHERE kind='run'"))
+    if decision['event_id'] in attempted:
+        raise CaseError('decision test already attempted; record a new decision')
+    if decision is not state['decisions'][-1]:
+        raise CaseError('latest decision required')
     mode = data.get('mode')
     if mode == 'live':
         target = nonempty(data.get('target'), 'target')
@@ -154,14 +161,14 @@ def run_collector(case_dir, data):
     spawned = []
     operation_id = uuid.uuid4().hex
     def reserve(state, conn):
-        provider, args, requests = preflight(state, data)
+        provider, args, requests = preflight(state, data, conn)
         state['budget']['rounds'] -= 1
         state['budget']['active_seconds'] -= 25
         state['budget']['http_requests'] -= requests
         if data['purpose'] == 'verification':
             for key, amount in (('verification_reserve_rounds', 1), ('verification_reserve_seconds', 25), ('verification_reserve_requests', requests)):
                 state['budget'][key] = max(0, state['budget'][key] - amount)
-        state['operations'].append({'operation_id': operation_id, 'event_id': data['event_id'], 'status': 'in_flight', 'purpose': data['purpose'], 'mode': data['mode'], 'reserved_rounds': 1, 'reserved_seconds': 25, 'reserved_requests': requests, 'accepted_run_id': None, 'stopped_reason': None})
+        state['operations'].append({'operation_id': operation_id, 'event_id': data['event_id'], 'decision_event_id': data['decision_event_id'], 'status': 'in_flight', 'purpose': data['purpose'], 'mode': data['mode'], 'reserved_rounds': 1, 'reserved_seconds': 25, 'reserved_requests': requests, 'accepted_run_id': None, 'stopped_reason': None})
         spawned.append((provider, args))
         return {'operation_id': operation_id, 'reservation': {'rounds': 1, 'seconds': 25, 'http_requests': requests}}
     snapshot = transact(case_dir, data, 'run', reserve)

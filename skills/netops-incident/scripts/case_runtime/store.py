@@ -46,7 +46,13 @@ def nonempty(value, label):
     return value
 
 def number(value, label, minimum=None, integer=False):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or (integer and not isinstance(value, int)) or (minimum is not None and value < minimum):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or (integer and not isinstance(value, int)):
+        raise CaseError('invalid ' + label)
+    try:
+        finite = math.isfinite(value)
+    except OverflowError:
+        finite = False
+    if not finite or (minimum is not None and value < minimum):
         raise CaseError('invalid ' + label)
     return value
 
@@ -67,8 +73,8 @@ def validate_policy(scope, plan):
     for key in ('window_seconds', 'cadence_seconds', 'maximum_gap_seconds', 'freshness_seconds'):
         if plan[key] is not None:
             number(plan[key], key, 0)
-            if plan[key] == 0:
-                raise CaseError('duration must be positive')
+            if not 0.000001 <= plan[key] <= 3153600000:
+                raise CaseError('duration must be between one microsecond and 100 years')
     if plan['minimum_checks'] is not None:
         number(plan['minimum_checks'], 'minimum_checks', 1, integer=True)
     if plan['minimum_coverage'] is not None:

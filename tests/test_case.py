@@ -14,7 +14,7 @@ import time
 import unittest
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import closing, redirect_stderr, redirect_stdout
 from unittest import mock
 
 CLI = Path(__file__).resolve().parents[1] / 'skills/netops-incident/scripts/case.py'
@@ -46,6 +46,107 @@ class CaseTests(unittest.TestCase):
 
     def event(self, event_id, revision):
         return dict(event_id=event_id, actor='operator', occurred_at='2026-01-01T00:01:00Z', expected_revision=revision)
+
+    def test_reused_decision_cannot_spawn_another_run(self):
+        provider, marker, event = self.prepare_run()
+        provider.write_text('from pathlib import Path\nimport sys\np=Path(%r)\np.write_text((p.read_text() if p.exists() else "") + "x")\nprint("internet-access-triage 0.1.0")\n' % str(marker))
+        self.call('run', event)
+        state = self.call('get')
+        retry = dict(event, event_id='run2', expected_revision=state['revision'], out=str(self.root/'out2'))
+        self.call('run', retry, ok=False)
+        self.assertEqual(marker.read_text(), 'xx')
+        self.assertEqual(self.call('get'), state)
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'FIFO requires POSIX')
+    def test_import_fifo_fails_promptly_and_releases_transaction(self):
+        before = self.call('create', self.create)
+        run, hashes = self.sample_run('run1')
+        (run/'manifest.json').unlink()
+        os.mkfifo(run/'manifest.json')
+        event = dict(self.event('import1', 1), run_dir=str(run), run_id=run.name, expected_summary_hashes=hashes)
+        path = self.root/'fifo-input.json'; path.write_text(json.dumps(event))
+        proc = subprocess.Popen([sys.executable, '-B', str(CLI), 'import-run', '--case', str(self.case), '--input', str(path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            _, stderr = proc.communicate(timeout=2)
+            self.assertNotEqual(proc.returncode, 0, stderr)
+        finally:
+            if proc.poll() is None:
+                proc.kill(); proc.communicate()
+        self.assertEqual(self.call('get'), before)
+        with closing(sqlite3.connect(self.case/'case.sqlite3', timeout=.2)) as db:
+            db.execute('BEGIN IMMEDIATE')
+            db.rollback()
+        self.assertEqual(list((self.case/'imports').iterdir()), [])
+
+    def test_unrepresentable_timing_policy_rejected(self):
+        for key in ('window_seconds', 'cadence_seconds', 'maximum_gap_seconds', 'freshness_seconds'):
+            for value in (1e-20, 1e100, 10**400):
+                result = self.call('create', dict(self.create, verification_plan=dict(PLAN, **{key:value})), ok=False)
+                self.assertNotIn('Traceback', result.stderr)
+                self.assertFalse(self.case.exists())
+
+    def test_later_action_invalidates_prior_window(self):
+        sys.path.insert(0, str(CLI.parent))
+        from case_runtime import recovery
+        state = self.start_window(self.ready_case())
+        window = state['verification_windows'][-1]
+        start = datetime.fromisoformat(window['window_start'].replace('Z', '+00:00'))
+        check = self.check_data(state, 'pass', 1)
+        observed = start + timedelta(microseconds=100)
+        check['observed_at'] = check['collected_at'] = recovery.stamp(observed)
+        with mock.patch.object(recovery, 'clock', return_value=observed):
+            state = recovery.record_verification(self.case, check)
+        decision = dict(self.event('decision-after-window', state['revision']), observations=['symptom'], hypotheses=['cause'], support=[], counterevidence=[], confidence='low', limitations=[], next_test='inspect new condition', expected_support='indicator', expected_counterevidence='absence', changed_condition='new condition')
+        state = self.call('decision', decision)
+        state = self.call('transition', dict(self.event('investigate-again', state['revision']), status='investigating', reason='new condition'))
+        state = self.call('transition', dict(self.event('await-again', state['revision']), status='awaiting_action', reason='owner action'))
+        action_time = start + timedelta(seconds=2)
+        action = dict(self.event('action-later', state['revision']), owner='operator', intended_change='change proxy', affected_scope=state['scope'], preconditions='approved', authorization_ref='approval', expected_check='submit order', rollback_trigger='failure', rollback_owner='operator', correlation_key='later-change', action_time=recovery.stamp(action_time), outcome='completed', evidence=[])
+        with mock.patch.object(recovery, 'clock', return_value=action_time):
+            state = recovery.record_action(self.case, action)
+        state = self.call('transition', dict(self.event('verify-again', state['revision']), status='verifying', reason='check action'))
+        state = self.call('transition', dict(self.event('stabilize-again', state['revision']), status='stabilizing', reason='observe'))
+        with mock.patch.object(recovery, 'clock', return_value=start + timedelta(seconds=3)):
+            with self.assertRaises(recovery.CaseError):
+                recovery.transition_case(self.case, dict(self.event('closed-after-action', state['revision']), status='closed_recovered', reason='done'))
+        self.assertEqual(self.call('get'), state)
+        later = start + timedelta(seconds=3)
+        with mock.patch.object(recovery, 'clock', return_value=later):
+            state = recovery.record_verification(self.case, dict(self.event('new-window', state['revision']), kind='start', reason='after action'))
+        check = self.check_data(state, 'pass', 1, 'post-action-check')
+        observed = later + timedelta(milliseconds=100)
+        check['observed_at'] = check['collected_at'] = recovery.stamp(observed)
+        with mock.patch.object(recovery, 'clock', return_value=observed):
+            state = recovery.record_verification(self.case, check)
+        with mock.patch.object(recovery, 'clock', return_value=later + timedelta(seconds=1)):
+            state = recovery.transition_case(self.case, dict(self.event('valid-close', state['revision']), status='closed_recovered', reason='done'))
+        self.assertEqual(state['status'], 'closed_recovered')
+        self.assertEqual(len(state['verification_windows']), 2)
+        self.assertEqual(len(state['checks']), 2)
+
+    def test_invalid_stored_window_blocks_closure_and_export_remains_available(self):
+        state = self.start_window(self.ready_case())
+        state = self.call('transition', dict(self.event('stabilize-invalid', state['revision']), status='stabilizing', reason='observe'))
+        with closing(sqlite3.connect(self.case/'case.sqlite3')) as db:
+            state['verification_windows'][-1]['window_end'] = state['verification_windows'][-1]['window_start']
+            db.execute('UPDATE state SET snapshot=? WHERE id=1', (json.dumps(state),))
+            db.commit()
+        result = self.call('transition', dict(self.event('invalid-close', state['revision']), status='closed_recovered', reason='done'), ok=False)
+        self.assertIn('invalid verification window interval', result.stderr)
+        report = subprocess.run([sys.executable, '-B', str(CLI), 'export', '--case', str(self.case)], capture_output=True, text=True)
+        self.assertEqual(report.returncode, 0, report.stderr)
+        self.assertIn('invalid verification window interval', report.stdout)
+        self.assertEqual(self.call('get'), state)
+
+    def test_window_overflow_fails_without_writes(self):
+        sys.path.insert(0, str(CLI.parent))
+        from case_runtime import recovery
+        state = self.ready_case()
+        state = self.call('transition', dict(self.event('verify-overflow', state['revision']), status='verifying', reason='observe'))
+        with mock.patch.object(recovery, 'clock', return_value=datetime.max.replace(tzinfo=timezone.utc)):
+            with self.assertRaises(recovery.CaseError):
+                recovery.record_verification(self.case, dict(self.event('start-overflow', state['revision']), kind='start', reason='observe'))
+        self.assertEqual(self.call('get'), state)
 
     def test_create_get_and_permissions(self):
         created = self.call('create', self.create)
@@ -221,6 +322,11 @@ class CaseTests(unittest.TestCase):
             self.assertEqual(state['operations'][0]['status'], 'reconciled_unknown')
             self.assertEqual(state['budget']['rounds'], 2)
             retry['expected_revision'] = state['revision']
+            self.call('run', retry, ok=False)
+            self.assertEqual(self.call('get')['budget']['rounds'], 2)
+            decision = dict(self.event('decision2', state['revision']), observations=['provider ended'], hypotheses=['cause'], support=[], counterevidence=[], confidence='low', limitations=[], next_test='compare capture', expected_support='indicator', expected_counterevidence='absence', changed_condition='provider outcome reconciled')
+            state = self.call('decision', decision)
+            retry.update(expected_revision=state['revision'], decision_event_id='decision2')
             self.call('run', retry)
             self.assertEqual(self.call('get')['budget']['rounds'], 1)
         finally:

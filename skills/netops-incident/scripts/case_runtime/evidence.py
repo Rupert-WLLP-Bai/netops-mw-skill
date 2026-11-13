@@ -58,7 +58,7 @@ def read_confined(root: Path, relative: str, max_bytes: int) -> bytes:
         for part in p.parts[:-1]:
             fd = os.open(part, flags | getattr(os, 'O_DIRECTORY', 0), dir_fd=fd)
             fds.append(fd)
-        fd = os.open(p.parts[-1], flags, dir_fd=fd)
+        fd = os.open(p.parts[-1], flags | os.O_NONBLOCK, dir_fd=fd)
         fds.append(fd)
         before = os.fstat(fd)
         if not stat.S_ISREG(before.st_mode) or before.st_size > max_bytes:

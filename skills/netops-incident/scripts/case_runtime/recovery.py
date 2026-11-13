@@ -69,7 +69,12 @@ def record_verification(case_dir, data):
         if data.get('kind') == 'start':
             reason = nonempty(data.get('reason'), 'reason')
             start = clock()
-            end = start + timedelta(seconds=state['verification_plan']['window_seconds'])
+            try:
+                end = start + timedelta(seconds=state['verification_plan']['window_seconds'])
+            except (OverflowError, TypeError, ValueError) as exc:
+                raise CaseError('invalid verification window duration') from exc
+            if end <= start:
+                raise CaseError('invalid verification window duration')
             window = {'window_id': uuid.uuid4().hex, 'episode_id': state['episode_id'], 'policy_revision': state['policy_revision'], 'policy_hash': state['policy_hash'], 'window_start': stamp(start), 'window_end': stamp(end), 'reason': reason}
             state['verification_windows'].append(window)
             return {'window': window}
@@ -151,6 +156,18 @@ def recovery_gaps(state, now=None, case_dir=None):
     if window['episode_id'] != state['episode_id'] or window['policy_revision'] != state['policy_revision'] or window['policy_hash'] != state['policy_hash']:
         return ['verification policy or episode changed']
     start, end = timestamp(window['window_start']), timestamp(window['window_end'])
+    if end <= start:
+        return ['invalid verification window interval']
+    # Event revisions establish ordering even for legacy records without new fields.
+    window_revision = next((e['revision'] for e in state['events'] if e.get('window', {}).get('window_id') == window['window_id']), None)
+    relevant_actions = [a for a in state['actions'] if a.get('episode_id') == state['episode_id']]
+    action_ids = {a['event_id'] for a in relevant_actions}
+    action_keys = {a['correlation_key'] for a in state['actions']}
+    barriers = [e['revision'] for e in state['events'] if e.get('event_id') in action_ids or (e.get('action_reconciliation') or e.get('reconciliation') or {}).get('correlation_key') in action_keys]
+    if barriers and (window_revision is None or window_revision <= max(barriers)):
+        return ['verification window must follow latest action or reconciliation']
+    if any(start < timestamp(a['action_time']) for a in relevant_actions):
+        return ['verification window must follow latest action or reconciliation']
     plan = state['verification_plan']
     checks = [c for c in state['checks'] if c['episode_id'] == state['episode_id'] and c['policy_revision'] == state['policy_revision'] and c['policy_hash'] == state['policy_hash'] and c['scope'] == state['scope'] and c['window_id'] == window['window_id']]
     gaps = []
@@ -176,7 +193,7 @@ def recovery_gaps(state, now=None, case_dir=None):
     boundaries = [start] + passes + [end]
     if any((b-a).total_seconds() > plan['maximum_gap_seconds'] for a,b in zip(boundaries, boundaries[1:])):
         gaps.append('observation gap exceeds maximum')
-    coverage = sum(max(0, (min(passes[i+1] if i+1 < len(passes) else end, point + timedelta(seconds=plan['cadence_seconds']), end) - point).total_seconds()) for i, point in enumerate(passes)) / (end-start).total_seconds()
+    coverage = sum(max(0, min(((passes[i+1] if i+1 < len(passes) else end) - point).total_seconds(), plan['cadence_seconds'], (end - point).total_seconds())) for i, point in enumerate(passes)) / (end-start).total_seconds()
     if coverage < plan['minimum_coverage']:
         gaps.append('insufficient observation coverage')
     return gaps
