@@ -67,6 +67,8 @@ remain separate. Queue assessment needs sourced measurement windows, aggregation
 MTU assessment preserves the IP-packet size basis and supplied overhead.
 See the [M4 plan](docs/implementation/carrier-m4-plan.md) and
 [milestone tracker](docs/implementation/carrier-completion-tracker.md) for implementation and validation status.
+The [M4 validation record](docs/validation-carrier-m4.md) records 210 full and 131 extracted tests,
+seven independent packages and [final Sol review passes](docs/review-carrier-m4.md).
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 

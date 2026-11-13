@@ -1,8 +1,9 @@
 # Carrier M4 validation
 
-This record covers issue #8 from merged M3 `4087d4e`. Initial frozen source `b9abb33` completed
-implementation before any tests, validators, builds or runtime checks. The corrected final gate and
-independent Sol review remain pending; no release/client acceptance is claimed.
+This record covers issue #8 from merged M3 `4087d4e`. The final R3 engineering gate passed on frozen
+source `45a0743`. Both final Sol R3 reviews passed with zero remaining findings; see
+[the separate review axes](review-carrier-m4.md). No MobileWork, native Windows, vendor or
+external-security acceptance is claimed.
 
 ## Initial final-gate results
 
@@ -100,4 +101,37 @@ The c7625bf gate is a successful pre-review result only; it does not cover these
 corrections are in progress. Renewed full/extracted checks, validators, package/provenance/managed-PCAP
 verification, and independent Sol review remain pending. Earlier failed gate records are preserved.
 Actual M7 MobileWork, native Windows, and external-security validation remains user-deferred.
+
+## R3 final engineering gate and independent reviews passed
+
+After the R2 corrections, the final R3 gate passed on frozen source `45a0743`. The full suite ran 210
+tests in 155.627 seconds with no failures or skips. The extracted delivery suite ran 131 tests in
+120.791 seconds with no failures or skips. Seven Skill validators passed; Python 3.10 grammar checks
+and all 30 fixture provenance hashes passed.
+
+The reproducible suite archive contains 55 files, is 557675 bytes, and has SHA-256
+`87a53b62eef075c5057bc25539fbb8b4e0e726dd07b6617ffb9c09188d380f83`. Both suite builds and their
+manifests were byte-identical, and all per-file hashes were checked. All seven individual Skill
+archives and manifests were produced in duplicate builds. The original 16-file
+`internet-access-triage` archive remains SHA-256
+`f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`. The managed PCAP compatibility
+check passed with its prior input hash `92e06382a4f2e12bd569a104ceeecf908b89ccdb801f3dc4ae430b0f1a967f9b`;
+the delivery record reports `insufficient_evidence` and confirms no live network collection.
+
+Authoritative R3 evidence is in `.tools/carrier-m4/full-suite-r3.log`,
+`.tools/carrier-m4/delivery-r3.log`, `.tools/carrier-m4/auxiliary-r3.log`, and
+`.tools/carrier-m4/skill-validators-r3.json`. Duplicate suite builds, the extracted-test log,
+delivery verification, and seven individual Skill build archives/manifests are under
+`.tools/carrier-m4/r3-delivery/` (`build-a/`, `build-b/`, `individual-a/`, and `individual-b/`).
+
+The schema-venv quick-validator attempt first stopped because that environment lacked the `yaml`
+module. Only the auxiliary validator was rerun, using `/usr/bin/python3` with PyYAML 6.0.3; the
+recorded seven validators, Python 3.10 grammar check, and 30 fixture hashes passed. This was an
+environment-only validation adjustment; no runtime or product files changed for it. The R3 engineering
+gate is complete. Both independent Sol R3 reviews passed at the same frozen source, with zero remaining
+findings per axis. Reports and focused public CLI evidence are retained under
+`.tools/carrier-m4/sol-standards-r3.md`, `sol-spec-r3.md`, `standards-probes-r3/`, and
+`sol-spec-r3-*`; the reports are reproduced separately in the linked final review. Earlier failed-gate
+and review correction records above are preserved. Actual M7 MobileWork, native Windows, and external-security
+validation remains user-deferred.
 
