@@ -295,7 +295,7 @@ def _source_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def _import_source(repo: Path, parent_root: Path, source: dict[str, Any], source_config: dict[str, Any],
-                   input_data: Any, attempt: Path, source_index: int) -> tuple[Path, dict[str, str], str]:
+                   input_data: Any, attempt: Path, source_index: int) -> tuple[Path, dict[str, str], str, dict[str, Any]]:
     run_key = source["run_key"]
     stem = f"s{source_index:02d}"
     source_dir = attempt / f"{stem}-input"
@@ -329,7 +329,15 @@ def _import_source(repo: Path, parent_root: Path, source: dict[str, Any], source
         raise CorpusError("logical row keys do not match emitted M2 evidence count")
     keys = row_keys or [f"#{index}" for index in range(1, len(evidence) + 1)]
     ids = {key: row["id"] for key, row in zip(keys, evidence)}
-    return out_dir, ids, source_config["run_id"]
+    values = {}
+    for row in evidence:
+        observation = row.get("observation")
+        record = observation.get("record") if isinstance(observation, dict) else None
+        if isinstance(record, dict) and "value" in record:
+            # Criteria reference emitted M2 evidence IDs, so keep this private
+            # lookup keyed by the importer result rather than the authoring row key.
+            values[row["id"]] = record["value"]
+    return out_dir, ids, source_config["run_id"], values
 
 
 def _serialize_source(input_data: Any) -> str:
@@ -381,8 +389,11 @@ def _materialize_job(repo: Path, job: dict[str, Any], task_dir: Path, job_number
         old_to_new[source_config["run_id"]] = run_ids[source["run_key"]]
     # Staged M5 templates are imported in declared order, resolving IDs only after actual M2 output.
     identifiers: dict[str, str] = {}
+    if parent == "m5":
+        _seed_m5_protocol_ids(request, identifiers)
     row_ids: dict[str, dict[str, str]] = {}
     imported: dict[str, tuple[Path, str]] = {}
+    row_values: dict[str, dict[str, Any]] = {}
     attempt = task_dir / f"private-{job_number:02d}"
     attempt.mkdir(parents=True)
     for source_index, source in enumerate(needed_sources, 1):
@@ -396,8 +407,9 @@ def _materialize_job(repo: Path, job: dict[str, Any], task_dir: Path, job_number
         config["run_id"] = run_ids[source["run_key"]]
         config["actor"] = "operator"
         config["authorization_ref"] = "operator-supplied"
-        out_dir, rows, emitted_run_id = _import_source(repo, parent_root, source, config, input_data, attempt, source_index)
+        out_dir, rows, emitted_run_id, values = _import_source(repo, parent_root, source, config, input_data, attempt, source_index)
         row_ids[source["run_key"]] = rows
+        row_values[source["run_key"]] = values
         imported[source["run_key"]] = (out_dir, emitted_run_id)
 
     request = _resolve_tokens(request, row_ids, run_ids)
@@ -435,7 +447,11 @@ def _materialize_job(repo: Path, job: dict[str, Any], task_dir: Path, job_number
     base_oracle = next((item for item in parent_oracle.get("cases", []) if item.get("case_id") == parent_case_id), None)
     if base_oracle is None:
         raise CorpusError("parent fixture oracle has no matching case")
-    oracle_job = _adapt_oracle({**job, "_job_number": job_number, "oracle": enrichment}, base_oracle, row_ids, run_ids)
+    baseline_oracle = next((item for item in parent_oracle.get("cases", [])
+                            if item.get("case_id") == "case-009"), None) if parent == "m5" else None
+    oracle_job = _adapt_oracle({**job, "_job_number": job_number, "oracle": enrichment}, base_oracle,
+                               row_ids, run_ids, request=request, baseline=baseline_oracle,
+                               row_values=row_values)
     visible_refs = []
     for run_key, evidence_map in row_ids.items():
         for evidence_id in evidence_map.values():
@@ -444,19 +460,42 @@ def _materialize_job(repo: Path, job: dict[str, Any], task_dir: Path, job_number
                                   "visible_refs": visible_refs}
 
 
+def _seed_m5_protocol_ids(request: dict[str, Any], identifiers: dict[str, str]) -> None:
+    """Keep source roles used by M5's request protocol stable across remapping."""
+    semantic_ids = {
+        f"{item['field']}_{item['target']}" for item in request.get("fields", [])
+        if isinstance(item, dict) and isinstance(item.get("field"), str) and isinstance(item.get("target"), str)
+    }
+    semantic_ids.update(
+        item["criterion_id"] for item in request.get("criteria", [])
+        if isinstance(item, dict) and isinstance(item.get("criterion_id"), str)
+    )
+    change = request.get("change_review")
+    if isinstance(change, dict):
+        semantic_ids.update(
+            item["check_id"] for item in change.get("checks", [])
+            if isinstance(item, dict) and isinstance(item.get("check_id"), str)
+        )
+    for value in sorted(semantic_ids):
+        identifiers[value] = value
+
+
 def _adapt_oracle(job: dict[str, Any], source: dict[str, Any], row_ids: dict[str, dict[str, str]],
-                  run_ids: dict[str, str]) -> dict[str, Any]:
+                  run_ids: dict[str, str], *, request: dict[str, Any],
+                  baseline: dict[str, Any] | None = None,
+                  row_values: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     """Adapt independently authored expectations plus explicit M6 claim enrichments."""
     enrich = job.get("oracle", {})
     provider = job["provider"]
     if provider == "service_review":
         claims = []
-        for item in source.get("required_field_results", []):
+        field_results, test_results = _complete_m5_results(source, baseline, request, row_values or {}, run_ids)
+        for item in field_results:
             claims.append({"kind": "field_result", "code": None, "status": item["status"],
                            "scope": {"field": item["field"], "target": item["target"]}, "layer": None,
                            "fault_class": False, "support_sets": _m5_support_sets(item, job, row_ids),
                            "counter_refs": []})
-        for item in source.get("required_test_results", []):
+        for item in test_results:
             claims.append({"kind": "test_result", "code": None, "status": item["status"],
                            "scope": {"criterion_id": item["criterion_id"], "absolute_direction": item["absolute_direction"]},
                            "layer": None, "fault_class": False, "support_sets": _m5_support_sets(item, job, row_ids),
@@ -479,6 +518,70 @@ def _adapt_oracle(job: dict[str, Any], source: dict[str, Any], row_ids: dict[str
             "required_gaps": enrich.get("required_gaps", []), "claims": claims,
             "prohibited_codes": enrich.get("prohibited_codes", source.get("prohibited_codes", [])),
             "forbid_causal_links": True}
+
+
+def _complete_m5_results(source: dict[str, Any], baseline: dict[str, Any] | None,
+                         request: dict[str, Any], row_values: dict[str, dict[str, Any]],
+                         run_ids: dict[str, str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Complete expected result rows from the independently authored M5 baseline and request inventory."""
+    field_scope = {(item.get("field"), item.get("target")) for item in request.get("fields", [])
+                   if isinstance(item, dict)}
+    criteria = {item.get("criterion_id") for item in request.get("criteria", [])
+                if isinstance(item, dict) and isinstance(item.get("criterion_id"), str)}
+    reverse_runs = {opaque: run_key for run_key, opaque in run_ids.items()}
+    required_test_scopes = set()
+    calibration_required = set()
+    for criterion in request.get("criteria", []):
+        if not isinstance(criterion, dict):
+            continue
+        reference = criterion.get("direction_evidence")
+        run_key = reverse_runs.get(reference.get("run_id")) if isinstance(reference, dict) else None
+        value = row_values.get(run_key, {}).get(reference.get("evidence_id")) if run_key and isinstance(reference, dict) else None
+        directions = ("A_to_B", "B_to_A") if value == "both" else (value,) if value in {"A_to_B", "B_to_A"} else ()
+        required_test_scopes.update((criterion["criterion_id"], direction) for direction in directions)
+        calibration_ref = criterion.get("calibration_policy_evidence")
+        calibration_run = reverse_runs.get(calibration_ref.get("run_id")) if isinstance(calibration_ref, dict) else None
+        policy = (row_values.get(calibration_run, {}).get(calibration_ref.get("evidence_id"))
+                  if calibration_run and isinstance(calibration_ref, dict) else None)
+        if policy == "required":
+            calibration_required.add(criterion["criterion_id"])
+    supplied_mapping_directions = {item.get("absolute_direction") for item in request.get("direction_mappings", [])
+                                   if isinstance(item, dict)}
+    has_measurements = bool(request.get("test_results"))
+
+    fields = [copy.deepcopy(item) for item in (baseline or {}).get("required_field_results", [])
+              if (item.get("field"), item.get("target")) in field_scope]
+    test_rows = []
+    baseline_tests = (baseline or {}).get("required_test_results", [])
+    for item in baseline_tests:
+        key = (item.get("criterion_id"), item.get("absolute_direction"))
+        if key in required_test_scopes or (not required_test_scopes and key[0] in criteria):
+            row = copy.deepcopy(item)
+            # A source-declared calibration gap blocks criteria whose independent
+            # criterion row explicitly requires calibration.
+            if ("missing_calibration" in source.get("required_gaps", [])
+                    and key[0] in calibration_required):
+                row["status"] = "unverified"
+            elif key[1] not in supplied_mapping_directions or not has_measurements:
+                row["status"] = "unverified"
+            test_rows.append(row)
+
+    def overlay(defaults: list[dict[str, Any]], explicit: list[dict[str, Any]], keys: tuple[str, ...]) -> list[dict[str, Any]]:
+        result = defaults
+        positions = {tuple(item.get(key) for key in keys): index for index, item in enumerate(result)}
+        for item in explicit:
+            identity = tuple(item.get(key) for key in keys)
+            if identity in positions:
+                result[positions[identity]] = copy.deepcopy(item)
+            else:
+                positions[identity] = len(result)
+                result.append(copy.deepcopy(item))
+        return result
+
+    fields = overlay(fields, source.get("required_field_results", []), ("field", "target"))
+    test_rows = overlay(test_rows, source.get("required_test_results", []),
+                        ("criterion_id", "absolute_direction"))
+    return fields, test_rows
 
 
 def _m5_support_sets(item: dict[str, Any], job: dict[str, Any], row_ids: dict[str, dict[str, str]]) -> list[list[dict[str, str]]]:

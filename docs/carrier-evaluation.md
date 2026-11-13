@@ -20,8 +20,9 @@ Choose fresh output directories. The tool materializes checked M2 bundles, copie
 code, restricts the adapter and its descendants, invokes the actual provider CLI and scores its
 bounded answer. It never supplies raw/private importer artifacts, authoring labels or truth to the
 adapter. A normal run reads the task and visible evidence; it cannot read checkout or oracle
-file contents. Directory names and filesystem metadata remain visible: the existing provider's
-confined reader opens each ancestor directory from `/` to check a supplied file path safely.
+file contents. The confined reader walks ancestor directories with Linux `O_PATH` handles;
+private directory listing is not granted. Filesystem metadata and other side channels are
+outside the confidentiality claim.
 The parent retains audit output under `<output-dir>/<case-id>/report.json`.
 
 The current bootstrap targets x86-64 Linux with Landlock ABI 3 through 11 and seccomp-BPF.
@@ -82,8 +83,8 @@ experiments; they remain unexecuted until their actual evidence is recorded.
 
 The trusted evaluator and OS enforce a narrow local worker boundary. Only copied code, permitted
 inputs, necessary runtime files and a dedicated writable temporary directory are granted. The
-policy permits directory reads for that ancestor traversal and grants file-content reads only
-to the selected inputs/code/runtime files. The null device is writable for subprocess input.
+policy grants file-content and directory reads only to the selected inputs/code/runtime trees.
+The null device is writable for subprocess input.
 The policy is inherited into actual provider spawn/exec workers; the parent bounds output/time and
 cleans the process group. Final validation must include a working provider control and attempted
 oracle/sibling access from direct and spawned code. See [the validation record](validation-carrier-m6.md)

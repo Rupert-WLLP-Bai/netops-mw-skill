@@ -205,11 +205,6 @@ def _install_landlock(read_roots: list[Path], write_root: Path,
     except (OSError, RuntimeError, ValueError):
         raise RuntimeError('landlock_setup_failed') from None
     try:
-        # Existing provider read_confined opens '/' and each ancestor directory
-        # before reaching a visible bundle. READ_DIR alone permits name listing
-        # throughout the filesystem; READ_FILE remains default-denied except on
-        # the explicit copied-code, visible, and runtime grants below.
-        _add_path_rule(ruleset_fd, Path('/'), _READ_DIR)
         for root in read_roots:
             _add_path_rule(ruleset_fd, root, _READ_ONLY_ACCESS)
         for path in runtime:

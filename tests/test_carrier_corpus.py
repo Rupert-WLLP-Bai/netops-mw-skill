@@ -7,7 +7,14 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-from evaluation.carrier.corpus import CorpusError, _remap, _serialize_source, load_catalog, materialize_case
+from evaluation.carrier.corpus import (
+    CorpusError,
+    _remap,
+    _seed_m5_protocol_ids,
+    _serialize_source,
+    load_catalog,
+    materialize_case,
+)
 from evaluation.carrier.contract import validate_oracle
 
 
@@ -93,6 +100,46 @@ class CarrierCorpusTests(unittest.TestCase):
         self.assertEqual(configured_model, remapped_profile["device_model"])
         self.assertNotEqual(configured_model, "synthetic-model-m3")
 
+    def test_m5_protocol_identifiers_survive_opaque_source_remapping(self):
+        request = {
+            "fields": [{"field": "circuit", "target": "service"},
+                       {"field": "vlan", "target": "endpoint_a"}],
+            "criteria": [{"criterion_id": "criterion-throughput"}],
+            "change_review": {"checks": [{"check_id": "precheck-throughput"}]},
+        }
+        identifiers = {}
+        _seed_m5_protocol_ids(request, identifiers)
+        source_config = {"pseudonyms": {
+            "fixture-exp-circuit_service": "circuit_service",
+            "fixture-criterion-throughput": "criterion-throughput",
+        }}
+        remapped_config = _remap(source_config, identifiers, {}, opaque_prefix="q01")
+        self.assertEqual(identifiers["circuit_service"], "circuit_service")
+        self.assertEqual(identifiers["vlan_endpoint_a"], "vlan_endpoint_a")
+        self.assertEqual(identifiers["criterion-throughput"], "criterion-throughput")
+        self.assertEqual(identifiers["precheck-throughput"], "precheck-throughput")
+        self.assertEqual(set(remapped_config["pseudonyms"].values()),
+                         {"circuit_service", "criterion-throughput"})
+        self.assertTrue(all(key.startswith("q01") for key in remapped_config["pseudonyms"]))
+
+    def test_m5_complete_matrix_uses_calibration_and_direction_source_facts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            calibration_gap = materialize_case(ROOT, "case-016", Path(temporary) / "calibration")
+            calibration_claims = [claim for claim in calibration_gap["oracle"]["jobs"][0]["claims"]
+                                  if claim["kind"] == "test_result"]
+            self.assertEqual(len(calibration_claims), 10)
+            self.assertTrue(all(claim["status"] == "unverified" for claim in calibration_claims))
+
+            missing_reverse_map = materialize_case(ROOT, "case-006", Path(temporary) / "direction")
+            request = json.loads(missing_reverse_map["task_path"].read_text(encoding="utf-8"))["jobs"][0]["request"]
+            direction_claims = [claim for claim in missing_reverse_map["oracle"]["jobs"][0]["claims"]
+                                if claim["kind"] == "test_result"]
+            self.assertEqual(len(direction_claims), len(request["test_results"]))
+            self.assertEqual({claim["status"] for claim in direction_claims
+                              if claim["scope"]["absolute_direction"] == "A_to_B"}, {"pass"})
+            self.assertEqual({claim["status"] for claim in direction_claims
+                              if claim["scope"]["absolute_direction"] == "B_to_A"}, {"unverified"})
+
     def test_m5_acceptance_materialization_resolves_staged_rows_and_splits_telemetry_lines(self):
         source = json.loads((ROOT / "tests/fixtures/carrier-m5/sources/actual-tests/input.json").read_text(encoding="utf-8"))
         lines = _serialize_source(source).splitlines()
@@ -107,6 +154,18 @@ class CarrierCorpusTests(unittest.TestCase):
             self.assertNotIn("$ID:", serialized)
             self.assertNotIn("$RUN_ID:", serialized)
             self.assertGreaterEqual(len(request["runs"]), 5)
+            oracle_job = result["oracle"]["jobs"][0]
+            field_claims = [claim for claim in oracle_job["claims"] if claim["kind"] == "field_result"]
+            test_claims = [claim for claim in oracle_job["claims"] if claim["kind"] == "test_result"]
+            self.assertEqual(len(field_claims), len(request["fields"]))
+            self.assertEqual(len(test_claims), len(request["test_results"]))
+            self.assertEqual(
+                {(claim["scope"]["field"], claim["scope"]["target"]) for claim in field_claims},
+                {(item["field"], item["target"]) for item in request["fields"]},
+            )
+            self.assertTrue(all(claim["support_sets"] for claim in field_claims))
+            self.assertTrue(all(claim["support_sets"] for claim in test_claims))
+            validate_oracle(result["oracle"], task)
             for run in request["runs"]:
                 bundle = Path(run["run_dir"])
                 self.assertTrue((bundle / "carrier-visible.json").is_file())

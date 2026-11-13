@@ -49,9 +49,12 @@ findings and withholds a causal join. Matching aliases or adjacent observations 
 ## Execution boundary
 
 Linux Landlock, `no_new_privs` and architecture-aware seccomp restrict a fresh bootstrap before the
-adapter or provider imports. Read grants cover copied code, permitted evidence and necessary runtime
-files; writes cover only a dedicated temporary directory. Parent oracle/private/repository paths
-must not be covered. Filesystem mutation, metadata mutation, process-memory/descriptor acquisition,
+adapter or provider imports. File-content read grants cover copied code, permitted evidence and
+necessary runtime files; writes cover a dedicated temporary directory and the null device. Parent
+oracle/private/repository file contents and directory listings must not be covered. A compatible
+shared-reader correction uses Linux `O_PATH` directory handles for ancestor traversal, preserving
+read-only final-file access and symlink rejection without a global directory-listing grant.
+Filesystem mutation, metadata mutation, process-memory/descriptor acquisition,
 network sockets, io_uring and alternate-ABI paths are addressed by the explicit implemented policy.
 The actual provider's spawn/exec worker must inherit it. Missing support fails closed rather than
 running an unisolated scored trial. The parent bounds time/output and reaps the process group.
@@ -79,8 +82,9 @@ Luna authors the implementation/tests; Sol independently reviews Standards and S
 fixtures, tests and contracts freeze before tests, validators, builds, provider execution or host
 isolation probes. The final gate covers focused controls, all 36 restricted trials and deterministic
 replay, leakage/mutation/inheritance controls, full regression, explicit package membership and
-standalone extraction. Existing package runtime is unchanged; preserve and cite exact-byte M5
-extracted regression evidence where applicable rather than inventing a new run.
+standalone extraction. The small shared-reader correction requires fresh runtime and extracted
+regression. The original Internet collector remains byte-identical; previous M5 validation remains
+historical evidence rather than a new M6 result.
 
 Record actual commands, failed/interrupted checks, source hashes, environment and limitations in
 [the validation record](../validation-carrier-m6.md). Create and merge a separate verified-head PR

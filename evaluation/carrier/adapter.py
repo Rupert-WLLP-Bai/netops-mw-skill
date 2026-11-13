@@ -9,6 +9,7 @@ import selectors
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -63,6 +64,7 @@ def _validate_request_paths(value, visible_root: Path) -> None:
 
 
 def _run_bounded(command: list[str], timeout: float):
+    deadline = time.monotonic() + timeout
     process = subprocess.Popen(command, stdin=subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                close_fds=True, bufsize=0)
@@ -77,13 +79,11 @@ def _run_bounded(command: list[str], timeout: float):
     total = 0
     overflow = False
     try:
-        import time
-        deadline = time.monotonic() + timeout
         while selector.get_map():
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                overflow = False
-                process.kill()
+                if process.poll() is None:
+                    process.kill()
                 process.wait()
                 return 'timeout', b'', b''
             for key, _ in selector.select(min(remaining, .1)):
@@ -97,13 +97,22 @@ def _run_bounded(command: list[str], timeout: float):
                 total += len(data)
                 if total > _PROVIDER_OUTPUT_LIMIT:
                     overflow = True
-                    process.kill()
+                    if process.poll() is None:
+                        process.kill()
                     process.wait()
                     break
                 chunks[key.data].extend(data)
             if overflow:
                 break
-        process.wait()
+        try:
+            process.wait(timeout=max(0.0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+            return 'timeout', b'', b''
+        if overflow:
+            return 'invalid_output', b'', bytes(chunks['stderr'])
         return ('process_error' if process.returncode else 'complete',
                 bytes(chunks['stdout']), bytes(chunks['stderr']))
     finally:

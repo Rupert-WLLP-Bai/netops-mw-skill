@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import stat
+import sys
 import tempfile
 from pathlib import Path, PurePosixPath
 from .store import CaseError, TERMINAL, nonempty, timestamp, token, transact
@@ -45,21 +46,31 @@ def read_confined(root: Path, relative: str, max_bytes: int) -> bytes:
     root = Path(root)
     if root.is_symlink() or not root.is_dir():
         raise CaseError('unsafe source directory')
-    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+    # Linux O_PATH directory descriptors allow safe *at() traversal without
+    # granting directory enumeration. Keep the prior read-only behavior where
+    # O_PATH is unavailable.
+    path_flag = getattr(os, 'O_PATH', os.O_RDONLY) if sys.platform.startswith('linux') else os.O_RDONLY
+    directory_flags = path_flag | getattr(os, 'O_NOFOLLOW', 0)
     fds = []
     try:
         if not hasattr(os, 'O_NOFOLLOW'):
             raise CaseError('safe no-symlink reads are unavailable')
+        def open_directory(name, dir_fd=None):
+            flags = directory_flags | getattr(os, 'O_DIRECTORY', 0)
+            fd = os.open(name, flags, dir_fd=dir_fd) if dir_fd is not None else os.open(name, flags)
+            fds.append(fd)
+            if not stat.S_ISDIR(os.fstat(fd).st_mode):
+                raise CaseError('unsafe source directory')
+            return fd
+
         absolute = Path(os.path.abspath(root))
-        fd = os.open(str(absolute.anchor), flags | getattr(os, 'O_DIRECTORY', 0))
-        fds.append(fd)
+        fd = open_directory(str(absolute.anchor))
         for part in absolute.parts[1:]:
-            fd = os.open(part, flags | getattr(os, 'O_DIRECTORY', 0), dir_fd=fd)
-            fds.append(fd)
+            fd = open_directory(part, dir_fd=fd)
         for part in p.parts[:-1]:
-            fd = os.open(part, flags | getattr(os, 'O_DIRECTORY', 0), dir_fd=fd)
-            fds.append(fd)
-        fd = os.open(p.parts[-1], flags | os.O_NONBLOCK, dir_fd=fd)
+            fd = open_directory(part, dir_fd=fd)
+        fd = os.open(p.parts[-1], os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) |
+                     os.O_NONBLOCK, dir_fd=fd)
         fds.append(fd)
         before = os.fstat(fd)
         if not stat.S_ISREG(before.st_mode) or before.st_size > max_bytes:

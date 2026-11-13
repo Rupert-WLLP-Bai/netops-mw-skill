@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from evaluation.carrier import isolation
+from evaluation.carrier import adapter, isolation
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -58,6 +58,7 @@ class CarrierIsolationTests(unittest.TestCase):
                 ' finally: os.close(fd)\n'
                 'def attempts(oracle,sibling,control):\n'
                 ' return {"read":denied(lambda:open(oracle).read()),'
+                '"list":denied(lambda:os.listdir(os.path.dirname(oracle))),'
                 '"truncate":denied(lambda:os.open(oracle,os.O_WRONLY|os.O_TRUNC)),'
                 '"unlink":denied(lambda:os.unlink(sibling)),'
                 '"chmod":denied(lambda:os.chmod(oracle,0o600)),'
@@ -87,11 +88,11 @@ class CarrierIsolationTests(unittest.TestCase):
             self.assertEqual(result['status'], 'ok', result['reason'])
             report = json.loads(result['stdout'])
             self.assertEqual(report['direct'],
-                             {'read': True, 'truncate': True, 'unlink': True, 'chmod': True,
+                             {'read': True, 'list': True, 'truncate': True, 'unlink': True, 'chmod': True,
                               'socket': True, 'io_uring': True,
                               'ioctl_fioclex,ioctl_other': [True, True]})
             self.assertEqual(report['child'],
-                             {'read': True, 'truncate': True, 'unlink': True, 'chmod': True,
+                             {'read': True, 'list': True, 'truncate': True, 'unlink': True, 'chmod': True,
                               'socket': True, 'io_uring': True,
                               'ioctl_fioclex,ioctl_other': [True, True]})
             for path, expected in before.items():
@@ -148,6 +149,18 @@ class CarrierIsolationTests(unittest.TestCase):
             writable.mkdir()
             with self.assertRaises(ValueError):
                 isolation._policy([broad], writable, [blocked])
+
+    def test_provider_runner_bounds_pipe_eof_wait_and_classifies_overflow(self):
+        closed_pipes = [sys.executable, '-B', '-I', '-S', '-c',
+                        'import os,time; os.close(1); os.close(2); time.sleep(5)']
+        status, _, _ = adapter._run_bounded(closed_pipes, .2)
+        self.assertEqual(status, 'timeout')
+
+        noisy_provider = [sys.executable, '-B', '-I', '-S', '-c',
+                          'print("x" * 256)']
+        with mock.patch.object(adapter, '_PROVIDER_OUTPUT_LIMIT', 64):
+            status, _, _ = adapter._run_bounded(noisy_provider, 5)
+        self.assertEqual(status, 'invalid_output')
 
     def test_timeout_and_output_cap_kill_the_whole_trial_group(self):
         import time
