@@ -112,3 +112,19 @@ focused controls. Source references include
 These corrections are in progress. They do not convert the third gate into a pass; all previous
 failure records remain, and renewed full/extracted gates, delivery verification, and independent
 review are still pending.
+
+## Focused criterion-output gate: one assertion remains
+
+At frozen source `af2e00f`, the focused service test run exercised 10 test methods in 51.416 seconds
+and had one failure, in `case-007`. Its oracle expected an explicit `unverified` test-matrix row for
+the required throughput criterion whose method evidence is missing. The provider returned the
+overall criterion as unverified but omitted that matrix row. The remaining focused public/golden
+outcomes passed; this focused result is not a full-suite, extracted-suite, delivery, or final M5 pass.
+
+Terra is correcting matrix construction so incomplete required criteria emit explicit unverified
+rows using only independently checked, current, scoped, conflict-free direction evidence. A proven
+`both` direction yields separate A-to-B and B-to-A rows; a proven single direction yields that row;
+missing, unsupported, or conflicted direction is null. Only validated criterion refs are included;
+unknown measurement, measurement point, or method remains null with `missing_criterion_evidence`.
+Oracle expectations are preserved. Evidence for this focused run is
+`.tools/carrier-m5/service-check-r4.log`. No renewed full/extracted gate or final pass is claimed.

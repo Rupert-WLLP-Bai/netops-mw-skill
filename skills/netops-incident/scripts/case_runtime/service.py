@@ -17,6 +17,7 @@ FIELD={'field','target','required_evidence','applicability_evidence','inapplicab
 CRITERION={'criterion_id','source','source_native_id','capability_evidence','applicability_evidence','inapplicability_reason_evidence','metric_evidence','aggregation_evidence','comparator_evidence','threshold_evidence','method_evidence','minimum_samples_evidence','direction_evidence','calibration_policy_evidence','window_start_evidence','window_end_evidence'}
 DIRECTION={'point_id','site_id','source','source_native_id','relative_direction','absolute_direction','mapping_evidence','valid_from','valid_until','authority'}
 RESULT={'criterion_id','measurement_evidence','method_evidence','aggregation_evidence','window_start_evidence','window_end_evidence','instrument_evidence','calibration_evidence','calibration_start_evidence','calibration_end_evidence'}
+CRITERION_ROLES={'capability_evidence':'criterion_capability','metric_evidence':'criterion_metric','aggregation_evidence':'criterion_aggregation','comparator_evidence':'criterion_comparator','threshold_evidence':'criterion_threshold','method_evidence':'criterion_method','minimum_samples_evidence':'criterion_min_samples','direction_evidence':'criterion_direction','calibration_policy_evidence':'criterion_calibration_policy','window_start_evidence':'criterion_window_start','window_end_evidence':'criterion_window_end'}
 AUTHORITY={'source','source_native_id','current_evidence','valid_from_evidence','valid_until_evidence'}
 EQUIVALENCE={'relation','expected_run','expected_id','actual_run','actual_id'}
 CHANGE={'phase','scope_evidence','impact_evidence','planned_start_evidence','planned_end_evidence','approval_evidence','approval_reference_evidence','rollback_trigger_evidence','rollback_owner_evidence','residual_risk_evidence','check_inventory','checks'}
@@ -282,8 +283,7 @@ def _mapped_direction(item,request,context,actual):
 
 def _criterion_data(entry,static,authorities):
     identity=(entry['source'],entry['source_native_id'])
-    names={'capability_evidence':'criterion_capability','metric_evidence':'criterion_metric','aggregation_evidence':'criterion_aggregation','comparator_evidence':'criterion_comparator','threshold_evidence':'criterion_threshold','method_evidence':'criterion_method','minimum_samples_evidence':'criterion_min_samples','direction_evidence':'criterion_direction','calibration_policy_evidence':'criterion_calibration_policy','window_start_evidence':'criterion_window_start','window_end_evidence':'criterion_window_end'}
-    result={key:_static_read(entry[key],static,authorities,metric,identity) for key,metric in names.items()}
+    result={key:_static_read(entry[key],static,authorities,metric,identity) for key,metric in CRITERION_ROLES.items()}
     if any(value is None for value in result.values()) or entry['applicability_evidence'] is not None or entry['inapplicability_reason_evidence'] is not None: return None
     if any(_opposing(item,static,True) for item in result.values()): return None
     values={key:item['row']['value'] for key,item in result.items()}
@@ -305,10 +305,27 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
     matrix=[]; capability={name:set() for name in CAPABILITIES}
     for criterion in entries:
         cid=criterion['criterion_id']; data=_criterion_data(criterion,static,authorities)
-        if inventory is None or cid not in inventory or criterion['source_native_id']!=cid or criterion['source']!=inventory[cid]['carrier']['source']:
+        linked=inventory is not None and cid in inventory and criterion['source_native_id']==cid and criterion['source']==inventory[cid]['carrier']['source']
+        if not linked:
             data=None
         if data is None:
-            gaps.add('missing_criterion_evidence'); continue
+            local=['missing_criterion_evidence']; refs=[]; opposing=[]; direction=None
+            if linked:
+                refs.append(_qualified(inventory[cid]['key']))
+                identity=(criterion['source'],criterion['source_native_id'])
+                for key,metric in CRITERION_ROLES.items():
+                    item=_static_read(criterion[key],static,authorities,metric,identity)
+                    if not item: continue
+                    conflicts=_opposing(item,static,True)
+                    if conflicts:
+                        opposing.extend(conflicts); continue
+                    refs.append(_qualified(item['key']))
+                    if key=='direction_evidence' and item['row']['value'] in ('A_to_B','B_to_A','both'): direction=item['row']['value']
+            if opposing: local.append('conflicting_observations')
+            directions=('A_to_B','B_to_A') if direction=='both' else (direction,)
+            for direction in directions:
+                matrix.append(dict(criterion_id=cid,absolute_direction=direction,status='unverified',measurement_point=None,measurement_ref=None,criterion_refs=refs,method_ref=None,window_refs=[],instrument_ref=None,calibration_refs=[],topology_ref=None,direction_mapping_ref=None,counterevidence=[_qualified(item['key']) for item in opposing],gaps=local))
+            gaps.update(local); continue
         values={key:item['row']['value'] for key,item in data.items()}
         directions=('A_to_B','B_to_A') if values['direction_evidence']=='both' else (values['direction_evidence'],)
         capability[values['capability_evidence']].update(directions)
@@ -430,7 +447,7 @@ def _report(result,scope):
     if not result['field_results']: lines.append('- No field comparisons supplied.')
     lines.extend(['','## Acceptance tests'])
     for item in result['test_matrix']:
-        lines.append('- '+item['criterion_id']+' / '+item['absolute_direction']+': '+item['status']+'; mapped measurement point '+(item['measurement_point'] or 'unavailable')+'; measurement '+ref(item['measurement_ref'])+'; criterion '+refs(item['criterion_refs'])+'; method '+ref(item['method_ref'])+'; window '+refs(item['window_refs'])+'; direction mapping '+ref(item['direction_mapping_ref'])+'; instrument '+ref(item['instrument_ref'])+'; calibration '+refs(item['calibration_refs'])+'.')
+        lines.append('- '+item['criterion_id']+' / '+(item['absolute_direction'] or 'unknown')+': '+item['status']+'; mapped measurement point '+(item['measurement_point'] or 'unavailable')+'; measurement '+ref(item['measurement_ref'])+'; criterion '+refs(item['criterion_refs'])+'; method '+ref(item['method_ref'])+'; window '+refs(item['window_refs'])+'; direction mapping '+ref(item['direction_mapping_ref'])+'; instrument '+ref(item['instrument_ref'])+'; calibration '+refs(item['calibration_refs'])+'.')
     if not result['test_matrix']: lines.append('- No comparable acceptance tests supplied.')
     change=result['change_review']; lines.extend(['','## Change review','Status: '+change['status']+'.'])
     for name,value in sorted(change['evidence_refs'].items()):

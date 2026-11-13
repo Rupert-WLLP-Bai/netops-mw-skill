@@ -179,7 +179,15 @@ class ServiceReviewTests(unittest.TestCase):
         one_way=copy.deepcopy(request); one_way['direction_mappings']=[item for item in one_way['direction_mappings'] if item['absolute_direction']!='B_to_A']
         self.assertNotEqual(self.review(one_way)['technical_status'],'conformant')
         missing_method=copy.deepcopy(request); missing_method['criteria'][0]['method_evidence']=None
-        self.assertIn('missing_criterion_evidence',self.review(missing_method)['gaps'])
+        result=self.review(missing_method); self.assertIn('missing_criterion_evidence',result['gaps'])
+        rows=[item for item in result['test_matrix'] if item['criterion_id']==missing_method['criteria'][0]['criterion_id']]
+        self.assertEqual({item['absolute_direction'] for item in rows},{'A_to_B','B_to_A'})
+        self.assertTrue(all(item['status']=='unverified' and item['measurement_ref'] is None and item['method_ref'] is None and item['criterion_refs'] for item in rows))
+        unknown_direction=copy.deepcopy(request); unknown_direction['criteria'][0]['direction_evidence']=None
+        result=self.review(unknown_direction)
+        rows=[item for item in result['test_matrix'] if item['criterion_id']==unknown_direction['criteria'][0]['criterion_id']]
+        self.assertEqual(len(rows),1); self.assertIsNone(rows[0]['absolute_direction']); self.assertEqual(rows[0]['status'],'unverified')
+        self.assertIn(' / unknown: unverified',result['draft_report'])
         missing_field=copy.deepcopy(request); omitted=missing_field['fields'].pop()
         missing=self.review(missing_field)['missing_requirements']
         self.assertIn(dict(kind='field',id=omitted['field']+'_'+omitted['target'],required_ref=omitted['required_evidence']),missing)
@@ -347,6 +355,22 @@ class ServiceReviewTests(unittest.TestCase):
         result=self.review(request)
         self.assertEqual(result['technical_status'],'unverified'); self.assertEqual(result['acceptance_status'],'blocked')
         self.assertIn('criterion_inventory_incomplete',result['gaps'])
+
+    def test_conflicting_criterion_direction_does_not_invent_matrix_direction(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        source=next(item for item in scenario['sources'] if item['run_key']=='criteria')
+        index=source['row_keys'].index('direction_throughput'); source['row_keys'].append('opposing_direction_throughput')
+        marker={'$row':'criteria/direction_throughput'}
+        binding=next(item for item in scenario['request']['bindings'] if item['record']['run_id']=='m5-criteria' and item['record']['evidence_id']==marker)
+        extra=copy.deepcopy(binding); extra['record']['evidence_id']={'$row':'criteria/opposing_direction_throughput'}; scenario['request']['bindings'].append(extra)
+        def conflict(data):
+            data['records'].append(dict(data['records'][index],value='A_to_B')); return data
+        def allow(config): config['value_allowlists']['criterion_direction'].append('A_to_B'); return config
+        request,ids=self.materialize(scenario,{'criteria':conflict},{'criteria':allow}); result=self.review(request)
+        rows=[item for item in result['test_matrix'] if item['criterion_id']=='criterion-throughput']
+        self.assertEqual(len(rows),1); self.assertIsNone(rows[0]['absolute_direction']); self.assertEqual(rows[0]['status'],'unverified')
+        self.assertIn('missing_criterion_evidence',rows[0]['gaps']); self.assertIn('conflicting_observations',rows[0]['gaps'])
+        self.assertIn(dict(run_id='m5-criteria',evidence_id=ids['criteria']['opposing_direction_throughput']),rows[0]['counterevidence'])
 
     def test_postchange_approval_requires_known_ordered_time(self):
         scenario=json.loads((FIXTURES/'cases/case-011/scenario.json').read_text())
