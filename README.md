@@ -25,6 +25,9 @@ M1 supplies contracts and validation for offline operator-provided records. Acce
 diagnostics, vendor parsers, service acceptance, and live platform integration are later milestones in
 [the carrier expansion](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/issues/3).
 See the [M1 implementation plan](docs/implementation/carrier-m1-plan.md) for scope and validation order.
+The [M1 validation record](docs/validation-carrier-m1.md) records 141 passing tests, 62 tests against
+an independent package extraction, reproducible package hashes and [final Sol review](docs/review-carrier-m1.md).
+The milestone awaits maintainer review; it does not establish vendor, MobileWork or native Windows support.
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 
