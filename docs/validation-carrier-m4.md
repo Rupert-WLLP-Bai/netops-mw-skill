@@ -45,6 +45,16 @@ The failed logs remain `.tools/carrier-m4/full-suite-corrected.log` and `deliver
 Fixture hashes were refreshed after the reference correction, and all owned changes froze before
 the next gate. Corrected final results and independent review remain pending.
 
+## Post-review test setup correction
+
+The first renewed gate after the Sol fixes at `a591ce0` ran 210 full tests in 163.005 seconds and
+131 extracted tests in 129.860 seconds. Both ended with three setup errors: three new multi-variant
+tests called the exclusive baseline fixture initializer repeatedly under the same temporary root.
+The second call correctly refused the existing `topo1-src` path. Each test now creates its immutable
+baseline once and deep-copies the request for its independently named variants. Assertions, fixture
+exclusivity and product runtime code are preserved. The error logs remain
+`.tools/carrier-m4/full-suite-reviewed.log` and `delivery-reviewed.log`; the next gate follows a new freeze.
+
 ## Pre-review gate completed; Sol corrections required
 
 Before the independent Sol reviews, the final gate passed: 204 full-suite tests and 125 extracted

@@ -107,19 +107,21 @@ class TransportTests(unittest.TestCase):
 
     def test_route_ambiguous_or_missing_flow_keeps_service_failure(self):
         rows=[self.row('route_state','withdrawn'),self.row('route_prefix','prefix-a'),self.row('service_prefix','prefix-a'),self.row('route_vrf','vrf-a'),self.row('service_vrf','vrf-a'),self.row('forwarding_state','fail')]
+        base=self.base()
         for name,flows in [('flowmissing',[]),('flowambiguous',[self.row('flow_scope','flow-a'),self.row('flow_scope','flow-b')])]:
-            result=self.analyze(self.add_run(self.base(),name,rows+flows))
+            result=self.analyze(self.add_run(copy.deepcopy(base),name,rows+flows))
             codes={item['code'] for item in result['findings']}
             self.assertIn('service_failure',codes); self.assertNotIn('route_service_correlation',codes)
             self.assertIn('missing_flow_scope',result['gaps'])
             if flows: self.assertIn('conflicting_observations',result['gaps'])
 
     def test_reverse_aggregate_requires_compatible_declared_windows(self):
+        base=self.base()
         for name,minute,aggregation in [('windowgood','06','mean'),('windowbad','07','mean'),('windowagg','06','max')]:
             rows=[self.row('interface_utilization',90,unit='percent',direction='ingress'),self.row('interface_utilization',90,unit='percent',direction='egress')]
             for direction,start,value in [('ingress','06','mean'),('egress',minute,aggregation)]:
                 rows.extend([self.row('window_start','declared',direction=direction,event_time=f'2026-01-01T00:{start}:00Z'),self.row('window_end','declared',direction=direction),self.row('window_aggregation',value,direction=direction)])
-            request=self.add_run(self.base(),name,rows)
+            request=self.add_run(copy.deepcopy(base),name,rows)
             def ref(index): return dict(run_id=name,evidence_id='ev-'+format(index,'012x'))
             request['measurement_windows']=[dict(subjects=[ref(1)],start_evidence=ref(3),end_evidence=ref(4),aggregation_evidence=ref(5)),dict(subjects=[ref(2)],start_evidence=ref(6),end_evidence=ref(7),aggregation_evidence=ref(8))]
             result=self.analyze(request)
@@ -133,9 +135,10 @@ class TransportTests(unittest.TestCase):
                 gaps=self.analyze(ambiguous)['gaps']; self.assertIn('ambiguous_measurement_window',gaps); self.assertIn('missing_reverse_direction',gaps)
 
     def test_missing_gauge_samples_are_reported_despite_other_coverage(self):
+        base=self.base()
         for index,count in enumerate((None,0,0.0,1,1.0)):
             rows=[self.row('service_operation','fail'),self.row('service_operation','pass',direction='egress'),self.row('interface_utilization',90,unit='percent',sample_count=count)]
-            result=self.analyze(self.add_run(self.base(),'missinggauge'+str(index),rows))
+            result=self.analyze(self.add_run(copy.deepcopy(base),'missinggauge'+str(index),rows))
             if not count: self.assertIn('missing_sample_count',result['gaps'])
             else: self.assertNotIn('missing_sample_count',result['gaps'])
             self.assertIn('service_failure',{item['code'] for item in result['findings']})
