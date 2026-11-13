@@ -56,6 +56,7 @@ _RESOLVE_UNIX = 1 << 16
 _FS_HANDLED = (1 << 15) - 1
 _READ_ACCESS = _EXECUTE | _READ_FILE | _READ_DIR
 _READ_ONLY_ACCESS = _READ_FILE | _READ_DIR
+_NULL_DEVICE_ACCESS = _READ_FILE | _WRITE_FILE
 _TEMP_ACCESS = (_READ_FILE | _READ_DIR | _WRITE_FILE | _REMOVE_DIR |
                 _REMOVE_FILE | _MAKE_DIR | _MAKE_REG | _REFER | _TRUNCATE)
 
@@ -207,7 +208,8 @@ def _install_landlock(read_roots: list[Path], write_root: Path,
         for root in read_roots:
             _add_path_rule(ruleset_fd, root, _READ_ONLY_ACCESS)
         for path in runtime:
-            _add_path_rule(ruleset_fd, path, _READ_ACCESS)
+            rights = _NULL_DEVICE_ACCESS if path == Path('/dev/null') else _READ_ACCESS
+            _add_path_rule(ruleset_fd, path, rights)
         _add_path_rule(ruleset_fd, write_root, _TEMP_ACCESS)
         try:
             libc = ctypes.CDLL(None, use_errno=True)
