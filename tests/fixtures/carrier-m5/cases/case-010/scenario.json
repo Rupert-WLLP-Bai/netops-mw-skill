@@ -318,6 +318,9 @@
       "row_keys": [
         "criterion_inventory_approval",
         "criterion_inventory_count",
+        "current_criterion_inventory",
+        "valid_from_criterion_inventory",
+        "valid_until_criterion_inventory",
         "required_throughput",
         "current_throughput",
         "valid_from_throughput",
@@ -10206,6 +10209,69 @@
         "valid_from": "2026-11-01T00:00:00Z",
         "valid_until": "2026-12-01T00:00:00Z",
         "authority": "synthetic-change-binding"
+      },
+      {
+        "record": {
+          "run_id": "m5-criteria",
+          "evidence_id": {
+            "$row": "criteria/current_criterion_inventory"
+          }
+        },
+        "topology_evidence": {
+          "run_id": "m5-topology",
+          "evidence_id": {
+            "$row": "topology/topology-envelope"
+          }
+        },
+        "service_id": "service-m5",
+        "resource_id": "circuit-m5",
+        "source": "synthetic-criteria-source",
+        "source_native_id": "criterion-inventory-m5",
+        "valid_from": "2026-11-01T00:00:00Z",
+        "valid_until": "2026-12-01T00:00:00Z",
+        "authority": "synthetic-fixture-binding"
+      },
+      {
+        "record": {
+          "run_id": "m5-criteria",
+          "evidence_id": {
+            "$row": "criteria/valid_from_criterion_inventory"
+          }
+        },
+        "topology_evidence": {
+          "run_id": "m5-topology",
+          "evidence_id": {
+            "$row": "topology/topology-envelope"
+          }
+        },
+        "service_id": "service-m5",
+        "resource_id": "circuit-m5",
+        "source": "synthetic-criteria-source",
+        "source_native_id": "criterion-inventory-m5",
+        "valid_from": "2026-11-01T00:00:00Z",
+        "valid_until": "2026-12-01T00:00:00Z",
+        "authority": "synthetic-fixture-binding"
+      },
+      {
+        "record": {
+          "run_id": "m5-criteria",
+          "evidence_id": {
+            "$row": "criteria/valid_until_criterion_inventory"
+          }
+        },
+        "topology_evidence": {
+          "run_id": "m5-topology",
+          "evidence_id": {
+            "$row": "topology/topology-envelope"
+          }
+        },
+        "service_id": "service-m5",
+        "resource_id": "circuit-m5",
+        "source": "synthetic-criteria-source",
+        "source_native_id": "criterion-inventory-m5",
+        "valid_from": "2026-11-01T00:00:00Z",
+        "valid_until": "2026-12-01T00:00:00Z",
+        "authority": "synthetic-fixture-binding"
       }
     ],
     "delivery_scope": {
@@ -11056,19 +11122,19 @@
         "current_evidence": {
           "run_id": "m5-criteria",
           "evidence_id": {
-            "$row": "criteria/current_inventory"
+            "$row": "criteria/current_criterion_inventory"
           }
         },
         "valid_from_evidence": {
           "run_id": "m5-criteria",
           "evidence_id": {
-            "$row": "criteria/valid_from_inventory"
+            "$row": "criteria/valid_from_criterion_inventory"
           }
         },
         "valid_until_evidence": {
           "run_id": "m5-criteria",
           "evidence_id": {
-            "$row": "criteria/valid_until_inventory"
+            "$row": "criteria/valid_until_criterion_inventory"
           }
         }
       },

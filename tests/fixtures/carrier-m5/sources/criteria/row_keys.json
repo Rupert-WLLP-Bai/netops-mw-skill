@@ -1,6 +1,9 @@
 [
   "criterion_inventory_approval",
   "criterion_inventory_count",
+  "current_criterion_inventory",
+  "valid_from_criterion_inventory",
+  "valid_until_criterion_inventory",
   "required_throughput",
   "current_throughput",
   "valid_from_throughput",

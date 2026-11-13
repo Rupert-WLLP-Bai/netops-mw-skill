@@ -48,3 +48,25 @@ Terra's read-only diagnosis is recorded in `.tools/carrier-m5/diagnosis-initial/
 These fixture and test-harness corrections are in progress. No product runtime or contract change is
 currently planned. No renewed tests or final-gate claims are recorded here; the initial failures above
 remain part of the validation history.
+
+## Second engineering gate: reference failures remain under correction
+
+The second gate ran against frozen source `c09c18e`. The full suite ran 218 tests in 194.019 seconds
+and ended with 21 errors. The extracted suite ran 139 tests in 161.842 seconds and also ended with 21
+errors. These results do not pass the gate.
+
+The frozen-source audit `.tools/carrier-m5/diagnosis-second/reference-audit.json` found 104 unresolved
+logical evidence references. Of these, 48 point to obsolete criteria-authority labels; the other 56
+are case-012 references for endpoint-B equivalence rows that the fixture intentionally omits. The
+staged request still referenced those absent rows. The fixture owner is correcting the references,
+using null where optional equivalence is omitted, and removing obsolete optional authority entries
+while preserving endpoint-B requirements and oracle outcomes. Terra is adding a fast fixture-reference
+integrity control so dangling logical tokens are reported before later test materialization.
+
+The test logs show `unknown logical row reference` during request materialization. No product runtime
+or contract change is reported for this correction round. Corrections are in progress, no renewed
+gate or pass is claimed, and all earlier failure records remain preserved. Evidence is in
+`.tools/carrier-m5/full-suite-corrected.log`, `.tools/carrier-m5/delivery-corrected.log`,
+`.tools/carrier-m5/diagnosis-second/reference-audit.json`, and generated package artifacts under
+`.tools/carrier-m5/corrected-delivery/`. The delivery run did not complete extracted tests, so this
+record makes no managed-PCAP result claim.

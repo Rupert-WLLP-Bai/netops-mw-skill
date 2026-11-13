@@ -88,6 +88,61 @@ class ServiceReviewTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stderr)
         return json.loads(result.stdout)
 
+    def test_fixture_logical_references_and_source_order_are_complete(self):
+        """Audit developer fixture links without ingesting or predicting evidence IDs."""
+        oracle=json.loads((FIXTURES/'oracle/expected.json').read_text())['cases']
+        by_case={entry['case_id']:entry for entry in oracle}
+        self.assertEqual(len(by_case),len(oracle))
+        scenarios=sorted((FIXTURES/'cases').glob('*/scenario.json'))
+        self.assertEqual({path.parent.name for path in scenarios},set(by_case))
+
+        def markers(value,path='$'):
+            if isinstance(value,dict):
+                if '$row' in value:
+                    self.assertEqual(set(value),{'$row'},path)
+                    yield ('row',value['$row'],path)
+                else:
+                    for key,child in value.items(): yield from markers(child,path+'/'+key)
+            elif isinstance(value,list):
+                for index,child in enumerate(value): yield from markers(child,path+'/'+str(index))
+            elif isinstance(value,str):
+                if value.startswith('$ID:'): yield ('id',value[4:],path)
+                elif value.startswith('$RUN_ID:'): yield ('run_id',value[8:],path)
+                elif value.startswith('$RUN:'): yield ('run',value[5:],path)
+
+        def verify(value,known,allowed,where):
+            for kind,marker,path in markers(value):
+                self.assertIsInstance(marker,str,where+path)
+                if kind in ('row','id'):
+                    parts=marker.split('/')
+                    self.assertEqual(len(parts),2,where+path)
+                    source,label=parts
+                    self.assertIn(source,allowed,where+path+': '+marker)
+                    self.assertIn(label,known[source],where+path+': '+marker)
+                else: self.assertIn(marker,allowed,where+path+': '+marker)
+
+        for path in scenarios:
+            with self.subTest(case=path.parent.name):
+                scenario=json.loads(path.read_text()); self.assertEqual(scenario['case_id'],path.parent.name)
+                known={}; run_ids=set(); previous=set()
+                for source in scenario['sources']:
+                    key=source['run_key']; self.assertNotIn(key,known)
+                    labels=source['row_keys']; self.assertEqual(len(labels),len(set(labels)))
+                    known[key]=set(labels)
+                    config_path=(FIXTURES/source['config_path']).resolve(); input_path=(FIXTURES/source['input_path']).resolve()
+                    self.assertTrue(config_path.is_relative_to(FIXTURES.resolve()) and input_path.is_relative_to(FIXTURES.resolve()))
+                    config=json.loads(config_path.read_text()); data=json.loads(input_path.read_text())
+                    run_id=config['run_id']; self.assertNotIn(run_id,run_ids); run_ids.add(run_id)
+                    if 'records' in data: self.assertEqual(len(labels),len(data['records']),key)
+                    else: self.assertEqual(len(labels),1,key)
+                    verify(config,known,previous,'config/'+key)
+                    verify(data,known,previous,'input/'+key)
+                    previous.add(key)
+                self.assertNotIn('case_id',scenario['request'])
+                self.assertEqual({item['run_id'] for item in scenario['request']['runs']},run_ids)
+                verify(scenario['request'],known,previous,'request')
+                verify(by_case[path.parent.name],known,previous,'oracle')
+
     def test_complete_control_and_blocked_change_stay_separate(self):
         scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text()); request,_=self.materialize(scenario)
         result=self.review(request)
