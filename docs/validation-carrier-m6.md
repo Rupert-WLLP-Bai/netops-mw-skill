@@ -113,7 +113,8 @@ The frozen correction passed 12 focused scoring tests (`focused-scoring-v13.log`
 zero mismatches (`replay-v13.log`). The measured dimension counts above stayed identical.
 Python 3.10 grammar passed again for evaluation sources (`grammar-v13.log`). Packaged Skill sources
 remain byte-identical to the completed v9 package/extracted-runtime gate; only developer scoring
-and its tests changed. Independent final re-review follows these gates.
+and its tests changed. [Independent final Sol re-review](review-carrier-m6.md) closed the P2:
+Spec has zero current findings; Standards has zero hard violations and one nonblocking P3 suggestion.
 
 R1 Standards also recorded one nonblocking P3 maintainability suggestion: reuse shared task
 validation in the adapter. The parent validates the task before invocation; this duplication does

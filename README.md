@@ -89,7 +89,10 @@ M5 was merged through [PR #16](https://github.com/Rupert-WLLP-Bai/netops-mw-skil
 The [M6 plan](docs/implementation/carrier-m6-plan.md) adds a developer-only corpus, restricted
 offline provider adapter and independent scorer. Its 36 cases keep carrier evaluation separate
 from the Internet design cases and PCAP corpus. The [validation record](docs/validation-carrier-m6.md)
-tracks implementation and actual gates. [Optional local lab plans](docs/labs/carrier-controlled-experiments.md)
+records 259 passing regression tests, 153 fresh extracted runtime tests, 36 actual restricted cases /
+44 jobs and 36 matching replays. [Independent Sol review](docs/review-carrier-m6.md) closed its P2
+scoring finding and retained one nonblocking maintainability suggestion.
+[Optional local lab plans](docs/labs/carrier-controlled-experiments.md)
 remain unexecuted. None of these developer evaluation files enters a Skill archive.
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
