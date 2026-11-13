@@ -9,8 +9,8 @@ superseded by that explicit authorization. Offline/device/production boundaries 
 | Design PR #4 | Merged, `04587e2` | Historical design basis retained |
 | M1 / #5 / PR #12 | Merged, `b2e7ee5`; source `f244b65`; 141 full and 62 extracted tests; final Sol pass | No implementation work remains |
 | M2 / #6 / PR #13 | Merged, `147c2af`; source `f78c897`; 162 full and 83 extracted tests; final Sol pass | No implementation work remains |
-| M3 / #7 | Verified source `60e7e8b`; 185 full / 106 extracted tests, 12 cases and final Sol R3 Standards/Spec pass | Open separate PR and merge |
-| M4 / #8 | Open | IP bearer/transport domain and at least 12 cases |
+| M3 / #7 / PR #14 | Merged, `4087d4e`; source `60e7e8b`; 185 full / 106 extracted tests, 12 cases and final Sol R3 pass | No implementation work remains |
+| M4 / #8 | Verified source `45a0743`; 210 full / 131 extracted tests, 12 cases and final Sol R3 pass | Submit and merge the verified phase PR |
 | M5 / #9 | Open | Service acceptance/change review and at least eight cases |
 | M6 / #10 | Open | At least 36 scenarios, independent scoring, hidden/visible isolation and experiment validity |
 | M7 / #11 | Open; user-owned validation execution deferred | Prepare versioned packages/hashes, prompts, acceptance criteria and evidence/document handoff; PR and merge |

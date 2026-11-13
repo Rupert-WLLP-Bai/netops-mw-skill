@@ -1,0 +1,22 @@
+{
+  "format": "topology-json-v1",
+  "run_id": "m4-topology",
+  "source": "synthetic-topology-source",
+  "actor": "synthetic-fixture-author",
+  "authorization_ref": "fixture-only",
+  "collected_at": "2026-11-13T00:09:00Z",
+  "reference_time": "2026-11-13T00:10:00Z",
+  "max_age_seconds": 3600,
+  "timezone": "UTC",
+  "clock_quality": "synchronized",
+  "clock_uncertainty_seconds": 1,
+  "metric_allowlist": [],
+  "unit_allowlist": [],
+  "relation_allowlist": ["serves"],
+  "value_allowlists": {},
+  "pseudonyms": {
+    "fixture-service": "service-m4",
+    "fixture-transport-resource": "resource-m4",
+    "fixture-lag-member": "member-m4"
+  }
+}

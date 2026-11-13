@@ -57,6 +57,15 @@ An explicit, time-bounded declaration associating a source observation with a se
 **Optical profile**:
 A sourced set of optical operating limits and applicability conditions for a specified equipment model.
 
+**Control plane**:
+The network functions that exchange and select reachability and forwarding information.
+
+**Data plane**:
+The network functions that forward and deliver service traffic.
+
+**Measurement window**:
+The stated time interval over which a measurement is observed or aggregated, distinct from the interval between samples.
+
 ## Network layers
 
 **Endpoint/LAN**:

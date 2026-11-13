@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "case_id": "case-010",
+  "sources": [
+    {
+      "run_key": "topology",
+      "config_path": "sources/topology/config.json",
+      "input_path": "sources/topology/input.json"
+    },
+    {
+      "run_key": "observations",
+      "config_path": "sources/observations/config.json",
+      "input_path": "cases/case-010/sources/observations.json"
+    }
+  ],
+  "request": {
+    "schema_version": 1,
+    "reference_time": "2026-11-13T00:10:00Z",
+    "window_start": "2026-11-13T00:00:00Z",
+    "window_end": "2026-11-13T00:09:00Z",
+    "max_age_seconds": 60,
+    "service": {
+      "topology_run_id": "m4-topology",
+      "object_id": "service-m4"
+    },
+    "runs": [
+      {
+        "run_id": "m4-topology",
+        "run_dir": "$RUN:topology",
+        "expected_summary_hashes": {
+          "manifest.json": "$HASH",
+          "evidence.jsonl": "$HASH",
+          "diagnosis.json": "$HASH",
+          "report.md": "$HASH"
+        }
+      },
+      {
+        "run_id": "m4-observations",
+        "run_dir": "$RUN:observations",
+        "expected_summary_hashes": {
+          "manifest.json": "$HASH",
+          "evidence.jsonl": "$HASH",
+          "diagnosis.json": "$HASH",
+          "report.md": "$HASH"
+        }
+      }
+    ],
+    "bindings": [
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      }
+    ],
+    "transport_profiles": [],
+    "measurement_windows": []
+  }
+}

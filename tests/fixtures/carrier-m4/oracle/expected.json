@@ -1,0 +1,499 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "case-001",
+      "status": "insufficient_evidence",
+      "required_codes": [
+        "bgp_peer_event"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "route_service_correlation"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        }
+      ],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-002",
+      "status": "fault_observed",
+      "required_codes": [
+        "route_event",
+        "route_service_correlation",
+        "service_failure"
+      ],
+      "prohibited_codes": [
+        "application_failure"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000005"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000006"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000007"
+        }
+      ],
+      "required_counterevidence": [],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-003",
+      "status": "insufficient_evidence",
+      "required_codes": [
+        "igp_event",
+        "igp_flap"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "route_service_correlation"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        }
+      ],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-004",
+      "status": "insufficient_evidence",
+      "required_codes": [
+        "lag_member_event"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "route_service_correlation"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        }
+      ],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-005",
+      "status": "fault_observed",
+      "required_codes": [
+        "queue_condition"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "application_failure"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000005"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000006"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000007"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000008"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000009"
+        },
+        {
+          "run_id": "m4-profile",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-profile",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-00000000000a"
+        }
+      ],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-006",
+      "status": "fault_observed",
+      "required_codes": [
+        "qos_class_condition"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "application_failure"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000005"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000006"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000007"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000008"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000009"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-00000000000a"
+        },
+        {
+          "run_id": "m4-profile",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-profile",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-00000000000b"
+        }
+      ],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-007",
+      "status": "fault_observed",
+      "required_codes": [
+        "mtu_discrepancy",
+        "mtu_scoped_failure"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "application_failure"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000005"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000006"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000007"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-008",
+      "status": "insufficient_evidence",
+      "required_codes": [
+        "pmtud_suspected"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "mtu_scoped_failure"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [],
+      "required_gaps": [
+        "missing_mtu_evidence"
+      ]
+    },
+    {
+      "case_id": "case-009",
+      "status": "insufficient_evidence",
+      "required_codes": [
+        "ecmp_asymmetry"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "route_service_correlation"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [],
+      "required_gaps": []
+    },
+    {
+      "case_id": "case-010",
+      "status": "insufficient_evidence",
+      "required_codes": [],
+      "prohibited_codes": [
+        "counter_increase",
+        "queue_condition",
+        "service_failure"
+      ],
+      "allowed_layers": [],
+      "required_support": [],
+      "required_counterevidence": [],
+      "required_gaps": [
+        "stale_or_outside_window"
+      ]
+    },
+    {
+      "case_id": "case-011",
+      "status": "insufficient_evidence",
+      "required_codes": [],
+      "prohibited_codes": [
+        "counter_increase",
+        "queue_condition",
+        "service_failure"
+      ],
+      "allowed_layers": [],
+      "required_support": [],
+      "required_counterevidence": [],
+      "required_gaps": [
+        "counter_reset"
+      ]
+    },
+    {
+      "case_id": "case-012",
+      "status": "insufficient_evidence",
+      "required_codes": [
+        "traceroute_observation"
+      ],
+      "prohibited_codes": [
+        "service_failure",
+        "route_service_correlation"
+      ],
+      "allowed_layers": [
+        "ip_bearer_transport"
+      ],
+      "required_support": [
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        }
+      ],
+      "required_counterevidence": [],
+      "required_gaps": []
+    }
+  ]
+}

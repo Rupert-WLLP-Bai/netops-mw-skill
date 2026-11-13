@@ -165,6 +165,25 @@ class AccessTests(unittest.TestCase):
         finding = next(item for item in result['findings'] if item['code'] == 'counter_increase')
         self.assertIn('does not establish a fault', ' '.join(finding['limitations']))
 
+    def test_fec_increment_does_not_cross_reset(self):
+        base=self.base(metric='fec_count',value=1)
+        common=dict(metric='fec_count',unit='packets',direction='ingress',denominator='packets',sample_interval_seconds=60,sample_count=1,counter_semantics='cumulative',reset_state='none',object_id='raw-id')
+        for name,time,state,value,blocked in [('inside','00:07:00','reset',0,True),('outside','00:05:00','reset',0,False),('decrease','00:07:00','none',5,True),('later-decrease','00:07:00','none',130,True),('inner-decrease','00:07:00','none',115,True),('inner-monotonic','00:07:00','none',105,False),('monotonic','00:07:00','none',110,False),('outside-decrease','00:05:00','none',5,False)]:
+            rows=[dict(common,value=100,event_time='2026-01-01T00:06:00Z'),dict(common,value=120,event_time='2026-01-01T00:08:00Z'),dict(common,value=value,reset_state=state,event_time='2026-01-01T'+time+'Z')]
+            if name in ('inner-decrease','inner-monotonic'):
+                rows.append(dict(common,value=110 if blocked else 115,event_time='2026-01-01T00:07:30Z'))
+            run=self.create_run('fec-'+name,dict(format='telemetry-json-v1',version=1,records=rows),'telemetry-json-v1',{'raw-id':'source-alias'},['fec_count'])
+            request=copy.deepcopy(base); request['runs']=[base['runs'][1],run]
+            request['bindings']=[dict(base['bindings'][0],record=dict(run_id=run['run_id'],evidence_id='ev-'+format(index,'012x'))) for index in range(1,len(rows)+1)]
+            result=self.analyze(request); codes={finding['code'] for finding in result['findings']}
+            if blocked:
+                self.assertIn('counter_discontinuity',result['gaps'])
+                for finding in result['findings']:
+                    if finding['code']=='counter_increase':
+                        refs={(ref['run_id'],ref['evidence_id']) for ref in finding['support']}
+                        self.assertFalse({(run['run_id'],'ev-000000000001'),(run['run_id'],'ev-000000000002')}.issubset(refs))
+            else: self.assertIn('counter_increase',codes)
+
     def test_strict_request_json_rejects_duplicate_keys_and_nonfinite(self):
         path = self.root/'malformed-request.json'
         for data in (b'{"schema_version":1,"schema_version":1}',b'{"schema_version":NaN}'):

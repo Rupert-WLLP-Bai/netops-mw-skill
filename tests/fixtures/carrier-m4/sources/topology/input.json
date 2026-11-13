@@ -1,0 +1,14 @@
+{
+  "format": "topology-json-v1",
+  "version": 1,
+  "service_id": "fixture-service",
+  "objects": [
+    {"id": "fixture-service", "type": "service", "layer": null},
+    {"id": "fixture-transport-resource", "type": "interface", "layer": "ip_bearer_transport"},
+    {"id": "fixture-lag-member", "type": "interface", "layer": "ip_bearer_transport"}
+  ],
+  "links": [
+    {"from_id": "fixture-service", "to_id": "fixture-transport-resource", "relation": "serves", "state": "verified", "confidence": "high"},
+    {"from_id": "fixture-service", "to_id": "fixture-lag-member", "relation": "serves", "state": "verified", "confidence": "high"}
+  ]
+}
