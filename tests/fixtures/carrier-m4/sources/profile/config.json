@@ -11,7 +11,7 @@
   "clock_quality": "synchronized",
   "clock_uncertainty_seconds": 1,
   "metric_allowlist": ["utilization_limit", "profile_aggregation"],
-  "unit_allowlist": ["%"],
+  "unit_allowlist": ["%", "1"],
   "relation_allowlist": ["serves"],
   "value_allowlists": {"profile_aggregation": ["mean", "max"]},
   "pseudonyms": {"fixture-profile": "profile-m4"}

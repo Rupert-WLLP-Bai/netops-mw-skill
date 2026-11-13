@@ -1,6 +1,6 @@
 # Transport evidence rules
 
-Use these rules for manual analysis and for interpreting analyzer output. The matching machine contract, including exact request and response shapes, is in [the incident transport contract](../../netops-incident/references/transport-analysis.md).
+Use these rules for manual analysis and for interpreting analyzer output. If the incident provider is present, its bundled `transport-analysis.md` reference defines the exact request and response shapes.
 
 ## Scope and time
 

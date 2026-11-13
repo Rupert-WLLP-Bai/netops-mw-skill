@@ -190,8 +190,8 @@
     },
     {
       "path": "sources/profile/config.json",
-      "sha256": "7c5bb3008747791e3aeddfdacacce467d24bf9b1ec73ee7839eae53bb88d2e7c",
-      "bytes": 629
+      "sha256": "9d520cb6bd30efbae80c28a90d16d72137d6a3717ea7feae592e85eec4071ed3",
+      "bytes": 634
     },
     {
       "path": "sources/profile/input.json",

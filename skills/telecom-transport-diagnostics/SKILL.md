@@ -15,7 +15,7 @@ Use this skill to reason from supplied, offline IP bearer and transport evidence
 2. Inventory the supplied records and their source, source-native alias, event time, collection time, clock quality, unit, direction, counter semantics, and scope. Keep conflicting and counterevidence visible.
 3. Establish each service/resource binding from explicit evidence. Match prefix, VRF, flow, class, source, resource, direction, and time only where the records state them. Do not infer an identity or topology from a hostname, similar label, route text, or path.
 4. Apply the evidence rules in [the transport reference](references/transport-diagnostics.md). Report observations separately from hypotheses, name gaps and limitations, and request the next measurement that would resolve them.
-5. If the incident installation provides `scripts/diagnose_transport.py`, it may be used as an optional deterministic analyzer after checked M2 runs and explicit mappings are available. Its exact request, result, metric, code, and bound contract is documented in [the incident reference](../../netops-incident/references/transport-analysis.md). Without that provider, use this skill's manual workflow; do not assume a sibling skill or installation exists.
+5. If the incident installation provides `scripts/diagnose_transport.py`, it may be used as an optional deterministic analyzer after checked M2 runs and explicit mappings are available. Its exact request, result, metric, code, and bound contract is documented in the provider's bundled `transport-analysis.md` reference. Without that provider, use this skill's manual workflow; do not assume a sibling skill or installation exists.
 
 ## Reporting
 
