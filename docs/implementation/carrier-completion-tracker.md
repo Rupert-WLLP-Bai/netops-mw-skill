@@ -12,8 +12,8 @@ superseded by that explicit authorization. Offline/device/production boundaries 
 | M3 / #7 / PR #14 | Merged, `4087d4e`; source `60e7e8b`; 185 full / 106 extracted tests, 12 cases and final Sol R3 pass | No implementation work remains |
 | M4 / #8 / PR #15 | Merged, `8b210eb`; source `45a0743`; 210 full / 131 extracted tests, 12 cases and final Sol R3 pass | No implementation work remains |
 | M5 / #9 / PR #16 | Merged, `6a7eed1`; source `f1c8441`; 232 full / 153 extracted tests, 17 cases and final Sol pass | No implementation work remains |
-| M6 / #10 | Verified on `feat/carrier-m6-evaluation`; source `7b9c83c`; 259 full / 153 extracted tests; 36 cases / 44 jobs and matching replay; final Sol review | Separate PR and merge |
-| M7 / #11 | Open; user-owned validation execution deferred | Prepare versioned packages/hashes, prompts, acceptance criteria and evidence/document handoff; PR and merge |
+| M6 / #10 / PR #17 | Merged, `cda6492`; source `7b9c83c`; 259 full / 153 extracted tests; 36 cases / 44 jobs and matching replay; final Sol review | No implementation work remains; one nonblocking maintainability suggestion is disclosed |
+| M7 / #11 / [PR #18](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/pull/18) | Release preparation delivered: 264 full / 153 extracted tests; nine reproducible archives; 103-file handoff; final Sol review has no blocking findings | Actual client/platform/security execution remains user-owned; #11 and parent #3 remain open |
 
 Terra/Luna implemented the earlier milestones. After the environment restart, the user explicitly
 approved Luna implementation and independent Sol review for the remaining work because Terra is

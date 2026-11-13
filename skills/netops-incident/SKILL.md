@@ -2,7 +2,7 @@
 name: netops-incident
 description: Guide a network incident from scoped evidence through operator decisions, action records, and recovery checks. Use for coordinated incident investigation or follow-through; use a focused capture or handoff workflow when that is the whole request.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # Network incident

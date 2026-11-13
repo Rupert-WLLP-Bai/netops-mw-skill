@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "suite": "network-skill-suite",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "skills": [
     {"name": "internet-access-triage", "version": "0.1.0"},
-    {"name": "netops-incident", "version": "0.1.0"},
+    {"name": "netops-incident", "version": "0.2.0"},
     {"name": "netops-pcap-analysis", "version": "0.1.0"},
     {"name": "netops-verify-recovery", "version": "0.1.0"},
     {"name": "netops-handoff", "version": "0.1.0"},

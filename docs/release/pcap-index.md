@@ -1,0 +1,19 @@
+# PCAP provenance index
+
+This index describes three public-source originals and six derived inputs. It records hashes and reuse limits for the user's acquisition and review. It does not redistribute packet captures. The ignored local corpus handoff record is the source for sizes and hashes; capture files remain outside this guide and all release archives.
+
+Derived variants remove source frames 1000–1049 or cap captured packet length at 96 bytes while preserving wire length. These transformations model capture visibility limits; removed frames are not evidence of network packet loss. All derivatives were made with `editcap --discard-all-secrets`.
+
+| Input | Local source path | SHA-256 | Size (bytes) | Rights and limits |
+|---|---|---|---:|---|
+| web original | `.tools/pcap-corpus/downloads/lotsofweb.pcapng` | `92e06382a4f2e12bd569a104ceeecf908b89ccdb801f3dc4ae430b0f1a967f9b` | 10,357,348 | Chris Sanders' packet-analysis repository says captures may be used with attribution unless another source is specified. No per-file license or capture event is documented; no exhaustive benign certification. [Source](https://github.com/chrissanders/packets/tree/0412fb1dc0aa671128f9da6689e0dbd4459c0b51). |
+| web omit | `.tools/pcap-corpus/derived/web-omit.pcapng` | `1d70035ed82035b8f2e268783d8fd2b22fc2b73207cf0db7b49591ec5c91a674` | 10,338,540 | Derived from web original; same source and rights limits. |
+| web snap96 | `.tools/pcap-corpus/derived/web-snap96.pcapng` | `f9eef3377d71640b9cd065944aa2f4571d68adf5f58b4f711ccd94afc73342ad` | 1,487,908 | Derived from web original; same source and rights limits. |
+| slow original | `.tools/pcap-corpus/downloads/download-slow.pcapng` | `bdb4883ed5c15fd3b151cabf5724b20f51c529ee61b5cb33bf15eb74f4142854` | 10,960,428 | Chris Sanders' repository says captures may be used with attribution unless another source is specified. Per-file origin and event are undocumented; filename does not prove a bottleneck. No exhaustive benign certification. [Source](https://github.com/chrissanders/packets/tree/0412fb1dc0aa671128f9da6689e0dbd4459c0b51). |
+| slow omit | `.tools/pcap-corpus/derived/slow-omit.pcapng` | `9f8df636a4892769b4217f4528acd1e5da5523eef709a44e95c90f30b9c4b896` | 10,909,732 | Derived from slow original; same source and rights limits. |
+| slow snap96 | `.tools/pcap-corpus/derived/slow-snap96.pcapng` | `4cb9a0a1af97fd532326928e11ff08601d9dc91d8732c4580d520d438b582f20` | 1,230,048 | Derived from slow original; same source and rights limits. |
+| lab original | `.tools/pcap-corpus/downloads/own_traffic_capture_01.pcap` | `e8d4e9afa9dcebe2d143f1910d15e199c9162fe4a528c43728b7596fd1350e8a` | 9,973,570 | Omar Babba's repository is MIT licensed; applicability to each trace and third-party rights are not independently established. The author reports own-interface Wi-Fi browsing/DNS capture and later MAC/cookie redaction. [Source](https://github.com/omarbabba779xx/network-traffic-monitoring-lab/blob/596dae3acd11144ff2e86bf975a2f0f27664a887/README.md). |
+| lab omit | `.tools/pcap-corpus/derived/lab-omit.pcapng` | `4f1c5871460c5d5443a3797460487da799296ab1ce2ad22c8ad4cdee8006e7ac` | 10,125,816 | Derived from lab original; same source and rights limits. |
+| lab snap96 | `.tools/pcap-corpus/derived/lab-snap96.pcapng` | `9f1c0b371ebb59b4ec4ae4c654e0cc8bf5ac04c28d2ca82653ad712cbfeff07c` | 1,356,480 | Derived from lab original; same source and rights limits. |
+
+Reproduce a derivative from its original with the pinned source path and `editcap --discard-all-secrets`; use `-s 96` for `snap96`, or the frame range `1000-1049` for `omit`. Confirm the resulting SHA-256 against this index. Historical validation describes an earlier source snapshot and environment; it is not a fresh release check, current business recovery evidence, or external certification.

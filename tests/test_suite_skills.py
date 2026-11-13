@@ -16,7 +16,8 @@ class SuiteSkillTests(unittest.TestCase):
                 front = content.split('---\n', 2)[1]
                 self.assertRegex(front, rf'(?m)^name:\s*{re.escape(name)}\s*$')
                 self.assertRegex(front, r'(?m)^description:\s*\S.+$')
-                self.assertRegex(front, r'(?m)^  version:\s*0\.1\.0\s*$')
+                expected = '0.2.0' if name == 'netops-incident' else '0.1.0'
+                self.assertRegex(front, rf'(?m)^  version:\s*{re.escape(expected)}\s*$')
 
     def test_skill_references_resolve(self):
         for name in NAMES:
