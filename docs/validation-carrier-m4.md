@@ -45,3 +45,22 @@ The failed logs remain `.tools/carrier-m4/full-suite-corrected.log` and `deliver
 Fixture hashes were refreshed after the reference correction, and all owned changes froze before
 the next gate. Corrected final results and independent review remain pending.
 
+## Pre-review gate completed; Sol corrections required
+
+Before the independent Sol reviews, the final gate passed: 204 full-suite tests and 125 extracted
+tests. The reproducible 55-file suite archive had SHA-256
+`55758687166ce515bd95856d7dbf763c6eed385fed952fef81729f7614ee5daa`. Seven Skill validators,
+package/hash verification, and managed-PCAP compatibility also passed. Evidence is retained at
+`.tools/carrier-m4/full-suite-final.log`,
+`.tools/carrier-m4/final-delivery/extracted-tests.log`,
+`.tools/carrier-m4/delivery-final.log`,
+`.tools/carrier-m4/final-delivery/delivery-verification.json`,
+`.tools/carrier-m4/skill-validators-corrected.json`,
+`.tools/carrier-m4/final-delivery/build-a/network-skill-suite-m4.manifest.json`, and
+`.tools/carrier-m4/final-delivery/build-b/network-skill-suite-m4.manifest.json`.
+
+The independent Standards review identified two P2 findings and the Spec review identified four
+P2 findings. Corrections are now in progress; this successful gate does not cover them. Renewed
+full/extracted checks, package/provenance/managed-PCAP verification, and independent Sol review
+remain pending. Earlier failed gate records above are preserved.
+

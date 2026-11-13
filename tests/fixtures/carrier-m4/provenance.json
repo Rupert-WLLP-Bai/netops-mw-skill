@@ -70,13 +70,13 @@
     },
     {
       "path": "cases/case-002/scenario.json",
-      "sha256": "a591fa2784ecbd112479f51c53230c04205a682ac0133a9e2f1632e842986a87",
-      "bytes": 3548
+      "sha256": "6e4fe6bf1824671a9321b7955cebcfb311719a1fb3af43c0b13eea0da68b5b1a",
+      "bytes": 5199
     },
     {
       "path": "cases/case-002/sources/observations.json",
-      "sha256": "bc0f9b1a6ea50bc3c9a6a6625daf90d8e9b722289b96815fe1539180be69e13a",
-      "bytes": 1685
+      "sha256": "d2724a23786b32e30444dde24e3f787cfa546d74ba5a8f71e02470c69a3b3a09",
+      "bytes": 1955
     },
     {
       "path": "cases/case-003/scenario.json",
@@ -180,8 +180,8 @@
     },
     {
       "path": "oracle/expected.json",
-      "sha256": "9e55d268a7c7390d1040d4a99780e1714f0817256a23ec791c6a0cbfad89831c",
-      "bytes": 11844
+      "sha256": "da2cc3d533db4df990685a9983f793b0655557f122d20be218da6d05f9e5049a",
+      "bytes": 11947
     },
     {
       "path": "sources/observations/config.json",

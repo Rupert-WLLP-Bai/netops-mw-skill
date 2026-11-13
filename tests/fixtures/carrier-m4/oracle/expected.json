@@ -78,6 +78,10 @@
         {
           "run_id": "m4-topology",
           "evidence_id": "ev-000000000001"
+        },
+        {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000007"
         }
       ],
       "required_counterevidence": [],

@@ -199,6 +199,23 @@ def _ordered(left, right):
         return False
 
 
+def _counter_discontinuities(left, right, observations):
+    """Find declared discontinuities that overlap the candidate counter interval."""
+    try:
+        begin = timestamp(left['carrier']['event_time']) - timedelta(seconds=left['carrier']['clock_uncertainty_seconds'])
+        end = timestamp(right['carrier']['event_time']) + timedelta(seconds=right['carrier']['clock_uncertainty_seconds'])
+        for item in observations:
+            row = item['row']
+            if item['key'] in (left['key'], right['key']) or row['metric'] != left['row']['metric'] or not _same_scope(left, item): continue
+            if row['reset_state'] == 'none' and row['counter_semantics'] == 'cumulative': continue
+            event = timestamp(item['carrier']['event_time'])
+            uncertainty = timedelta(seconds=item['carrier']['clock_uncertainty_seconds'])
+            if event + uncertainty >= begin and event - uncertainty <= end: return True
+    except (OverflowError, ValueError):
+        return True
+    return False
+
+
 def _finding(code, layer, items, message, counters=()):
     refs = []
     for item in items:

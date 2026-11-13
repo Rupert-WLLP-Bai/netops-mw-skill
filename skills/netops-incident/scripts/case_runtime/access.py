@@ -9,7 +9,7 @@ from .evidence import strict_json
 from .store import CaseError, timestamp, token
 from .analysis_common import (LIMIT, _object, _ref, _validate_base, _load_runs, _fresh,
     _inside_interval, _binding_ok, _qualified, _same, _ordered, _finding,
-    _same_scope, _same_event, _collect_bound, _bounded_worker)
+    _same_scope, _same_event, _collect_bound, _bounded_worker, _counter_discontinuities)
 
 REQUEST_FIELDS = {'schema_version', 'reference_time', 'window_start', 'window_end', 'max_age_seconds', 'service', 'runs', 'bindings', 'optical_profiles'}
 PROFILE_FIELDS = {'profile_id', 'device_model', 'source', 'valid_from', 'valid_until', 'direction', 'unit', 'limit_evidence', 'device_model_evidence'}
@@ -181,6 +181,8 @@ def analyze(request):
     for a in counters:
         for b in counters:
             if a['row']['metric'] == b['row']['metric'] and a['row']['counter_semantics'] == b['row']['counter_semantics'] == 'cumulative' and a['row']['reset_state'] == b['row']['reset_state'] == 'none' and a['row']['sample_count'] and b['row']['sample_count'] and isinstance(a['row']['value'], (int,float)) and not isinstance(a['row']['value'],bool) and isinstance(b['row']['value'], (int,float)) and not isinstance(b['row']['value'],bool) and 0 <= a['row']['value'] < b['row']['value'] and _same(a,b) and _ordered(a,b):
+                if _counter_discontinuities(a,b,counters):
+                    gaps.add('counter_discontinuity'); continue
                 finding = _finding('counter_increase','access',[a,b],'A comparable source-reported error counter increased.')
                 finding['limitations'].append('An increase alone does not establish a fault or service impact.')
                 add(finding)

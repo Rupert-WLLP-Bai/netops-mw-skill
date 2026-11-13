@@ -165,6 +165,18 @@ class AccessTests(unittest.TestCase):
         finding = next(item for item in result['findings'] if item['code'] == 'counter_increase')
         self.assertIn('does not establish a fault', ' '.join(finding['limitations']))
 
+    def test_fec_increment_does_not_cross_reset(self):
+        base=self.base(metric='fec_count',value=1)
+        common=dict(metric='fec_count',unit='packets',direction='ingress',denominator='packets',sample_interval_seconds=60,sample_count=1,counter_semantics='cumulative',reset_state='none',object_id='raw-id')
+        for name,time,blocked in [('inside','00:07:00',True),('outside','00:05:00',False)]:
+            rows=[dict(common,value=100,event_time='2026-01-01T00:06:00Z'),dict(common,value=120,event_time='2026-01-01T00:08:00Z'),dict(common,value=0,reset_state='reset',event_time='2026-01-01T'+time+'Z')]
+            run=self.create_run('fec-'+name,dict(format='telemetry-json-v1',version=1,records=rows),'telemetry-json-v1',{'raw-id':'source-alias'},['fec_count'])
+            request=copy.deepcopy(base); request['runs']=[base['runs'][1],run]
+            request['bindings']=[dict(base['bindings'][0],record=dict(run_id=run['run_id'],evidence_id='ev-'+format(index,'012x'))) for index in range(1,4)]
+            result=self.analyze(request); codes={finding['code'] for finding in result['findings']}
+            if blocked: self.assertNotIn('counter_increase',codes); self.assertIn('counter_discontinuity',result['gaps'])
+            else: self.assertIn('counter_increase',codes)
+
     def test_strict_request_json_rejects_duplicate_keys_and_nonfinite(self):
         path = self.root/'malformed-request.json'
         for data in (b'{"schema_version":1,"schema_version":1}',b'{"schema_version":NaN}'):

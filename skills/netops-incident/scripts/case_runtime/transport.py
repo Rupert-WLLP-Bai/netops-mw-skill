@@ -8,7 +8,7 @@ from .evidence import strict_json
 from .store import CaseError, timestamp, token
 from .analysis_common import (LIMIT, _object, _ref, _validate_base, _load_runs,
     _fresh, _inside_interval, _collect_bound, _same, _ordered, _finding,
-    _same_scope, _same_event, _bounded_worker)
+    _same_scope, _same_event, _bounded_worker, _counter_discontinuities)
 
 FIELDS = {'schema_version','reference_time','window_start','window_end','max_age_seconds','service','runs','bindings','transport_profiles','measurement_windows'}
 PROFILE_FIELDS = {'profile_id','source','resource_id','direction','unit','valid_from','valid_until','aggregation','utilization_limit_evidence','aggregation_evidence'}
@@ -20,7 +20,7 @@ COUNTERS = {'interface_crc','interface_errors','interface_discards','queue_drops
 METRICS = set(ENUMS) | LABELS | GAUGES | COUNTERS
 # Control-plane states and descriptive metadata do not prove reverse data-plane coverage.
 COVERAGE = {'interface_utilization','queue_utilization','large_payload_result','small_payload_result','forwarding_state','service_operation'} | COUNTERS
-NEUTRAL = {'bgp_peer_event','igp_event','igp_flap','route_event','lsp_event','sr_policy_event','lag_member_event','next_hop_event','counter_increase','traceroute_observation','ecmp_asymmetry','mtu_discrepancy','pmtud_suspected'}
+NEUTRAL = {'bgp_peer_event','igp_event','igp_flap','route_event','lsp_event','sr_policy_event','lag_member_event','next_hop_event','counter_increase','traceroute_observation','ecmp_asymmetry','mtu_discrepancy','pmtud_suspected','profile_conflict'}
 
 
 def _validate_request(request):
@@ -123,6 +123,30 @@ def _same_boundaries(first,second):
     return all(first[side]['carrier']['event_time']==second[side]['carrier']['event_time'] and first[side]['carrier']['clock_uncertainty_seconds']==second[side]['carrier']['clock_uncertainty_seconds'] for side in ('start','end'))
 
 
+def _coverage_window(item, windows, gaps):
+    applicable = [window for keys,window in windows.items() if item['key'] in keys]
+    if not applicable: gaps.add('missing_measurement_window'); return None
+    if len(applicable)>1: gaps.add('ambiguous_measurement_window'); return None
+    return applicable[0]
+
+
+def _profile_conflicts(profile, chosen, evidence, runs, request, reference, start, end):
+    conflicts = []
+    begin,until = timestamp(profile['valid_from']),timestamp(profile['valid_until'])
+    for key,item in evidence.items():
+        row = item['row']
+        if not row or row.get('metric') not in ('utilization_limit','profile_aggregation'): continue
+        selected = chosen[0] if row['metric']=='utilization_limit' else chosen[1]
+        if key == selected['key'] or row['value'] == selected['row']['value']: continue
+        carrier = item['carrier']
+        if (carrier['source'],carrier['source_native_id']) != (profile['source'],profile['profile_id']): continue
+        if row['direction'] != profile['direction'] or row['unit'] != selected['row']['unit']: continue
+        if runs[key[0]]['adapter'].get('parse_status')!='complete' or not _fresh(carrier,request,reference,start,end) or not _inside_interval(carrier,begin,until) or not _valid(item): continue
+        candidate = _evidence_item(item,key,profile['resource_id'])
+        if _same_event(candidate,selected): conflicts.append(candidate)
+    return conflicts
+
+
 def _support_window(window):
     return [window['start'],window['end'],window['aggregation']]
 
@@ -141,9 +165,21 @@ def analyze(request):
         elif metric in LABELS and not isinstance(value,str): gaps.add('unsupported_value')
         elif metric in GAUGES | COUNTERS and (isinstance(value,bool) or not isinstance(value,(int,float)) or value<0): gaps.add('unsupported_value')
     observations = list(usable.values()); valid = [item for item in observations if _valid(item)]
+    if any(item['row']['metric'] in METRICS and item['row']['value'] not in (None,'unknown') and not item['row']['sample_count'] for item in observations): gaps.add('missing_sample_count')
     if any(item['row']['metric'] in METRICS and item['row']['value'] not in (None,'unknown') and item['row']['direction']=='unknown' for item in observations): gaps.add('missing_direction')
+    windows = _windows(request,usable,gaps)
     coverage = [item for item in valid if item['row']['metric'] in COVERAGE and item['row']['direction'] in ('ingress','egress')]
-    if not coverage or any(not any(_reverse(item,other) for other in coverage) for item in coverage): gaps.add('missing_reverse_direction')
+    aggregate = {'interface_utilization','queue_utilization'} | COUNTERS
+    coverage_windows = {item['key']:_coverage_window(item,windows,gaps) for item in coverage if item['row']['metric'] in aggregate}
+    def reverse_covered(item, other):
+        if not _reverse(item,other): return False
+        if item['row']['metric'] not in aggregate: return True
+        left,right = coverage_windows[item['key']],coverage_windows[other['key']]
+        if not left or not right: return False
+        if not _same_boundaries(left,right) or left['aggregation']['row']['value'] != right['aggregation']['row']['value']:
+            gaps.add('incompatible_window'); return False
+        return True
+    if not coverage or any(not any(reverse_covered(item,other) for other in coverage) for item in coverage): gaps.add('missing_reverse_direction')
     findings = []
     def add(code,items,message,counters=(),neutral=False):
         if len(findings)>=512: raise CaseError('transport finding budget exceeded')
@@ -190,7 +226,9 @@ def analyze(request):
         if any(part is None for part in parts): gaps.add('missing_prefix_or_vrf'); continue
         if parts[0]['row']['value']!=parts[1]['row']['value'] or parts[2]['row']['value']!=parts[3]['row']['value']: gaps.add('missing_prefix_or_vrf'); continue
         if failures:
-            add('route_service_correlation',[item]+parts+[failures[0]],'The source reported a matching route withdrawal and scoped service failure.',pass_evidence(item))
+            flow = _one(valid,'flow_scope',item,gaps)
+            if not flow: gaps.add('missing_flow_scope'); continue
+            add('route_service_correlation',[item]+parts+[flow,failures[0]],'The source reported a matching route withdrawal and scoped service failure.',pass_evidence(item))
     counter_items = [item for item in observations if item['row']['metric'] in COUNTERS]
     for item in counter_items:
         row=item['row']; semantics=row['counter_semantics']
@@ -211,8 +249,8 @@ def analyze(request):
             if work>262144: raise CaseError('counter comparison budget exceeded')
             if a['row']['metric']==b['row']['metric'] and _identity(a,b) and _ordered(a,b) and not _same(a,b): gaps.add('incompatible_counter_samples')
             if a['row']['metric']==b['row']['metric'] and _same(a,b) and _ordered(a,b) and b['row']['value']>a['row']['value'] and not conflicting(a) and not conflicting(b):
+                if _counter_discontinuities(a,b,counter_items): gaps.add('counter_discontinuity'); continue
                 increments.append((a,b)); add('counter_increase',[a,b],'A comparable source-reported counter increased.',pass_evidence(b),True)
-    windows = _windows(request,usable,gaps)
     for a,b in increments:
         if a['row']['metric'] not in ('queue_drops','qos_class_drops'): continue
         drop_key = tuple(sorted((a['key'],b['key']))); drop_window = windows.get(drop_key)
@@ -229,10 +267,18 @@ def analyze(request):
                 if util_key not in windows: gaps.add('missing_measurement_window')
                 continue
             if not _same_boundaries(util_window,drop_window): gaps.add('incompatible_window'); continue
-            agg = util_window['aggregation']['row']['value']; matches=[]
+            agg = util_window['aggregation']['row']['value']; matches=[]; disputed=False
             for profile in request['transport_profiles']:
                 chosen=_profile(profile,util['resource'],util['row']['direction'],agg,util['row']['unit'],evidence,runs,request,reference,start,end)
-                if chosen and all(_inside_interval(item['carrier'],timestamp(profile['valid_from']),timestamp(profile['valid_until'])) for item in (a,b,util)): matches.append(chosen)
+                if chosen and all(_inside_interval(item['carrier'],timestamp(profile['valid_from']),timestamp(profile['valid_until'])) for item in (a,b,util)):
+                    conflicts = _profile_conflicts(profile,chosen,evidence,runs,request,reference,start,end)
+                    if conflicts:
+                        disputed=True
+                        gaps.add('conflicting_observations')
+                        add('profile_conflict',list(chosen),'The source reported conflicting transport profile facts.',conflicts,True)
+                        continue
+                    matches.append(chosen)
+            if disputed: continue
             if not matches: gaps.add('missing_transport_profile'); continue
             if len({entry[0]['row']['value'] for entry in matches})>1: gaps.add('conflicting_observations'); continue
             limit,profile_agg=matches[0]

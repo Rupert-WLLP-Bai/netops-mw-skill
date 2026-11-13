@@ -77,6 +77,14 @@ class TransportTests(unittest.TestCase):
         request=scenario['request']; request['runs']=[runs[run['run_id']] for run in request['runs']]
         return request
 
+    def replace_fixture_run(self, request, name, config_path, data):
+        config=json.loads(config_path.read_text()); source=self.root/(name+'-source'); source.mkdir()
+        (source/'input.json').write_text(json.dumps(data)); out=self.root/(name+'-out')
+        proc=subprocess.run([sys.executable,'-B',str(INGEST),'--source-root',str(source),'--source','input.json','--config',str(config_path),'--out',str(out),'--private-out',str(self.root/(name+'-private'))],capture_output=True,text=True)
+        self.assertEqual(proc.returncode,0,proc.stderr); self.assertEqual(json.loads(proc.stdout)['parse_status'],'complete')
+        replacement=dict(run_id=config['run_id'],run_dir=str(out),expected_summary_hashes={key:hashlib.sha256((out/key).read_bytes()).hexdigest() for key in SUMMARIES})
+        request['runs']=[replacement if run['run_id']==config['run_id'] else run for run in request['runs']]
+
     def test_bgp_event_is_neutral_and_preserves_real_service_pass(self):
         request = self.add_run(self.base(),'events1',[self.row('bgp_peer_state','down'),self.row('service_operation','pass')])
         result = self.analyze(request)
@@ -87,15 +95,50 @@ class TransportTests(unittest.TestCase):
         self.assertNotIn(str(self.root),json.dumps(result))
 
     def test_route_correlation_requires_matching_prefix_vrf_and_failure(self):
-        rows = [self.row('route_state','withdrawn'),self.row('route_prefix','prefix-a'),self.row('service_prefix','prefix-a'),self.row('route_vrf','vrf-a'),self.row('service_vrf','vrf-a'),self.row('forwarding_state','fail')]
+        rows = [self.row('route_state','withdrawn'),self.row('route_prefix','prefix-a'),self.row('service_prefix','prefix-a'),self.row('route_vrf','vrf-a'),self.row('service_vrf','vrf-a'),self.row('forwarding_state','fail'),self.row('flow_scope','flow-a')]
         request = self.add_run(self.base(),'route1',rows)
         result = self.analyze(request)
         self.assertEqual(result['status'],'fault_observed')
         finding = next(item for item in result['findings'] if item['code']=='route_service_correlation')
-        self.assertTrue({('route1','ev-'+format(n,'012x')) for n in range(1,7)}.issubset({(r['run_id'],r['evidence_id']) for r in finding['support']}))
+        self.assertTrue({('route1','ev-'+format(n,'012x')) for n in range(1,8)}.issubset({(r['run_id'],r['evidence_id']) for r in finding['support']}))
         altered = copy.deepcopy(request); altered['bindings'][2]['source_native_id'] = 'other-alias'
         result = self.analyze(altered)
         self.assertNotIn('route_service_correlation',{item['code'] for item in result['findings']})
+
+    def test_route_ambiguous_or_missing_flow_keeps_service_failure(self):
+        rows=[self.row('route_state','withdrawn'),self.row('route_prefix','prefix-a'),self.row('service_prefix','prefix-a'),self.row('route_vrf','vrf-a'),self.row('service_vrf','vrf-a'),self.row('forwarding_state','fail')]
+        for name,flows in [('flowmissing',[]),('flowambiguous',[self.row('flow_scope','flow-a'),self.row('flow_scope','flow-b')])]:
+            result=self.analyze(self.add_run(self.base(),name,rows+flows))
+            codes={item['code'] for item in result['findings']}
+            self.assertIn('service_failure',codes); self.assertNotIn('route_service_correlation',codes)
+            self.assertIn('missing_flow_scope',result['gaps'])
+            if flows: self.assertIn('conflicting_observations',result['gaps'])
+
+    def test_reverse_aggregate_requires_compatible_declared_windows(self):
+        for name,minute,aggregation in [('windowgood','06','mean'),('windowbad','07','mean'),('windowagg','06','max')]:
+            rows=[self.row('interface_utilization',90,unit='percent',direction='ingress'),self.row('interface_utilization',90,unit='percent',direction='egress')]
+            for direction,start,value in [('ingress','06','mean'),('egress',minute,aggregation)]:
+                rows.extend([self.row('window_start','declared',direction=direction,event_time=f'2026-01-01T00:{start}:00Z'),self.row('window_end','declared',direction=direction),self.row('window_aggregation',value,direction=direction)])
+            request=self.add_run(self.base(),name,rows)
+            def ref(index): return dict(run_id=name,evidence_id='ev-'+format(index,'012x'))
+            request['measurement_windows']=[dict(subjects=[ref(1)],start_evidence=ref(3),end_evidence=ref(4),aggregation_evidence=ref(5)),dict(subjects=[ref(2)],start_evidence=ref(6),end_evidence=ref(7),aggregation_evidence=ref(8))]
+            result=self.analyze(request)
+            if name=='windowgood': self.assertNotIn('missing_reverse_direction',result['gaps'])
+            else:
+                self.assertIn('missing_reverse_direction',result['gaps']); self.assertIn('incompatible_window',result['gaps'])
+            if name=='windowgood':
+                missing=copy.deepcopy(request); missing['measurement_windows'].pop()
+                gaps=self.analyze(missing)['gaps']; self.assertIn('missing_measurement_window',gaps); self.assertIn('missing_reverse_direction',gaps)
+                ambiguous=copy.deepcopy(request); ambiguous['measurement_windows'].append(copy.deepcopy(ambiguous['measurement_windows'][0]))
+                gaps=self.analyze(ambiguous)['gaps']; self.assertIn('ambiguous_measurement_window',gaps); self.assertIn('missing_reverse_direction',gaps)
+
+    def test_missing_gauge_samples_are_reported_despite_other_coverage(self):
+        for index,count in enumerate((None,0,0.0,1,1.0)):
+            rows=[self.row('service_operation','fail'),self.row('service_operation','pass',direction='egress'),self.row('interface_utilization',90,unit='percent',sample_count=count)]
+            result=self.analyze(self.add_run(self.base(),'missinggauge'+str(index),rows))
+            if not count: self.assertIn('missing_sample_count',result['gaps'])
+            else: self.assertNotIn('missing_sample_count',result['gaps'])
+            self.assertIn('service_failure',{item['code'] for item in result['findings']})
 
     def test_unknown_control_reverse_and_utf8_are_bounded(self):
         request = self.add_run(self.base(),'unknown1',[self.row('bgp_peer_state','down'),self.row('unlisted_metric',None,direction='egress',sample_count=0)])
@@ -228,6 +271,38 @@ class TransportTests(unittest.TestCase):
         result=self.analyze(bad_end)
         self.assertNotIn('queue_condition',{item['code'] for item in result['findings']})
         self.assertIn('incompatible_window',result['gaps'])
+
+    def test_counter_discontinuity_inside_interval_blocks_queue_but_unrelated_does_not(self):
+        root=ROOT/'tests/fixtures/carrier-m4'; source=root/'cases/case-005/sources/observations.json'
+        config=root/'sources/observations/config.json'
+        variants=[('reset','reset','cumulative','00:05:30','egress','queue_drops',True),('wrap','wrap','cumulative','00:05:30','egress','queue_drops',True),('unknown','unknown','unknown','00:05:30','egress','queue_drops',True),('outside','reset','cumulative','00:04:00','egress','queue_drops',False),('otherdirection','reset','cumulative','00:05:30','ingress','queue_drops',False),('othermetric','reset','cumulative','00:05:30','egress','interface_crc',False)]
+        for name,state,semantics,time,direction,metric,blocks in variants:
+            with self.subTest(name=name):
+                request=self.materialize_fixture('case-005',name); data=json.loads(source.read_text())
+                row=dict(data['records'][1],value=5,reset_state=state,counter_semantics=semantics,event_time='2026-11-13T'+time+'Z',direction=direction,metric=metric)
+                data['records'].append(row); self.replace_fixture_run(request,'counter-'+name,config,data)
+                binding=copy.deepcopy(request['bindings'][1]); binding['record']['evidence_id']='ev-00000000000b'; request['bindings'].append(binding)
+                result=self.analyze(request); codes={item['code'] for item in result['findings']}
+                if blocks:
+                    self.assertNotIn('counter_increase',codes); self.assertNotIn('queue_condition',codes); self.assertIn('counter_discontinuity',result['gaps'])
+                else: self.assertIn('queue_condition',codes)
+
+    def test_conflicting_imported_profile_is_counterevidence_not_a_queue_fault(self):
+        root=ROOT/'tests/fixtures/carrier-m4/sources/profile'
+        for name,index,value in [('limit',0,95),('aggregation',1,'max'),('other-time',0,95)]:
+            with self.subTest(field=name):
+                request=self.materialize_fixture('case-005','profile'+name)
+                data=json.loads((root/'input.json').read_text()); opposing=dict(data['records'][index],value=value)
+                if name=='other-time': opposing['event_time']='2026-11-13T00:04:00Z'
+                data['records'].append(opposing)
+                self.replace_fixture_run(request,'profile-'+name,root/'config.json',data)
+                result=self.analyze(request); codes={item['code'] for item in result['findings']}
+                if name=='other-time':
+                    self.assertIn('queue_condition',codes); self.assertNotIn('profile_conflict',codes); continue
+                self.assertNotIn('queue_condition',codes); self.assertEqual(result['status'],'insufficient_evidence')
+                conflict=next(item for item in result['findings'] if item['code']=='profile_conflict')
+                self.assertIn(dict(run_id='m4-profile',evidence_id='ev-000000000003'),conflict['counterevidence'])
+                self.assertIn('conflicting_observations',result['gaps'])
 
     def test_missing_qos_class_blocks_class_condition(self):
         request=self.materialize_fixture('case-006')
