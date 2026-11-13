@@ -51,6 +51,15 @@ An agreement that defines measurable service commitments and the conditions unde
 **Acceptance criterion**:
 A stated condition used to decide whether a service or delivery result meets its agreed requirements.
 
+**Acceptance test matrix**:
+A set of required service tests that associates each criterion with its measurement point, direction, method, window and observed result.
+
+**Service acceptance**:
+An authorized decision that a delivered service meets its agreed requirements and handover obligations. Technical test results support that decision; a draft report does not supply human signoff.
+
+**Change review**:
+An assessment of a proposed or completed network change, including scope, impact, approval, prechecks, rollback conditions and postchecks.
+
 **Evidence binding**:
 An explicit, time-bounded declaration associating a source observation with a service and resource.
 

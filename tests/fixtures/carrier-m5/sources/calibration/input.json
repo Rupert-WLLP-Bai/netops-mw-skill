@@ -1,0 +1,8 @@
+{"format":"telemetry-json-v1","version":1,"records":[
+{"metric":"calibration_status","value":"valid","unit":null,"direction":"unknown","denominator":null,"sample_interval_seconds":null,"sample_count":1,"counter_semantics":"gauge","reset_state":"none","event_time":"2026-11-13T00:09:00Z","object_id":"fixture-instrument-a"},
+{"metric":"static_current","value":"current","unit":null,"direction":"unknown","denominator":null,"sample_interval_seconds":null,"sample_count":1,"counter_semantics":"gauge","reset_state":"none","event_time":"2026-11-13T00:09:00Z","object_id":"fixture-instrument-a"},
+{"metric":"static_valid_from","value":1793404800,"unit":"unix_s","direction":"unknown","denominator":null,"sample_interval_seconds":null,"sample_count":1,"counter_semantics":"gauge","reset_state":"none","event_time":null,"object_id":"fixture-instrument-a"},
+{"metric":"static_valid_until","value":1796083200,"unit":"unix_s","direction":"unknown","denominator":null,"sample_interval_seconds":null,"sample_count":1,"counter_semantics":"gauge","reset_state":"none","event_time":null,"object_id":"fixture-instrument-a"},
+{"metric":"calibration_start","value":1793404800,"unit":"unix_s","direction":"unknown","denominator":null,"sample_interval_seconds":null,"sample_count":1,"counter_semantics":"gauge","reset_state":"none","event_time":null,"object_id":"fixture-instrument-a"},
+{"metric":"calibration_end","value":1796083200,"unit":"unix_s","direction":"unknown","denominator":null,"sample_interval_seconds":null,"sample_count":1,"counter_semantics":"gauge","reset_state":"none","event_time":null,"object_id":"fixture-instrument-a"}
+]}

@@ -1,0 +1,484 @@
+{
+  "schema_version": 1,
+  "license": "Apache-2.0",
+  "origin": "Self-authored synthetic M5 service-delivery and change-review fixture templates and expected outcomes. No customer, subscriber, circuit, site, device, address, credential, vendor sample, real contract, or third-party test data are included.",
+  "upstream_data_sources": [],
+  "parser_libraries_reused": [],
+  "source_contract": "Generic M2 telemetry-json-v1 and topology-json-v1 inputs, with source-qualified synthetic order, actual, criterion, measurement, calibration, mapping, and change declarations.",
+  "boundary": "Scenario files contain developer-only source paths, row keys, and request templates. The harness materializes M2 runs and resolves logical IDs from evidence IDs actually emitted by the importer. The analyzer receives only resolved requests and checked run bundles. The separate oracle and raw source templates are never analyzer input; this directory separation is not an OS isolation boundary.",
+  "synthetic_value_notice": "All numeric criteria, profile values, dates, and test results are fabricated solely to exercise source-backed comparisons. They are not universal thresholds, vendor requirements, or service recommendations.",
+  "source_reference_rule": "Every evidence reference in requests/oracle is a logical `$row` marker resolved by the harness against emitted M2 evidence IDs. Staged equivalence source templates use `$ID`/`$RUN_ID` placeholders resolved from prerequisite emitted runs; no evidence IDs are inferred from decimal indices.",
+  "case_descriptions": [
+    {
+      "case_id": "case-001",
+      "intent": "Incomplete service order leaves required fields and criteria unverified."
+    },
+    {
+      "case_id": "case-002",
+      "intent": "Source-backed A-side VLAN differs from its approved design; no port or cause is inferred."
+    },
+    {
+      "case_id": "case-003",
+      "intent": "Source-backed A-side VRF differs from its approved design; no cross-VRF reachability is inferred."
+    },
+    {
+      "case_id": "case-004",
+      "intent": "Endpoint A actual evidence is deliberately bound to endpoint B topology and cannot be remapped by label."
+    },
+    {
+      "case_id": "case-005",
+      "intent": "A-to-B measured throughput is below its source-backed synthetic criterion."
+    },
+    {
+      "case_id": "case-006",
+      "intent": "Only A-to-B test evidence is requested; B-to-A remains independently unverified."
+    },
+    {
+      "case_id": "case-007",
+      "intent": "A required criterion method reference is absent; no method is guessed."
+    },
+    {
+      "case_id": "case-008",
+      "intent": "Post-change review omits approval, precheck, and postcheck evidence while technical test evidence is incomplete."
+    },
+    {
+      "case_id": "case-009",
+      "intent": "Complete positive control matches all 21 field targets and five capability criteria in both absolute directions, with distinct legitimate endpoint VLANs and required calibration evidence."
+    },
+    {
+      "case_id": "case-010",
+      "intent": "Complete pre-change draft includes a future planned window, current prechecks, approval state, rollback metadata, and sourced postcheck plans without future results."
+    },
+    {
+      "case_id": "case-011",
+      "intent": "Complete post-change review has approval chronology, same-point scoped pre/post checks, a mapped direction, and no execution or recovery claim."
+    },
+    {
+      "case_id": "case-012",
+      "intent": "Endpoint B actual configuration is absent despite the full approved field inventory and endpoint A evidence."
+    },
+    {
+      "case_id": "case-013",
+      "intent": "Approved criterion inventory includes an L3 MTU criterion omitted from the caller request."
+    },
+    {
+      "case_id": "case-014",
+      "intent": "A stale actual throughput sample is compared against a separately valid static design and criterion."
+    },
+    {
+      "case_id": "case-015",
+      "intent": "One static field target is outside its dated validity interval at the request reference time."
+    },
+    {
+      "case_id": "case-016",
+      "intent": "Calibration validity ends before the measured test window."
+    },
+    {
+      "case_id": "case-017",
+      "intent": "All technical field and test requirements pass, but a requested post-change review omits its required postcheck window end; acceptance remains blocked."
+    }
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "bytes": 11357
+    },
+    {
+      "path": "cases/case-001/scenario.json",
+      "sha256": "d48f92ed21b8abeff81b711c6ddef944a192a952c1d75ca45b41c3933805d0b2",
+      "bytes": 1254
+    },
+    {
+      "path": "cases/case-002/scenario.json",
+      "sha256": "70e819fc98c236fea0e4183c395139921ac5ffe574604576d8da85890e1fddf8",
+      "bytes": 406922
+    },
+    {
+      "path": "cases/case-002/sources/actual-fields/config.json",
+      "sha256": "f014a4eb90055f8d113b4b5270e3ffdfd289cd2825e707b4c34e3e94793378f2",
+      "bytes": 2848
+    },
+    {
+      "path": "cases/case-002/sources/actual-fields/input.json",
+      "sha256": "feaf35479261be58e94d8660f7766019b2960da0d6edd19ea9cd5f42847c959f",
+      "bytes": 12112
+    },
+    {
+      "path": "cases/case-002/sources/actual-fields/row_keys.json",
+      "sha256": "2738fae780e23a0ea9088b9020a0e0aa3bf206605713837152436068386a2948",
+      "bytes": 1263
+    },
+    {
+      "path": "cases/case-002/sources/equivalence/config.template.json",
+      "sha256": "a2dd51d3679e6dcd0ef4f8fd0f1a4c9f83f92982dd0728b71b95c2379a416a5a",
+      "bytes": 3324
+    },
+    {
+      "path": "cases/case-002/sources/equivalence/input.template.json",
+      "sha256": "364eab476427398f73ca7a9535d5705fb3f7db4ef96321adf5c745ef3b35f90c",
+      "bytes": 35724
+    },
+    {
+      "path": "cases/case-002/sources/equivalence/row_keys.json",
+      "sha256": "5c9fb4ded921a0d527bd5397cd98467f1355d3acf1cbf0a31dfc2220ef88b552",
+      "bytes": 4275
+    },
+    {
+      "path": "cases/case-003/scenario.json",
+      "sha256": "bfaae71d95dd2f687cc87eaa3434441e5eded53371447eb4b7a448fa4ff5c802",
+      "bytes": 406922
+    },
+    {
+      "path": "cases/case-003/sources/actual-fields/config.json",
+      "sha256": "02d6e9c66d625a546a96676cacd815cf7dfdd3671e26cab6c54f0de40a3babd2",
+      "bytes": 2847
+    },
+    {
+      "path": "cases/case-003/sources/actual-fields/input.json",
+      "sha256": "09b798212d1e739352fbb28c78b921deffc9fa41a073fedee2771f07171a8290",
+      "bytes": 12111
+    },
+    {
+      "path": "cases/case-003/sources/actual-fields/row_keys.json",
+      "sha256": "2738fae780e23a0ea9088b9020a0e0aa3bf206605713837152436068386a2948",
+      "bytes": 1263
+    },
+    {
+      "path": "cases/case-003/sources/equivalence/config.template.json",
+      "sha256": "a2dd51d3679e6dcd0ef4f8fd0f1a4c9f83f92982dd0728b71b95c2379a416a5a",
+      "bytes": 3324
+    },
+    {
+      "path": "cases/case-003/sources/equivalence/input.template.json",
+      "sha256": "e8028f97dbff4e499b7e0cb800cc7d3fffa4ea514d1ff579f41a8a226ced3fa2",
+      "bytes": 35724
+    },
+    {
+      "path": "cases/case-003/sources/equivalence/row_keys.json",
+      "sha256": "5c9fb4ded921a0d527bd5397cd98467f1355d3acf1cbf0a31dfc2220ef88b552",
+      "bytes": 4275
+    },
+    {
+      "path": "cases/case-004/scenario.json",
+      "sha256": "1fb423938f138387960ce9ec18cf0927402250a3315326cb5a8fa11c10f21b91",
+      "bytes": 406892
+    },
+    {
+      "path": "cases/case-004/sources/actual-fields/config.json",
+      "sha256": "97311ae1a4179c00b93aded41ea57bcc4c3ee55a6e29ea0242d9c247792ce888",
+      "bytes": 2833
+    },
+    {
+      "path": "cases/case-004/sources/actual-fields/input.json",
+      "sha256": "d8c8a38e2792b87282c262b7db772438b65c6e02c8a8b8e37ee6ca9ab781e30e",
+      "bytes": 12110
+    },
+    {
+      "path": "cases/case-004/sources/actual-fields/row_keys.json",
+      "sha256": "2738fae780e23a0ea9088b9020a0e0aa3bf206605713837152436068386a2948",
+      "bytes": 1263
+    },
+    {
+      "path": "cases/case-005/scenario.json",
+      "sha256": "87d4c5c1f603efb54b9be67ab387ad6b903f04d56dc299ea25654f91a2d102c0",
+      "bytes": 406892
+    },
+    {
+      "path": "cases/case-005/sources/actual-tests/config.json",
+      "sha256": "66716900a0b479ba9a9c4e1bb441f9ec8981cf36cdb17561e6bda05a47db9f4f",
+      "bytes": 1586
+    },
+    {
+      "path": "cases/case-005/sources/actual-tests/input.json",
+      "sha256": "919cd3182465ea8effa88e4d4b6979ae1a0aa8607a7ccc6bb3449620a6c8570e",
+      "bytes": 19840
+    },
+    {
+      "path": "cases/case-005/sources/actual-tests/row_keys.json",
+      "sha256": "da2a65a705ebb62b9a98f5707c8e417cc80861875d9221790fd8d72f7b21a31e",
+      "bytes": 1907
+    },
+    {
+      "path": "cases/case-006/scenario.json",
+      "sha256": "77280b7bab87b9677477101355c231a21921e275e1a72ad81c045474bc47cf8a",
+      "bytes": 395677
+    },
+    {
+      "path": "cases/case-007/scenario.json",
+      "sha256": "d2ec989e4327d619c63504939ec87e6afe99ee1e44a49fc0733c664ee292be2b",
+      "bytes": 406711
+    },
+    {
+      "path": "cases/case-008/scenario.json",
+      "sha256": "2384cf18e5b598ebeaffe2710110994e57a34bf410974281ec0e06935b7f5dcc",
+      "bytes": 415732
+    },
+    {
+      "path": "cases/case-009/scenario.json",
+      "sha256": "8f49a3ff91d90c8bc99b387ee32a299dcab33bfdb36c499d9a790f3bffa0b7ec",
+      "bytes": 406841
+    },
+    {
+      "path": "cases/case-010/scenario.json",
+      "sha256": "754c0bf475757ac98b4e6d00d93bc4b2fb65d1b10b65c7fb651133fc856c0f3d",
+      "bytes": 427628
+    },
+    {
+      "path": "cases/case-011/scenario.json",
+      "sha256": "a6f15b7cf47d36b0b29e6797df90f2d6c785793069bf4e07547658e53922e0cc",
+      "bytes": 432745
+    },
+    {
+      "path": "cases/case-012/scenario.json",
+      "sha256": "2379b6af05791ad656da729886efdc76e42317f17bebc73fafebddc03d623763",
+      "bytes": 377982
+    },
+    {
+      "path": "cases/case-012/sources/actual-fields/config.json",
+      "sha256": "04d9312b717931f4d465e8d90ff7c83bf20117232c207a92ca3d01468b1915a7",
+      "bytes": 2284
+    },
+    {
+      "path": "cases/case-012/sources/actual-fields/input.json",
+      "sha256": "e8c5c5007e6646a2c53130a2f874d480f9eee9dee1004b317eb1f0165b25672f",
+      "bytes": 6950
+    },
+    {
+      "path": "cases/case-012/sources/actual-fields/row_keys.json",
+      "sha256": "f8a7fc4862bd5090c2d92318337d74a0c145c3bf62da18259780b41b5f44b6b3",
+      "bytes": 723
+    },
+    {
+      "path": "cases/case-012/sources/equivalence/config.template.json",
+      "sha256": "36a518e0b0053745fe018693dd21c3062254c5e8ec7b8aaa0ff2923996d976d1",
+      "bytes": 2220
+    },
+    {
+      "path": "cases/case-012/sources/equivalence/input.template.json",
+      "sha256": "c28af1b591f8e313b456206231bf49f673cd3972c084633460c6a449d762377a",
+      "bytes": 20117
+    },
+    {
+      "path": "cases/case-012/sources/equivalence/row_keys.json",
+      "sha256": "4a7861f72f39778de3bf8bdfb9be0793dbfd279480fcb4701716e9ee9ccd7b5a",
+      "bytes": 2406
+    },
+    {
+      "path": "cases/case-013/scenario.json",
+      "sha256": "d87e875e1648e177540beb9ac25b3f880de2781a772aa355b3a3618a9d8d71e2",
+      "bytes": 401446
+    },
+    {
+      "path": "cases/case-014/scenario.json",
+      "sha256": "65068f60ac542610f708f26b5dce554ab8144a802cdf7a0bf5b775dc8cc946db",
+      "bytes": 406891
+    },
+    {
+      "path": "cases/case-014/sources/actual-tests/config.json",
+      "sha256": "66716900a0b479ba9a9c4e1bb441f9ec8981cf36cdb17561e6bda05a47db9f4f",
+      "bytes": 1586
+    },
+    {
+      "path": "cases/case-014/sources/actual-tests/input.json",
+      "sha256": "c56613bf14f3481cd1d6c34e1cb9fadaef967f2e3cef8db8f3b218e5a3e8d2e6",
+      "bytes": 19841
+    },
+    {
+      "path": "cases/case-014/sources/actual-tests/row_keys.json",
+      "sha256": "da2a65a705ebb62b9a98f5707c8e417cc80861875d9221790fd8d72f7b21a31e",
+      "bytes": 1907
+    },
+    {
+      "path": "cases/case-015/scenario.json",
+      "sha256": "353b06964bff6587866e128513d2fe3bb8b40491c7400eeb2b77cb4dbf9ef96c",
+      "bytes": 406892
+    },
+    {
+      "path": "cases/case-015/sources/design/config.json",
+      "sha256": "d6b214dc50bedb34829ab87cc409374d851375c0f5d72de690056b292abe0965",
+      "bytes": 2901
+    },
+    {
+      "path": "cases/case-015/sources/design/input.json",
+      "sha256": "5cb420905b5c1719d2fa818a695585e652a6e020eaf9913237be0aa07f95b2cb",
+      "bytes": 30005
+    },
+    {
+      "path": "cases/case-015/sources/design/row_keys.json",
+      "sha256": "53a1bad404c80d801f57a127935ff7567ed71fe30adecd53d3af2169885474d9",
+      "bytes": 3598
+    },
+    {
+      "path": "cases/case-016/scenario.json",
+      "sha256": "c773055d11a24d32e3351682f61edd6e9a557177ba15554b1d3fce8008f4d50c",
+      "bytes": 406892
+    },
+    {
+      "path": "cases/case-016/sources/calibration/config.json",
+      "sha256": "28c4d1c9310d80caaf41fb0446fe310b7d65ccc68e5a8c2a9f6d7a5441de1278",
+      "bytes": 664
+    },
+    {
+      "path": "cases/case-016/sources/calibration/input.json",
+      "sha256": "ce2a5e917c4a7dc3d1515812d30a79a545f43980e73c16a517d1f862272a4439",
+      "bytes": 1625
+    },
+    {
+      "path": "cases/case-016/sources/calibration/row_keys.json",
+      "sha256": "7a5d9b4e24d12cb856041e365763d164dfc3b69ff35bad0b5d4bf56ae2667bdc",
+      "bytes": 105
+    },
+    {
+      "path": "cases/case-017/scenario.json",
+      "sha256": "afb60177e252ed6542e4dd2c6723b028a96ee894bbcb667b33738c50f2926b2d",
+      "bytes": 432621
+    },
+    {
+      "path": "materialize_refs.py",
+      "sha256": "5086810e9eedf0fbdd69cdde9ec15b9a2b898010b5ac22c4890147da06e10f9a",
+      "bytes": 3438
+    },
+    {
+      "path": "oracle/expected.json",
+      "sha256": "d7567d439bfa15636aa1a094279e2a06b862bc4b0b22bee7743dce24d8881edb",
+      "bytes": 13236
+    },
+    {
+      "path": "sources/actual-fields/config.json",
+      "sha256": "97311ae1a4179c00b93aded41ea57bcc4c3ee55a6e29ea0242d9c247792ce888",
+      "bytes": 2833
+    },
+    {
+      "path": "sources/actual-fields/input.json",
+      "sha256": "d8c8a38e2792b87282c262b7db772438b65c6e02c8a8b8e37ee6ca9ab781e30e",
+      "bytes": 12110
+    },
+    {
+      "path": "sources/actual-fields/row_keys.json",
+      "sha256": "cb46c9f5a574ce51332d49862bab2ba0e602abe61ed126ed74fdfd285f6ae820",
+      "bytes": 1136
+    },
+    {
+      "path": "sources/actual-tests/config.json",
+      "sha256": "66716900a0b479ba9a9c4e1bb441f9ec8981cf36cdb17561e6bda05a47db9f4f",
+      "bytes": 1586
+    },
+    {
+      "path": "sources/actual-tests/input.json",
+      "sha256": "6b317e3e99c353d4374fba1dea673dba7fa81ecb5aadb69f16701992c5504cd2",
+      "bytes": 19841
+    },
+    {
+      "path": "sources/actual-tests/row_keys.json",
+      "sha256": "da2a65a705ebb62b9a98f5707c8e417cc80861875d9221790fd8d72f7b21a31e",
+      "bytes": 1907
+    },
+    {
+      "path": "sources/calibration/config.json",
+      "sha256": "28c4d1c9310d80caaf41fb0446fe310b7d65ccc68e5a8c2a9f6d7a5441de1278",
+      "bytes": 664
+    },
+    {
+      "path": "sources/calibration/input.json",
+      "sha256": "6d2163949eac930e59423f7ac896dc61452dc8eaa68e8aff9e2295603a009310",
+      "bytes": 1625
+    },
+    {
+      "path": "sources/calibration/row_keys.json",
+      "sha256": "7a5d9b4e24d12cb856041e365763d164dfc3b69ff35bad0b5d4bf56ae2667bdc",
+      "bytes": 105
+    },
+    {
+      "path": "sources/change-plan/config.json",
+      "sha256": "993742c33c47cb66e7523c874a206ed2adbf6521844fb99d9d28c5415ff429db",
+      "bytes": 1618
+    },
+    {
+      "path": "sources/change-plan/input.json",
+      "sha256": "8ef626bbd9051699563788e24446cf4a354d9efbe45cf71a92f3371b1922738f",
+      "bytes": 6571
+    },
+    {
+      "path": "sources/change-plan/row_keys.json",
+      "sha256": "8ec29e11763b8b2d0414dd0d0628d16b2faa9ab3968a856cde7fd1bc7d07bca5",
+      "bytes": 456
+    },
+    {
+      "path": "sources/change-post/config.json",
+      "sha256": "643e76bbad223f0f0b9cf63e45d9f3b1609d3748db5acd58f838df69856e41a1",
+      "bytes": 1857
+    },
+    {
+      "path": "sources/change-post/input.json",
+      "sha256": "7a3af537e23e7bb6f9db975dca421f62b990de05099f600ea286f7ed5bdb7547",
+      "bytes": 8178
+    },
+    {
+      "path": "sources/change-post/row_keys.json",
+      "sha256": "9c539972c8a3fbc0a557a7f9ff4e70c927859558881a33714b51c3fe4e3745e7",
+      "bytes": 563
+    },
+    {
+      "path": "sources/criteria/config.json",
+      "sha256": "42876543bfcea81a4cd90960d4a00f530b55ac576d0fa8a2df9b76d96762af65",
+      "bytes": 1922
+    },
+    {
+      "path": "sources/criteria/input.json",
+      "sha256": "d7f30d384d984851ebbb8fffa9392ccb5af671e290d189a15e932f9596a75e01",
+      "bytes": 20428
+    },
+    {
+      "path": "sources/criteria/row_keys.json",
+      "sha256": "de944b2c703c603c7af789384626147828d86a1d566c46642c6b6f6d2473bc34",
+      "bytes": 1798
+    },
+    {
+      "path": "sources/design/config.json",
+      "sha256": "d6b214dc50bedb34829ab87cc409374d851375c0f5d72de690056b292abe0965",
+      "bytes": 2901
+    },
+    {
+      "path": "sources/design/input.json",
+      "sha256": "bc81b28496057e7e4586b98077f52fad32d858de911a7eb0469a500ecf3216ac",
+      "bytes": 30005
+    },
+    {
+      "path": "sources/design/row_keys.json",
+      "sha256": "53a1bad404c80d801f57a127935ff7567ed71fe30adecd53d3af2169885474d9",
+      "bytes": 3598
+    },
+    {
+      "path": "sources/equivalence/config.template.json",
+      "sha256": "fb16e7cb78bd3e50ecf8b1e73095dd729f72a0d2c4f04c4427f0f5295c58d7e4",
+      "bytes": 3303
+    },
+    {
+      "path": "sources/equivalence/input.template.json",
+      "sha256": "896359acd2340d60ffdd919440de73719b10fbd8499a4672610128eb47417e6a",
+      "bytes": 35720
+    },
+    {
+      "path": "sources/equivalence/row_keys.json",
+      "sha256": "5c9fb4ded921a0d527bd5397cd98467f1355d3acf1cbf0a31dfc2220ef88b552",
+      "bytes": 4275
+    },
+    {
+      "path": "sources/topology/config.json",
+      "sha256": "fb36390ba1d2034c859e9cf84aef257ef8bf48abae4a3f6f57941d4dacef7337",
+      "bytes": 700
+    },
+    {
+      "path": "sources/topology/input.json",
+      "sha256": "308a0f23a19e3fe00d2a3fceabc0819dc0df6de73bae60d47f05de4e5a2f372a",
+      "bytes": 1306
+    },
+    {
+      "path": "sources/topology/row_keys.json",
+      "sha256": "3f4f53a7fb77541b3f16aab5bab7f2b6e876c2737457d1eca22b0859fdad59f1",
+      "bytes": 26
+    }
+  ],
+  "digest_scope": "SHA-256 values cover every fixture/helper/license file except this manifest. Recompute after any source, scenario, oracle, or helper change."
+}

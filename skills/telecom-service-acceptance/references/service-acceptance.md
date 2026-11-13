@@ -1,0 +1,72 @@
+# Service acceptance and change review
+
+Use this reference when reviewing an order, turn-up, acceptance test, or change from supplied evidence. It is a manual workflow and does not depend on an installed analyzer.
+
+## Establish service scope
+
+Record the selected service, its explicitly mapped circuit, endpoint A site, endpoint B site, measurement points, review window, reference time, and direction. Keep IDs pseudonymous. Establish explicit, verified declarations for service-to-circuit, service-to-endpoint-A, service-to-endpoint-B, and each site-to-measurement-point relation. A source record or topology assertion is evidence of what its source declares; it does not authenticate a real-world relationship.
+
+Treat A and B as separately sourced roles. Require a source-backed mapping from each measurement point's relative ingress/egress to the applicable absolute `A_to_B` or `B_to_A` direction. Require both directions when criteria call for both. Do not infer endpoint order from names, registry order, topology appearance, or ingress/egress alone. If the service, circuit, site, point, or mapping is missing, conflicting, stale, or ambiguous, leave the affected comparison unverified.
+
+## Preserve provenance and time
+
+For every material record, capture its run-qualified reference, source and source-native identity, service/resource binding, event time, collection time, clock quality and uncertainty, units, sample count, and validity. Separate static order/design/criterion records from actual measurements. Actual evidence must be fresh for the requested review window and bound to the selected service and correct target. A previously checked run is not proof of current freshness.
+
+An old static design is not current just because it was recently collected. Use explicitly source-backed current authority or validity values for its source namespace; preserve unknown original event time as unknown. A business date or validity endpoint is a sourced value, not an observation timestamp. Never replace an unknown order or approval date with collection time or move a future deadline into `event_time`. Source assertions and operator mappings remain unauthenticated.
+
+Keep contradictory and counterevidence visible. Do not infer identity from matching labels across sources. A cross-source alias comparison needs a precise, source-backed equivalence record naming both source references. Compare only the exact supported field, target, type, unit, and scope. No unit conversion, subnet containment, inferred QinQ translation, or arbitrary text equivalence.
+
+## Inventory the complete expected service
+
+Use a current, approved source-backed field inventory. Compare its declared count and exact entry set with all matching entries in the selected checked run. Match each inventory item to exactly one request declaration; caller omission cannot make a requirement optional. Preserve unsupported or unknown requirements as gaps.
+
+Expose any approved inventory entry omitted from the request as a traceable missing requirement containing its kind (`field`, `criterion`, or `change_check`), controlled inventory ID, and checked requirement reference. Derive these entries only from a checked approved inventory; if that inventory is missing or unusable, report no invented missing entries.
+
+The minimum complete field set includes service targets `circuit`, `bandwidth`, and `sla_profile`, plus each of these endpoint-specific targets for both A and B: `endpoint`, `vlan`, `vrf`, `ip_prefix`, `bandwidth`, `mtu`, `qos`, `routing`, and `security`. An actual endpoint field must be tied to the correct endpoint through its explicit site and point relations. Compare A's field to A's own design and B's field to B's own design. Legitimate endpoint-specific values can differ; missing B evidence cannot be supplied from A.
+
+Use controlled aliases for VLAN/QinQ, VRF, prefixes, circuit, and endpoint identity. Do not normalize or infer equivalence. Bandwidth and MTU require finite source values with exact matching units. MTU means explicitly stated IP/L3 packet bytes, not TCP, ICMP, or application payload size. QoS, routing, and security label matches establish only those scoped supplied facts. A matching SLA profile association does not prove the SLA was met.
+
+An explicit source-backed `not_applicable` declaration and reason may be reported for human disposition. It does not silently waive an approved requirement or establish conformance on its own. Unknown applicability or unsupported targets prevent an automatic conformance conclusion.
+
+## Review SLA criteria and measurements
+
+Use a complete source-backed criterion inventory and verify its approval, count, and exact set of required entries. Inspect all matching inventory rows; a caller cannot omit an inconvenient or failed criterion. Tie each criterion to its inventory ID in the same approved source namespace; a different native identity cannot replace that entry. The supported capability categories are throughput, delay, loss, jitter, and L3 MTU. A source must explicitly identify the applicable capability and metric; availability alone or a ping does not substitute for these categories. Approved criteria must collectively require both `A_to_B` and `B_to_A` for each mandatory capability. Separate one-way criteria may provide this coverage; a matrix with only one absolute direction remains incomplete and unverified. An explicit source-backed inapplicability declaration still requires human review.
+
+Each criterion needs an explicit metric, aggregation, comparator, threshold, unit, method, minimum sample count, absolute direction, calibration policy, and approved window. Preserve the exact source-provided threshold and units. Supported aggregation labels include `mean`, `min`, `max`, `p95`, `p99`, and `single`; mean does not mean percentile. Supported comparators are `gte`, `lte`, and `eq`. A source-provided method label does not establish a standard or certify a methodology.
+
+Every actual result must be bound to the correct service, object, measurement point, and direction, and cite its measurement, method, aggregation, and explicit window boundaries. Require enough positive samples to meet the cited criterion. Actual method and aggregation must match the criterion. Measurement windows must be ordered and lie within the approved test, review, and validity windows. Collection cadence does not establish measurement coverage. Apply the cited comparator only after checking the exact metric, direction, scope, aggregation, threshold, and raw unit.
+
+For each criterion that requires both directions, require one independently mapped and measured row for `A_to_B` and another for `B_to_A`. A single direction, ingress/egress label, or successful configuration check cannot stand in for the other. If calibration is required, bind the fresh instrument observation and current-authority calibration status/start/end to the same source/resource and instrument alias; require the source-provided interval to cover the test window. Missing, expired, or contradictory required calibration leaves that result unverified.
+
+## Separate technical conformance and human acceptance
+
+Use three separate results:
+
+- `technical_status`: `conformant`, `nonconformant`, or `unverified` for the cited technical fields and criteria.
+- `human_signoff`: always `pending` in this offline review.
+- `acceptance_status`: `awaiting_human_signoff` only when technical status is conformant and any requested change review is ready for human review; otherwise `blocked`.
+
+A sourced, comparable mismatch or failed criterion may be reported as nonconformant even if other evidence is missing. Keep all independent gaps visible. Conformance requires complete approved field and criterion inventories, the service and both endpoint targets, all required criteria and absolute directions, current applicable design/SLA authority, and valid methods, samples, mappings, windows, and calibration where required. No result may say `accepted`; this workflow cannot approve service or mark recovery.
+
+For each field result, cite its required, expected, actual, actual-target, topology, and any equivalence references, along with counterevidence and gaps. For each test row, cite the mapped measurement-point alias as operator-declared observation scope, plus measurement, criterion, method, window, direction mapping, topology, instrument/calibration references, counterevidence, and gaps. This alias describes the supplied measurement vantage; it does not localize a faulty device or establish fault cause. A pass or match without real scoped evidence is not a pass. The bounded Markdown handover draft should state selected service/endpoints and review states, list field and test outcomes with their qualified refs, enumerate `missing_requirements`, include requested change scope/impact/approval/window/rollback/risk refs and check outcomes, enumerate outstanding gaps, and end with human signoff pending. Keep fixed headings and neutral prose; separate observations from interpretation, hypotheses, unresolved conflicts, and limits. Never copy source free text, raw paths, credentials, real addresses, or executable commands into a generated report.
+
+## Review changes without approving or executing them
+
+When a change is in scope, keep a local review of:
+
+- requested phase (`pre_change` or `post_change`), scope, impact, and service/resources;
+- planned start/end business-date values and their source references;
+- approval state, original event time, and approval reference;
+- required prechecks and a complete source-backed inventory of planned postchecks and criteria;
+- rollback trigger and owner; and
+- residual risks, including unknown or missing risk declarations.
+
+An approval token or configuration record is not proof of approval. In a pre-change review, a pending or approved declaration can accompany a complete draft, but it never authorizes execution. Include required prechecks and explicit postcheck plans and thresholds without inventing future results. A complete draft may be `ready_for_human_review` while signoff remains pending.
+
+In post-change review, require a source-backed approved state with known original approval time no later than the planned start. Require fresh, scoped prechecks before the planned window and actual postchecks after it; their clock uncertainty must not overlap the planned boundary. Each required check must be covered by the approved inventory. Compare actual postcheck metric, method, direction, window, and value with the source-backed plan using its stated criterion and comparator. A naked `pass` token is not evidence. Missing, failed, mismatched, or unordered required checks, incomplete rollback metadata, and unresolved risks keep the review blocked or pending human disposition.
+
+Technical status stays independent from change-review status. If a requested change review is blocked, overall acceptance remains `blocked` even if independent technical tests conform. No approval, ticket dispatch, message, device change, probe, recovery transition, or external action occurs in this workflow.
+
+## Terminology references
+
+Use primary standards only for terminology and scope. [ITU-T Y.1564](https://www.itu.int/rec/T-REC-Y.1564/en) describes an Ethernet service activation test methodology; this Skill does not claim to implement or comply with it. [ITU-T G.8013/Y.1731](https://www.itu.int/rec/T-REC-Y.1731/en) concerns Ethernet OAM functions and mechanisms; this workflow does not implement that protocol. [RFC 6349](https://www.rfc-editor.org/rfc/rfc6349.html) is an Informational framework for TCP throughput testing in managed IP networks. Metric, layer, method, direction, and threshold must come from the actual applicable operator criterion; these references do not provide a customer-specific SLA threshold.

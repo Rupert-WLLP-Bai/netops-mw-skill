@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "case_id": "case-001",
+  "sources": [
+    {
+      "run_key": "topology",
+      "config_path": "sources/topology/config.json",
+      "input_path": "sources/topology/input.json",
+      "row_keys": [
+        "topology-envelope"
+      ]
+    }
+  ],
+  "request": {
+    "schema_version": 1,
+    "reference_time": "2026-11-13T00:10:00Z",
+    "window_start": "2026-11-13T00:00:00Z",
+    "window_end": "2026-11-13T00:09:00Z",
+    "max_age_seconds": 600,
+    "service": {
+      "topology_run_id": "m5-topology",
+      "object_id": "service-m5"
+    },
+    "runs": [
+      {
+        "run_id": "m5-topology",
+        "run_dir": "$RUN:topology",
+        "expected_summary_hashes": {
+          "manifest.json": "$HASH",
+          "evidence.jsonl": "$HASH",
+          "diagnosis.json": "$HASH",
+          "report.md": "$HASH"
+        }
+      }
+    ],
+    "bindings": [],
+    "delivery_scope": {
+      "circuit_id": "circuit-m5",
+      "endpoint_a_id": "site-a-m5",
+      "endpoint_b_id": "site-b-m5"
+    },
+    "static_authorities": [],
+    "field_inventory": null,
+    "fields": [],
+    "criterion_inventory": null,
+    "criteria": [],
+    "direction_mappings": [],
+    "test_results": [],
+    "change_review": null,
+    "case_id": null
+  }
+}
