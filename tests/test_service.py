@@ -160,7 +160,7 @@ class ServiceReviewTests(unittest.TestCase):
 
     def test_complete_control_and_blocked_change_stay_separate(self):
         scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text()); request,_=self.materialize(scenario)
-        result=self.review(request)
+        baseline_result=self.review(request); result=baseline_result
         self.assertEqual(result['technical_status'],'conformant'); self.assertEqual(result['acceptance_status'],'awaiting_human_signoff'); self.assertEqual(result['human_signoff'],'pending')
         unexpected=copy.deepcopy(request); unexpected['case_id']='developer-only'
         bad_input=self.root/'unexpected-field.json'; bad_input.write_text(json.dumps(unexpected))
@@ -213,7 +213,7 @@ class ServiceReviewTests(unittest.TestCase):
         state=call('create',dict(case_id='servicecase',event_id='create',actor='operator',occurred_at='2026-11-13T00:00:00Z',symptom='service review',business_impact='unknown',scope=scope,verification_plan=plan))
         for index,run in enumerate(request['runs']):
             state=call('import-run',dict(event_id='import'+str(index),actor='operator',occurred_at='2026-11-13T00:10:00Z',expected_revision=state['revision'],**run))
-        support=[result['test_matrix'][0]['measurement_ref'],result['test_matrix'][0]['topology_ref']]
+        support=[baseline_result['test_matrix'][0]['measurement_ref'],baseline_result['test_matrix'][0]['topology_ref']]
         state=call('decision',dict(event_id='decision',actor='operator',occurred_at='2026-11-13T00:10:00Z',expected_revision=state['revision'],observations=['A scoped acceptance measurement was reviewed.'],hypotheses=['Human review remains pending.'],support=support,counterevidence=[],confidence='low',limitations=['Operator assertions are unauthenticated.'],next_test=None,expected_support=None,expected_counterevidence=None,changed_condition=None))
         self.assertEqual(state['decisions'][-1]['support'],support)
 

@@ -128,3 +128,18 @@ missing, unsupported, or conflicted direction is null. Only validated criterion 
 unknown measurement, measurement point, or method remains null with `missing_criterion_evidence`.
 Oracle expectations are preserved. Evidence for this focused run is
 `.tools/carrier-m5/service-check-r4.log`. No renewed full/extracted gate or final pass is claimed.
+
+## R5 focused integration run: one test-only reference failure
+
+The R5 focused run at frozen source `3b41fa3` exercised 11 test methods in 57.420 seconds and had
+one failure in `test_complete_control_and_blocked_change_stay_separate`. The test's reused `result`
+variable held the prior unknown-direction negative case when constructing support refs for the
+positive complete case, so the resulting support list contained null refs. The existing incident
+controller correctly rejected those refs as unknown or unqualified. Static inspection confirmed the
+test overwrote the baseline result before the support construction. This is a test-state error; it is
+not a reason to weaken controller reference validation or change provider/runtime behavior.
+
+The correction is tests-only: Terra is preserving an immutable `baseline_result` for the complete
+positive case while keeping the unknown-direction negative assertions. All 17 visible oracle cases
+and the other focused controls passed in this run. No full-suite or extracted-suite gate was launched;
+this focused run is not an overall M5 pass. Evidence is `.tools/carrier-m5/service-check-r5.log`.
