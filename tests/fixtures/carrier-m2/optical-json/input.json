@@ -1,0 +1,19 @@
+{
+  "format": "optical-json-v1",
+  "version": 1,
+  "records": [
+    {
+      "metric": "optical_rx_power",
+      "value": -18.6,
+      "unit": "dBm",
+      "direction": "unknown",
+      "denominator": null,
+      "sample_interval_seconds": null,
+      "sample_count": 1,
+      "counter_semantics": "gauge",
+      "reset_state": "none",
+      "event_time": "2026-11-13T00:08:00Z",
+      "object_id": "source-optical-point-006"
+    }
+  ]
+}

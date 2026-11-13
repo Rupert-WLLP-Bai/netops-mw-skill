@@ -1,0 +1,8 @@
+{
+  "parse_status": "complete",
+  "quality": ["incomplete_topology"],
+  "records": [
+    {"priority": 165, "event_time": "2026-11-13T00:08:00Z"}
+  ],
+  "service_context": null
+}

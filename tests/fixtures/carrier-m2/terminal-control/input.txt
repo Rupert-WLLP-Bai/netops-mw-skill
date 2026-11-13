@@ -1,0 +1,3 @@
+# carrier-cli-keyvalue-v1
+sample_metric=1
+[2J

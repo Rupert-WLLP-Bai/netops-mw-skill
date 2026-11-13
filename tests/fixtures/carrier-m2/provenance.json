@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "license": "Apache-2.0",
+  "origin": "Self-authored synthetic test inputs for issue #6; no real customer data, vendor transcript, vendor output, or third-party sample is included.",
+  "upstream_data_sources": [],
+  "parser_libraries_reused": [],
+  "implementation_dependencies": "Python standard library only",
+  "cases": [
+    {
+      "name": "telemetry-json",
+      "format": "telemetry-json-v1",
+      "parse_status": "complete",
+      "quality": ["incomplete_topology"],
+      "warnings": [],
+      "files": {
+        "config.json": "2a7827795daf1cf173942151d66d33bdbaeb83d5f358a8836dcc83878825daa2",
+        "input.json": "9ee0616732b873aae09bf5d9cd023a66e31b8d43cbe5c33c299c7b24bba159fc",
+        "expected.json": "710c770af5ed78c4375180f9877a6d4e26ef0ce5af02ea88cb09098e276f5f84"
+      }
+    },
+    {
+      "name": "telemetry-csv",
+      "format": "telemetry-csv-v1",
+      "parse_status": "complete",
+      "quality": ["incomplete_topology"],
+      "warnings": [],
+      "files": {
+        "config.json": "bf48198f4f4c5bc7f4e1acb2319fd1142a05973e8398ebbade9d934f8a54ef0a",
+        "input.csv": "98da48394a6cfc6adcf4f4562755e5b0a9d21f7805963b6a218f9cd663393c8e",
+        "expected.json": "e4829ffe0fe69b43aaa2a7a0f7ba177d7c26f2d1539455be21645fb62a7f8592"
+      }
+    },
+    {
+      "name": "optical-json",
+      "format": "optical-json-v1",
+      "parse_status": "complete",
+      "quality": ["incomplete_topology"],
+      "warnings": [],
+      "files": {
+        "config.json": "d7a26756f844bb89d39d987aa8693268d664c547e157cb36dc0077b843c317af",
+        "input.json": "4e062085f7b5ad007f459ae3900cebc709567778d6b35016365e658ca2bbde1b",
+        "expected.json": "24fde4d7e06ab57489ce0eb7382c396eb71184633bf3a9f28e8f371ef01b9b6e"
+      }
+    },
+    {
+      "name": "topology-json",
+      "format": "topology-json-v1",
+      "parse_status": "complete",
+      "quality": [],
+      "warnings": [],
+      "files": {
+        "config.json": "1df3eddcee0ac7a56f9a199c63510f99532b9ee50d8de68f69f69e1af441a948",
+        "input.json": "7a550a5266f5542e25ccdd0d603a5f8dd1bc8abc72722612676a169415a87a56",
+        "expected.json": "ec1dc8ff321231f6495869038aa0416e584a459753f71d47e9388c147908d8fc"
+      }
+    },
+    {
+      "name": "cli-keyvalue",
+      "format": "cli-keyvalue-v1",
+      "parse_status": "complete",
+      "quality": ["clock_uncertain", "incomplete_topology", "unknown_counter_semantics"],
+      "warnings": ["withheld_unrecognized_line"],
+      "files": {
+        "config.json": "77fa24b965e666c25befde2c56584041b7bec599c67f133e831223a88de7e9f8",
+        "input.txt": "2b0035815990aae5d7864575aa5879e1b4f89e7fea9352cb2da36337b9883928",
+        "expected.json": "09c06b5b80a867ca1fb093a83550170f8fade50b89c2dcd879c09f1105ae1a02"
+      }
+    },
+    {
+      "name": "syslog-rfc5424",
+      "format": "syslog-rfc5424-v1",
+      "parse_status": "complete",
+      "quality": ["incomplete_topology"],
+      "warnings": ["withheld_syslog_content"],
+      "files": {
+        "config.json": "cc2a097c96a1768bf943498fec82379f89d4b456415c42cfaf4239be201bb931",
+        "input.log": "8d068c4c01eacdf3c22275372bc011339506497bf22928e0d1a4ac9e62668e9f",
+        "expected.json": "04c8e72eb03bc8e6dba48459d5e72d4e4f982e26a69c1f5e2753c8cbe8df14ef"
+      }
+    },
+    {
+      "name": "stale-unknown",
+      "format": "telemetry-json-v1",
+      "parse_status": "complete",
+      "quality": ["incomplete_topology", "stale", "unknown_counter_semantics"],
+      "warnings": [],
+      "files": {
+        "config.json": "1ad417bd15f0f5ca21c541ddbc7f7ca2a2b23e04d96f12aecf7461bec955c1f5",
+        "input.json": "6b4749dc6efd169c2158bdbad47b2ff07def60dc404d4786381175281e026c59",
+        "expected.json": "b4b6771bdf8f5695152202e83085f3170a21f58c218da7f20f47135722dacaa4"
+      }
+    },
+    {
+      "name": "topology-unknown",
+      "format": "topology-json-v1",
+      "parse_status": "complete",
+      "quality": ["incomplete_topology"],
+      "warnings": [],
+      "files": {
+        "config.json": "b431b5948f73b595396f097b0b770d0a261c748445ae1df19313e11cba5b859f",
+        "input.json": "a41ef714da69a1a070264fe7e78e48e9d00c19e7e6a1db7b8e0e8986ff0530f5",
+        "expected.json": "b8ecbf0e78633a7115d45773885d035206d09f8671a0e56288733244dddd1eec"
+      }
+    },
+    {
+      "name": "malformed-json",
+      "format": "telemetry-json-v1",
+      "parse_status": "parse_error",
+      "quality": [],
+      "warnings": [],
+      "files": {
+        "config.json": "0a3f78faa9fd420f5f5af95498846ec7ea9b1c6744b36685e0173de38d5d8a79",
+        "input.json": "6b5fba740a35be4182b22cf60ba9345fdd3787f588f27b06833eb6dc3527e9c5",
+        "expected.json": "1265cc78944a7c5c4d3a849bc5586cea54258f12f2148325e8a97fd760db11d7"
+      }
+    },
+    {
+      "name": "malformed-csv",
+      "format": "telemetry-csv-v1",
+      "parse_status": "parse_error",
+      "quality": [],
+      "warnings": [],
+      "files": {
+        "config.json": "b66b44c033b3f2ea2195728ae8224ba4db3414576bd1bcf7e9776a020b166c12",
+        "input.csv": "d134cd883d1287275a80720b54443f302b44d5f20dc8a007e2d81a6db84e0341",
+        "expected.json": "1265cc78944a7c5c4d3a849bc5586cea54258f12f2148325e8a97fd760db11d7"
+      }
+    },
+    {
+      "name": "terminal-control",
+      "format": "cli-keyvalue-v1",
+      "parse_status": "parse_error",
+      "quality": [],
+      "warnings": [],
+      "files": {
+        "config.json": "eae286af63ea3550bbe7b37e8e53f89b8ec5b522823a389d55e544bfa423e4ef",
+        "input.txt": "e0ced4da5508dd4fae1b89e65cd4e49298f49bac98a38f58d81e5d51e9351e68",
+        "expected.json": "1265cc78944a7c5c4d3a849bc5586cea54258f12f2148325e8a97fd760db11d7"
+      }
+    },
+    {
+      "name": "unsupported-format",
+      "format": "opaque-vendor-export-v1",
+      "parse_status": "unsupported_vendor_format",
+      "quality": [],
+      "warnings": [],
+      "files": {
+        "config.json": "11ded8282cfbed4501d320aa87c7454b951242242145fd3e166fe4c45c7da285",
+        "input.txt": "d139eae7cbe38ec4a84bab297be1f41d1e2a4d77dcc1ec7a630f45d3fdfaba70",
+        "expected.json": "8d2a768dc394bc15d517ba26bc6385be943ea84ca82acb822f8cf893f6fd6c35"
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "format": "topology-json-v1",
+  "run_id": "synthetic-topology-unknown",
+  "source": "synthetic-source",
+  "actor": "synthetic-operator",
+  "authorization_ref": "synthetic-authorization",
+  "collected_at": "2026-11-13T00:09:00Z",
+  "reference_time": "2026-11-13T00:10:00Z",
+  "max_age_seconds": 3600,
+  "timezone": "UTC",
+  "clock_quality": "synchronized",
+  "clock_uncertainty_seconds": 1,
+  "metric_allowlist": [],
+  "unit_allowlist": [],
+  "relation_allowlist": ["serves"],
+  "value_allowlists": {},
+  "pseudonyms": {"source-service-031": "service-p31"}
+}

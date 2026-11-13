@@ -1,0 +1,18 @@
+{
+  "format": "telemetry-json-v1",
+  "run_id": "synthetic-telemetry-json",
+  "source": "synthetic-source",
+  "actor": "synthetic-operator",
+  "authorization_ref": "synthetic-authorization",
+  "collected_at": "2026-11-13T00:09:00Z",
+  "reference_time": "2026-11-13T00:10:00Z",
+  "max_age_seconds": 3600,
+  "timezone": "UTC",
+  "clock_quality": "synchronized",
+  "clock_uncertainty_seconds": 1,
+  "metric_allowlist": ["interface_octets", "alarm_state"],
+  "unit_allowlist": ["octet", "1"],
+  "relation_allowlist": ["serves", "contains"],
+  "value_allowlists": {"alarm_state": ["active", "cleared"]},
+  "pseudonyms": {"source-device-017": "device-p01"}
+}

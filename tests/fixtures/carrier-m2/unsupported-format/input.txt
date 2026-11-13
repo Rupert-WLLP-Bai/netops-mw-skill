@@ -1,0 +1,1 @@
+Synthetic opaque vendor export. No vendor transcript or output is represented.

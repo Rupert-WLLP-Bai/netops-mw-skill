@@ -1,0 +1,16 @@
+{
+  "parse_status": "complete",
+  "quality": [],
+  "records": [],
+  "service_context": {
+    "schema_version": 1,
+    "service_ref": "service-p21",
+    "objects": [
+      {"id": "service-p21", "type": "service", "identity_state": "known", "layer": null, "source": "synthetic-source", "source_native_id": null, "reason": null},
+      {"id": "device-p22", "type": "device", "identity_state": "known", "layer": "access", "source": "synthetic-source", "source_native_id": null, "reason": null}
+    ],
+    "topology": [
+      {"from_id": "service-p21", "to_id": "device-p22", "relation": "serves", "state": "verified", "confidence": "high", "reason": null}
+    ]
+  }
+}

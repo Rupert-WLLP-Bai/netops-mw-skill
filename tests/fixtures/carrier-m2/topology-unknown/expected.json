@@ -1,0 +1,16 @@
+{
+  "parse_status": "complete",
+  "quality": ["incomplete_topology"],
+  "records": [],
+  "service_context": {
+    "schema_version": 1,
+    "service_ref": "service-p31",
+    "objects": [
+      {"id": "service-p31", "type": "service", "identity_state": "known", "layer": null, "source": "synthetic-source", "source_native_id": null, "reason": null},
+      {"id": "unknown-2", "type": "device", "identity_state": "unknown", "layer": "access", "source": "synthetic-source", "source_native_id": null, "reason": "mapping unavailable"}
+    ],
+    "topology": [
+      {"from_id": "service-p31", "to_id": "unknown-2", "relation": "serves", "state": "unverified", "confidence": "high", "reason": "mapping unavailable"}
+    ]
+  }
+}

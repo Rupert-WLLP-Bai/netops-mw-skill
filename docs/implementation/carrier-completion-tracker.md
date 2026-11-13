@@ -1,0 +1,29 @@
+# Carrier milestone completion tracker
+
+The active user objective is to finish all seven carrier milestones through separate PRs and merge
+their verified implementations. Earlier milestone prompts that required stopping before a merge are
+superseded by that explicit authorization. Offline/device/production boundaries remain unchanged.
+
+| Item | Authoritative state at this checkpoint | Remaining work |
+| --- | --- | --- |
+| Design PR #4 | Merged, `04587e2` | Historical design basis retained |
+| M1 / #5 / PR #12 | Merged, `b2e7ee5`; source `f244b65`; 141 full and 62 extracted tests; final Sol pass | No implementation work remains |
+| M2 / #6 | In progress on `feat/carrier-m2-offline-adapters` | Implement, final checks, Sol review, PR and merge |
+| M3 / #7 | Open | Access domain and at least 12 evaluated cases |
+| M4 / #8 | Open | IP bearer/transport domain and at least 12 cases |
+| M5 / #9 | Open | Service acceptance/change review and at least eight cases |
+| M6 / #10 | Open | At least 36 scenarios, independent scoring, hidden/visible isolation and experiment validity |
+| M7 / #11 | Open; user-owned validation execution deferred | Prepare versioned packages/hashes, prompts, acceptance criteria and evidence/document handoff; PR and merge |
+
+Terra/Luna implement. Code, fixtures and contract documents freeze before any tests/builds or new
+runtime checks; Sol reviews only after final verification. A review finding starts a new correction
+phase, followed by complete relevant final checks and re-review. No passing result is inferred from
+intent, a test inventory, a schema, or a package manifest alone.
+
+The user explicitly deferred M7 validation execution and will perform it and prepare their acceptance
+documents later. The agent's M7 deliverables are the package/files, exact hashes, copy-ready execution
+prompts, V-01/V-02/V-03 and normal/change/error/invocation procedures, acceptance standards and evidence
+locations. Do not execute or claim native Windows, actual MobileWork or external security acceptance
+under this goal. Their results remain pending user validation, never prefilled as passed. Package
+preparation and the existing engineering regression/build checks remain separate from those acceptance
+runs. No operational publication or production access is authorized by repository merge permission.
