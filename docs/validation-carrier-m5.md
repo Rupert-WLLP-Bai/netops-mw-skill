@@ -306,3 +306,42 @@ The actual gates completed before R3 review at frozen source
 These are pre-R3-review gates, not post-correction results. No renewed checks have run for the R3
 findings, and no final review/release pass is claimed. Actual M7 MobileWork, native Windows, and
 security acceptance remain user-deferred.
+
+## Final frozen-source engineering gate
+
+All runtime code, tests, inputs and packaged references froze at
+`f1c8441c35e9bce53e7652c420380825ddd0bbac` before renewed execution. The final results are:
+
+- Focused service checks: 22 tests in 119.129 seconds, passed.
+- Full regression: 232 tests in 366.278 seconds, passed with no skips.
+- Clean extracted runtime regression: 153 tests in 326.587 seconds, passed with no skips.
+- Eight Skill validators, Python 3.10 grammar checks, 80 fixture hashes and 17 unique cases passed.
+- Two suite builds/manifests matched; every archive member hash and all eight independently
+  extracted Skill archives passed. The suite has 61 files, 698349 bytes, SHA-256
+  `6063112c2ec058f87b6f10f2a4ecf3f18835e8ee28ab0b7ceb9f732e6629d35c`.
+- The original 16-file collector remains 209807 bytes, SHA-256
+  `f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`.
+- Managed offline PCAP import/export/hash verification passed using input SHA-256
+  `92e06382a4f2e12bd569a104ceeecf908b89ccdb801f3dc4ae430b0f1a967f9b`, with no live collection.
+
+Commands and actual evidence:
+
+```sh
+.tools/carrier-m1/schema-venv/bin/python -B -W error::ResourceWarning -m unittest discover -s tests -p test_service.py -v > .tools/carrier-m5/service-check-f1c8441.log 2>&1
+.tools/carrier-m1/schema-venv/bin/python -B -W error::ResourceWarning -m unittest discover -s tests -v > .tools/carrier-m5/full-suite-f1c8441-resume2.log 2>&1
+CARRIER_PHASE=m5 CARRIER_VERIFY_OUT=.tools/carrier-m5/f1c8441-delivery-resume2 .tools/carrier-m1/schema-venv/bin/python -B .tools/carrier-common/verify_delivery.py > .tools/carrier-m5/delivery-f1c8441-resume2.log 2>&1
+.tools/carrier-m1/schema-venv/bin/python -B .tools/carrier-m5/verify_aux_f1c8441.py > .tools/carrier-m5/auxiliary-f1c8441.log 2>&1
+```
+
+The delivery directory retains duplicate builds, all individual archives/manifests,
+`delivery-verification.json` and `extracted-tests.log`. Earlier `full-suite-f1c8441.log` and
+`delivery-f1c8441.log` were interrupted by an environment restart; their incomplete output is
+preserved and is not a pass. The successful `resume2` runs used the same unchanged source.
+
+Independent R4 source Standards and Spec reviews passed with zero remaining findings; the final
+post-gate reports are reproduced separately in [the final review](review-carrier-m5.md).
+All earlier findings, counterexamples and failed/interrupted checks remain preserved. Final status
+and review documents are outside the packaged source. These local engineering results do not
+establish MobileWork, native Windows, real-vendor interoperability, external-security acceptance,
+or OS isolation of the developer-only scenario oracle. M6 owns evaluated-worker isolation;
+actual M7 client/Windows/security execution remains explicitly deferred to the user.
