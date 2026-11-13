@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "license": "Apache-2.0",
+  "origin": "Self-authored synthetic M4 developer test inputs and expected outcomes. The data contain no real customer, site, circuit, address, device, AS, capture, vendor export, vendor limit, or third-party sample.",
+  "upstream_data_sources": [],
+  "parser_libraries_reused": [],
+  "source_contract": "Generic M2 telemetry-json-v1 and topology-json-v1 synthetic inputs, with explicit operator bindings, event times, measurement-window declarations, and an explicitly synthetic profile.",
+  "boundary": "Case source/config files and oracle are developer test inputs. The test harness renders checked sanitized M2 bundles and resolves each request. Only rendered sanitized runs and the resolved request are analyzer inputs. The separate oracle is consumed by tests and never forwarded to the analyzer. Fixture directory separation is not an operating-system isolation boundary.",
+  "synthetic_profile_notice": "The utilization limit of 80 percent is an invented value used only to exercise source-cited profile comparison; it is not a recommended, standard, or vendor threshold.",
+  "case_descriptions": [
+    {
+      "case_id": "case-001",
+      "intent": "A BGP peer reset is observed while the scoped service operation passes; no affected-prefix or customer-impact claim is supported."
+    },
+    {
+      "case_id": "case-002",
+      "intent": "An explicitly withdrawn route prefix and matching VRF coincide with a scoped forwarding failure."
+    },
+    {
+      "case_id": "case-003",
+      "intent": "An IGP adjacency follows an ordered down-up-down sequence while a scoped service operation passes."
+    },
+    {
+      "case_id": "case-004",
+      "intent": "A LAG member is reported degraded while a separate bearer resource has an observed service pass."
+    },
+    {
+      "case_id": "case-005",
+      "intent": "A self-authored synthetic utilization limit, declared mean window, and matching counter-delta window support only a scoped queue condition; service pass is retained as counterevidence."
+    },
+    {
+      "case_id": "case-006",
+      "intent": "A pseudonymous QoS class has increasing drops under a cited synthetic profile and explicit matching windows; a service pass is retained as counterevidence."
+    },
+    {
+      "case_id": "case-007",
+      "intent": "Explicit configured/effective L3 MTU, supplied tunnel overhead, and ordered small-pass/large-fail IP-packet probes support a bounded MTU hypothesis."
+    },
+    {
+      "case_id": "case-008",
+      "intent": "A failed large-payload observation and not-seen fragmentation feedback leave PMTUD suspicion incomplete."
+    },
+    {
+      "case_id": "case-009",
+      "intent": "The same declared flow scope has different explicitly bound ingress and egress ECMP labels; no path or device cause is inferred."
+    },
+    {
+      "case_id": "case-010",
+      "intent": "An interface counter pair falls outside the request freshness window and cannot support a current increment."
+    },
+    {
+      "case_id": "case-011",
+      "intent": "An explicitly marked counter wrap blocks a derived delta."
+    },
+    {
+      "case_id": "case-012",
+      "intent": "A single-vantage traceroute reports a nonresponding hop followed by another response; the hop is not attributed as a fault."
+    }
+  ],
+  "files": [
+    {
+      "path": "cases/case-001/scenario.json",
+      "sha256": "c6cffabbe61f74ca7d2bc921f4093d7068e03d6a47369866f43772d1bd885781",
+      "bytes": 2345
+    },
+    {
+      "path": "cases/case-001/sources/observations.json",
+      "sha256": "a21f3d690e85a228bc750e24274c4ee32376536f78475759c719304f056bfed4",
+      "bytes": 863
+    },
+    {
+      "path": "cases/case-002/scenario.json",
+      "sha256": "a591fa2784ecbd112479f51c53230c04205a682ac0133a9e2f1632e842986a87",
+      "bytes": 3548
+    },
+    {
+      "path": "cases/case-002/sources/observations.json",
+      "sha256": "bc0f9b1a6ea50bc3c9a6a6625daf90d8e9b722289b96815fe1539180be69e13a",
+      "bytes": 1685
+    },
+    {
+      "path": "cases/case-003/scenario.json",
+      "sha256": "57248af7de7b9c0d85a27342099b58cee21f4694110650def16a5c199f9ab32e",
+      "bytes": 2706
+    },
+    {
+      "path": "cases/case-003/sources/observations.json",
+      "sha256": "d20a9c90b5e1a9edaaa6acfef03cb1898121a490848b67f9904893121f9372d5",
+      "bytes": 1147
+    },
+    {
+      "path": "cases/case-004/scenario.json",
+      "sha256": "b089b8f78c7948b2fc3092fd595f5f817e386bcb261efabcb9dd3591054abb28",
+      "bytes": 2291
+    },
+    {
+      "path": "cases/case-004/sources/observations.json",
+      "sha256": "5fb32959e2629275f9479d5f27987aaf65c44d7994ae1f300aca4ddee490bf43",
+      "bytes": 863
+    },
+    {
+      "path": "cases/case-005/scenario.json",
+      "sha256": "0754f28fc74d0ef0e3c2a3ba059e8ae061e9ff524603dc73d93040a1eb16945f",
+      "bytes": 8999
+    },
+    {
+      "path": "cases/case-005/sources/observations.json",
+      "sha256": "a14952814a3311c843f59632e1e4d0d5a5da130299879ea8cfcde30a5319f57a",
+      "bytes": 2769
+    },
+    {
+      "path": "cases/case-006/scenario.json",
+      "sha256": "6d5d6562c6e0655052892e824ab7c5a523ef1015c2085a1c9c255e4417a8fd22",
+      "bytes": 9550
+    },
+    {
+      "path": "cases/case-006/sources/observations.json",
+      "sha256": "06628913f6ac05e432a148fd17ce179ec210e48b4538c6493f26b7e07cbd4426",
+      "bytes": 3040
+    },
+    {
+      "path": "cases/case-007/scenario.json",
+      "sha256": "e408bbbefafba73e700ab224a65adbf67427deead86b0e7c71af44d595db1109",
+      "bytes": 5199
+    },
+    {
+      "path": "cases/case-007/sources/observations.json",
+      "sha256": "ea79497b13a5204d1c5c373881fa20e73d91f2d574f28ddba72eedebb3a5587b",
+      "bytes": 1965
+    },
+    {
+      "path": "cases/case-008/scenario.json",
+      "sha256": "0d63be56014ceb306699d009a1fc76af84338ba89bb2abb9234ba3934a17f457",
+      "bytes": 2444
+    },
+    {
+      "path": "cases/case-008/sources/observations.json",
+      "sha256": "290e19596fa3bbc8fd1a2e86a2055eb591d4f8ee4a45da07a9dffa9dcbc600b6",
+      "bytes": 609
+    },
+    {
+      "path": "cases/case-009/scenario.json",
+      "sha256": "b6e5e0c8eca8f3dbdd2593440a85f9cd45cc6978a56a229c7e90f32ccc1a35a3",
+      "bytes": 3546
+    },
+    {
+      "path": "cases/case-009/sources/observations.json",
+      "sha256": "df25da1ebb4c6ba54cb623c5f73d19462e452c2c26ca5ec73a8e04cdc8dfa3a7",
+      "bytes": 1129
+    },
+    {
+      "path": "cases/case-010/scenario.json",
+      "sha256": "d54bf61092af6f867b29f1ed0adf10ff43f838cff199728f0f3fc047cae335a1",
+      "bytes": 2443
+    },
+    {
+      "path": "cases/case-010/sources/observations.json",
+      "sha256": "afae364182dae5407de376efe30c8c2e58c147027ae3d77b762ad5b2d45115c3",
+      "bytes": 595
+    },
+    {
+      "path": "cases/case-011/scenario.json",
+      "sha256": "dccd9858ef01b97af9267f0bba244e84d7338434671208cbcf5ce2bfcd2b2924",
+      "bytes": 2444
+    },
+    {
+      "path": "cases/case-011/sources/observations.json",
+      "sha256": "7e421d7b37539abaef370f47a10dc6b6cd33236f38a2a8f675f6d5c8678b211d",
+      "bytes": 593
+    },
+    {
+      "path": "cases/case-012/scenario.json",
+      "sha256": "65a96931484ae7455ad0d3aba24cd36a97770bdb8f405b4eb9817a6642622853",
+      "bytes": 2995
+    },
+    {
+      "path": "cases/case-012/sources/observations.json",
+      "sha256": "704c34fb07acc3501c1c1246b3297e440eecda0f748d93054d85e1113f4adf13",
+      "bytes": 871
+    },
+    {
+      "path": "oracle/expected.json",
+      "sha256": "e0a4a2dfedc1736894bc6a3246e5e6fa0c29a5b659d042cdcddca4fb8bebdd98",
+      "bytes": 11844
+    },
+    {
+      "path": "sources/observations/config.json",
+      "sha256": "8c56958377037c5c93bed96bbc2a5f2eed41075199e50927cd8894677a1ecc9b",
+      "bytes": 2624
+    },
+    {
+      "path": "sources/profile/config.json",
+      "sha256": "7c5bb3008747791e3aeddfdacacce467d24bf9b1ec73ee7839eae53bb88d2e7c",
+      "bytes": 629
+    },
+    {
+      "path": "sources/profile/input.json",
+      "sha256": "254763565b2f5a1707b0f29434ba1fd7ef36eeb9caa8741e7b353f8e46b34828",
+      "bytes": 641
+    },
+    {
+      "path": "sources/topology/config.json",
+      "sha256": "aea8c5cf8f65cd1fccfed78f334a091cccedf07409806db10b5f2b2c6c616fe4",
+      "bytes": 643
+    },
+    {
+      "path": "sources/topology/input.json",
+      "sha256": "77f225846b39bad7d1fe12ec7885597bd14e89cc3e56f7435956d803c05b216d",
+      "bytes": 641
+    }
+  ],
+  "digest_scope": "SHA-256 values cover every fixture file except this provenance manifest itself; regenerate this inventory if any listed file changes."
+}

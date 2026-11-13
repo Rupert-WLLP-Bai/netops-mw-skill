@@ -23,16 +23,17 @@ SKILL_FILES = {
         'scripts/netops/urls.py',
     ),
     'netops-incident': (
-        'LICENSE', 'SKILL.md', 'references/case-contract.md', 'references/carrier-evidence-contract.md', 'references/offline-ingestion.md', 'references/access-analysis.md',
-        'schemas/service-context.schema.json', 'schemas/carrier-evidence.schema.json', 'scripts/case.py', 'scripts/ingest.py', 'scripts/diagnose_access.py',
+        'LICENSE', 'SKILL.md', 'references/case-contract.md', 'references/carrier-evidence-contract.md', 'references/offline-ingestion.md', 'references/access-analysis.md', 'references/transport-analysis.md',
+        'schemas/service-context.schema.json', 'schemas/carrier-evidence.schema.json', 'scripts/case.py', 'scripts/ingest.py', 'scripts/diagnose_access.py', 'scripts/diagnose_transport.py',
         'scripts/case_runtime/__init__.py', 'scripts/case_runtime/store.py',
         'scripts/case_runtime/evidence.py', 'scripts/case_runtime/collection.py',
-        'scripts/case_runtime/recovery.py', 'scripts/case_runtime/carrier.py', 'scripts/case_runtime/ingest.py', 'scripts/case_runtime/access.py',
+        'scripts/case_runtime/recovery.py', 'scripts/case_runtime/carrier.py', 'scripts/case_runtime/ingest.py', 'scripts/case_runtime/access.py', 'scripts/case_runtime/analysis_common.py', 'scripts/case_runtime/transport.py',
     ),
     'netops-pcap-analysis': ('LICENSE', 'SKILL.md', 'references/offline-analysis.md'),
     'netops-verify-recovery': ('LICENSE', 'SKILL.md', 'references/verification.md'),
     'netops-handoff': ('LICENSE', 'SKILL.md', 'references/handoff.md'),
     'telecom-access-diagnostics': ('LICENSE', 'SKILL.md', 'references/access-diagnostics.md'),
+    'telecom-transport-diagnostics': ('LICENSE', 'SKILL.md', 'references/transport-diagnostics.md'),
 }
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 

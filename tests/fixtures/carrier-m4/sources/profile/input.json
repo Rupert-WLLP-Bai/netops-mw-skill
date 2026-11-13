@@ -1,0 +1,8 @@
+{
+  "format": "telemetry-json-v1",
+  "version": 1,
+  "records": [
+    {"metric": "utilization_limit", "value": 80, "unit": "%", "direction": "egress", "denominator": "1", "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:05:00Z", "object_id": "fixture-profile"},
+    {"metric": "profile_aggregation", "value": "mean", "unit": null, "direction": "egress", "denominator": null, "sample_interval_seconds": null, "sample_count": 1, "counter_semantics": "gauge", "reset_state": "none", "event_time": "2026-11-13T00:05:00Z", "object_id": "fixture-profile"}
+  ]
+}

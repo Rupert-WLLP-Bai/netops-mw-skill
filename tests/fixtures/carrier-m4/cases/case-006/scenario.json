@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "case_id": "case-006",
+  "sources": [
+    {
+      "run_key": "topology",
+      "config_path": "sources/topology/config.json",
+      "input_path": "sources/topology/input.json"
+    },
+    {
+      "run_key": "observations",
+      "config_path": "sources/observations/config.json",
+      "input_path": "cases/case-006/sources/observations.json"
+    },
+    {
+      "run_key": "profile",
+      "config_path": "sources/profile/config.json",
+      "input_path": "sources/profile/input.json"
+    }
+  ],
+  "request": {
+    "schema_version": 1,
+    "reference_time": "2026-11-13T00:10:00Z",
+    "window_start": "2026-11-13T00:00:00Z",
+    "window_end": "2026-11-13T00:09:00Z",
+    "max_age_seconds": 600,
+    "service": {
+      "topology_run_id": "m4-topology",
+      "object_id": "service-m4"
+    },
+    "runs": [
+      {
+        "run_id": "m4-topology",
+        "run_dir": "$RUN:topology",
+        "expected_summary_hashes": {
+          "manifest.json": "$HASH",
+          "evidence.jsonl": "$HASH",
+          "diagnosis.json": "$HASH",
+          "report.md": "$HASH"
+        }
+      },
+      {
+        "run_id": "m4-observations",
+        "run_dir": "$RUN:observations",
+        "expected_summary_hashes": {
+          "manifest.json": "$HASH",
+          "evidence.jsonl": "$HASH",
+          "diagnosis.json": "$HASH",
+          "report.md": "$HASH"
+        }
+      },
+      {
+        "run_id": "m4-profile",
+        "run_dir": "$RUN:profile",
+        "expected_summary_hashes": {
+          "manifest.json": "$HASH",
+          "evidence.jsonl": "$HASH",
+          "diagnosis.json": "$HASH",
+          "report.md": "$HASH"
+        }
+      }
+    ],
+    "bindings": [
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000001"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000002"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000003"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000005"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000006"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000007"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000008"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000009"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000010"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      },
+      {
+        "record": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000011"
+        },
+        "topology_evidence": {
+          "run_id": "m4-topology",
+          "evidence_id": "ev-000000000001"
+        },
+        "service_id": "service-m4",
+        "resource_id": "resource-m4",
+        "source": "synthetic-transport-source",
+        "source_native_id": "resource-m4",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "authority": "fixture-service-map"
+      }
+    ],
+    "transport_profiles": [
+      {
+        "profile_id": "profile-m4",
+        "source": "synthetic-profile-source",
+        "resource_id": "resource-m4",
+        "direction": "egress",
+        "unit": "%",
+        "valid_from": "2026-11-13T00:00:00Z",
+        "valid_until": "2026-11-13T00:09:59Z",
+        "aggregation": "mean",
+        "utilization_limit_evidence": {
+          "run_id": "m4-profile",
+          "evidence_id": "ev-000000000001"
+        },
+        "aggregation_evidence": {
+          "run_id": "m4-profile",
+          "evidence_id": "ev-000000000002"
+        }
+      }
+    ],
+    "measurement_windows": [
+      {
+        "subjects": [
+          {
+            "run_id": "m4-observations",
+            "evidence_id": "ev-000000000001"
+          }
+        ],
+        "start_evidence": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000004"
+        },
+        "end_evidence": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000005"
+        },
+        "aggregation_evidence": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000006"
+        }
+      },
+      {
+        "subjects": [
+          {
+            "run_id": "m4-observations",
+            "evidence_id": "ev-000000000002"
+          },
+          {
+            "run_id": "m4-observations",
+            "evidence_id": "ev-000000000003"
+          }
+        ],
+        "start_evidence": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000007"
+        },
+        "end_evidence": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000008"
+        },
+        "aggregation_evidence": {
+          "run_id": "m4-observations",
+          "evidence_id": "ev-000000000009"
+        }
+      }
+    ]
+  }
+}

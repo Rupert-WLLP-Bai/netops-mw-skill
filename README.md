@@ -55,6 +55,18 @@ Read the [access reference](skills/telecom-access-diagnostics/references/access-
 [M3 plan](docs/implementation/carrier-m3-plan.md) for inputs and limitations.
 The [M3 validation record](docs/validation-carrier-m3.md) records 185 full and 106 extracted tests,
 reproducible packages and the [final Sol reviews](docs/review-carrier-m3.md).
+M3 was merged through [PR #14](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/pull/14).
+
+### IP bearer and transport diagnostics (M4)
+
+[telecom-transport-diagnostics](skills/telecom-transport-diagnostics/SKILL.md) addresses supplied
+routing, prefix/VRF, MPLS/SR, LAG/ECMP, interface, queue/QoS and MTU evidence. Its manual workflow
+is independent; an explicitly discovered `diagnose_transport.py` provider shares checked evidence,
+binding and time handling with access diagnosis. Control events and measured business outcomes
+remain separate. Queue assessment needs sourced measurement windows, aggregation and profile limits;
+MTU assessment preserves the IP-packet size basis and supplied overhead.
+See the [M4 plan](docs/implementation/carrier-m4-plan.md) and
+[milestone tracker](docs/implementation/carrier-completion-tracker.md) for implementation and validation status.
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 
