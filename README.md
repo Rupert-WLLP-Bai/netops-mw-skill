@@ -39,7 +39,9 @@ topology and optical exports, generic CLI key/value records, and a safe syslog-h
 budgets, private raw storage, allowlisted visible derivatives and import into existing cases.
 Unknown vendor text and binary OTDR/SOR are not interpreted as supported formats. Import does not
 establish service health, source authenticity or a fault cause. See the
-[M2 plan](docs/implementation/carrier-m2-plan.md) for implementation and verification scope.
+[M2 plan](docs/implementation/carrier-m2-plan.md) for implementation and verification scope. The
+[M2 validation record](docs/validation-carrier-m2.md) records final regression and reproducible packages;
+[Sol review](docs/review-carrier-m2.md) passed both review axes.
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 
