@@ -601,6 +601,60 @@ class ServiceReviewTests(unittest.TestCase):
         self.assertEqual(row['status'],'unverified'); self.assertIsNone(row['method_ref']); self.assertNotIn('ev-ffffffffffff',result['draft_report'])
         self.assertNotIn('clock_uncertain',result['gaps'])
 
+    def test_invalid_criterion_role_is_filtered_from_incomplete_rows(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        baseline,_=self.materialize(scenario); self.assertEqual(self.review(baseline)['technical_status'],'conformant')
+        cases=(('criterion_method','method_evidence',7,False),('criterion_threshold','threshold_evidence',-1,False),('criterion_metric','metric_evidence',7,True))
+        for metric,role,value,also_negative_threshold in cases:
+            with self.subTest(invalid_role=metric):
+                def invalidate(data):
+                    for row in data['records']:
+                        if row['metric']==metric: row['value']=value
+                        if also_negative_threshold and row['metric']=='criterion_threshold': row['value']=-1
+                    return data
+                request,_=self.materialize(scenario,{'criteria':invalidate})
+                invalid=request['criteria'][0][role]; direction=request['criteria'][0]['direction_evidence']
+                negative_threshold=request['criteria'][0]['threshold_evidence'] if also_negative_threshold else None
+                result=self.review(request); rows=[row for row in result['test_matrix'] if row['criterion_id']=='criterion-throughput']
+                self.assertEqual({row['absolute_direction'] for row in rows},{'A_to_B','B_to_A'})
+                self.assertTrue(all(row['status']=='unverified' and invalid not in row['criterion_refs'] and direction in row['criterion_refs'] for row in rows))
+                if negative_threshold: self.assertTrue(all(negative_threshold not in row['criterion_refs'] for row in rows))
+                self.assertNotIn(invalid['run_id']+'/'+invalid['evidence_id'],result['draft_report'])
+
+    def test_optional_instrument_and_calibration_metadata_are_preserved_without_becoming_requirements(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        def not_required(data):
+            for row in data['records']:
+                if row['metric']=='criterion_calibration_policy': row['value']='not_required'
+            return data
+        def allow_policy(config): config['value_allowlists']['criterion_calibration_policy'].append('not_required'); return config
+        def supplied_nonvalid_calibration(data):
+            for row in data['records']:
+                if row['metric']=='calibration_status': row['value']='expired'
+                elif row['metric']=='calibration_start': row['value']=1794528240
+                elif row['metric']=='calibration_end': row['value']=1794528480
+            return data
+        def allow_status(config): config['value_allowlists']['calibration_status'].append('expired'); return config
+        request,ids=self.materialize(scenario,{'criteria':not_required,'calibration':supplied_nonvalid_calibration},{'criteria':allow_policy,'calibration':allow_status})
+        result=self.review(request); row=next(item for item in result['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+        self.assertEqual(result['technical_status'],'conformant'); self.assertEqual(row['status'],'pass')
+        self.assertIsNotNone(row['instrument_ref']); self.assertEqual(len(row['calibration_refs']),3)
+        self.assertNotIn('missing_calibration',row['gaps'])
+        self.assertIn(dict(run_id='m5-calibration',evidence_id=ids['calibration']['status']),row['calibration_refs'])
+        def numeric_instrument(data):
+            for row in data['records']:
+                if row['metric']=='instrument_id': row['value']=7
+            return data
+        request,_=self.materialize(scenario,{'criteria':not_required,'actual-tests':numeric_instrument},{'criteria':allow_policy})
+        result=self.review(request); row=next(item for item in result['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+        self.assertNotEqual(result['technical_status'],'conformant'); self.assertIn('missing_test_evidence',row['gaps'])
+        self.assertIsNone(row['instrument_ref'])
+        request,_=self.materialize(scenario,{'criteria':not_required},{'criteria':allow_policy})
+        for item in request['test_results']: item['instrument_evidence']=None
+        result=self.review(request); row=next(item for item in result['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+        self.assertEqual(result['technical_status'],'conformant'); self.assertEqual(row['status'],'pass')
+        self.assertIsNone(row['instrument_ref']); self.assertEqual(row['calibration_refs'],[])
+
     def test_foreign_change_approval_cannot_authorize_selected_plan(self):
         scenario=json.loads((FIXTURES/'cases/case-011/scenario.json').read_text())
         source=next(item for item in scenario['sources'] if item['run_key']=='change')

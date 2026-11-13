@@ -319,20 +319,67 @@ def _mapped_direction(item,request,context,actual):
     return matches[0] if len(matches)==1 else (None,None)
 
 
-def _criterion_data(entry,static,authorities):
+def _criterion_roles(entry,static,authorities):
     identity=(entry['source'],entry['source_native_id'])
     result={key:_static_read(entry[key],static,authorities,metric,identity) for key,metric in CRITERION_ROLES.items()}
+    opposing=[]
+    for key,item in list(result.items()):
+        if item is None: continue
+        conflicts=_opposing(item,static,True)
+        if conflicts:
+            opposing.extend(conflicts); result[key]=None; continue
+        value=item['row']['value']
+        valid={
+            'capability_evidence':isinstance(value,str) and value in CAPABILITIES,
+            'metric_evidence':isinstance(value,str) and value in CAPABILITIES.values(),
+            'aggregation_evidence':isinstance(value,str) and value in ('mean','min','max','p95','p99','single'),
+            'comparator_evidence':isinstance(value,str) and value in ('gte','lte','eq'),
+            'method_evidence':_controlled_string(item),
+            'minimum_samples_evidence':_number(value) and value>0 and int(value)==value,
+            'direction_evidence':isinstance(value,str) and value in ('A_to_B','B_to_A','both'),
+            'calibration_policy_evidence':isinstance(value,str) and value in ('required','not_required'),
+            'window_start_evidence':_date(item) is not None,
+            'window_end_evidence':_date(item) is not None,
+        }.get(key,True)
+        if not valid: result[key]=None
+    metric=result['metric_evidence']
+    threshold=result['threshold_evidence']
+    capability=result['capability_evidence']
+    threshold_value=threshold['row']['value'] if threshold else None
+    domain_metrics=[]
+    if metric: domain_metrics.append(metric['row']['value'])
+    if capability: domain_metrics.append(CAPABILITIES[capability['row']['value']])
+    if threshold and (not _number(threshold_value) or threshold_value<0 or not isinstance(threshold['row']['unit'],str) or threshold['row']['unit'] in ('','unknown') or any(not _physical(domain,threshold_value) for domain in domain_metrics) or ('measured_ip_mtu' in domain_metrics and (threshold['row']['unit']!='bytes' or int(threshold_value)!=threshold_value))):
+        result['threshold_evidence']=None
+    first,last=(_date(result[key]) if result[key] else None for key in ('window_start_evidence','window_end_evidence'))
+    if first and last and first>last:
+        result['window_start_evidence']=result['window_end_evidence']=None
+    return result,opposing
+
+
+def _criterion_data(entry,static,authorities,role_data=None):
+    result,opposing=_criterion_roles(entry,static,authorities) if role_data is None else role_data
     if any(value is None for value in result.values()) or entry['applicability_evidence'] is not None or entry['inapplicability_reason_evidence'] is not None: return None
-    if any(_opposing(item,static,True) for item in result.values()): return None
+    if opposing: return None
     values={key:item['row']['value'] for key,item in result.items()}
-    if CAPABILITIES.get(values['capability_evidence'])!=values['metric_evidence'] or values['aggregation_evidence'] not in ('mean','min','max','p95','p99','single') or values['comparator_evidence'] not in ('gte','lte','eq') or values['direction_evidence'] not in ('A_to_B','B_to_A','both') or values['calibration_policy_evidence'] not in ('required','not_required'): return None
-    if not _controlled_string(result['method_evidence']): return None
-    count=values['minimum_samples_evidence']
-    if not _number(count) or count<=0 or int(count)!=count or not _physical(values['metric_evidence'],values['threshold_evidence']): return None
-    if result['threshold_evidence']['row']['unit'] in (None,'unknown') or (values['capability_evidence']=='l3_mtu' and result['threshold_evidence']['row']['unit']!='bytes'): return None
+    if CAPABILITIES.get(values['capability_evidence'])!=values['metric_evidence'] or values['capability_evidence']=='l3_mtu' and result['threshold_evidence']['row']['unit']!='bytes': return None
     first,last=_date(result['window_start_evidence']),_date(result['window_end_evidence'])
     if not first or not last or first>last: return None
     return result
+
+
+def _optional_calibration_refs(result,static,authorities,measurement,instrument):
+    if not measurement or not _controlled_string(instrument): return None,None,None
+    identity=(measurement['carrier']['source'],instrument['row']['value'])
+    items=[]
+    for name,metric in (('calibration_evidence','calibration_status'),('calibration_start_evidence','calibration_start'),('calibration_end_evidence','calibration_end')):
+        item=_static_read(result[name],static,authorities,metric,identity)
+        if not item or item['resource']!=measurement['resource']: continue
+        if name=='calibration_evidence' and not _controlled_string(item): continue
+        if name!='calibration_evidence' and _date(item) is None: continue
+        items.append(item)
+    indexed={item['row']['metric']:item for item in items}
+    return indexed.get('calibration_status'),indexed.get('calibration_start'),indexed.get('calibration_end')
 
 
 def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,end):
@@ -343,7 +390,7 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
     if any(result['criterion_id'] not in ids for result in request['test_results']): gaps.add('criterion_inventory_incomplete')
     matrix=[]; capability={name:set() for name in CAPABILITIES}
     for criterion in entries:
-        cid=criterion['criterion_id']; data=_criterion_data(criterion,static,authorities)
+        cid=criterion['criterion_id']; role_data=_criterion_roles(criterion,static,authorities); data=_criterion_data(criterion,static,authorities,role_data)
         linked=inventory is not None and cid in inventory and criterion['source_native_id']==cid and criterion['source']==inventory[cid]['carrier']['source']
         if not linked:
             data=None
@@ -351,15 +398,12 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
             local=['missing_criterion_evidence']; refs=[]; opposing=[]; direction=None
             if linked:
                 refs.append(_qualified(inventory[cid]['key']))
-                identity=(criterion['source'],criterion['source_native_id'])
-                for key,metric in CRITERION_ROLES.items():
-                    item=_static_read(criterion[key],static,authorities,metric,identity)
-                    if not item: continue
-                    conflicts=_opposing(item,static,True)
-                    if conflicts:
-                        opposing.extend(conflicts); continue
-                    refs.append(_qualified(item['key']))
-                    if key=='direction_evidence' and item['row']['value'] in ('A_to_B','B_to_A','both'): direction=item['row']['value']
+                criterion_roles,criterion_conflicts=role_data
+                opposing.extend(criterion_conflicts)
+                for key,item in criterion_roles.items():
+                    if item:
+                        refs.append(_qualified(item['key']))
+                        if key=='direction_evidence' and item['row']['value'] in ('A_to_B','B_to_A','both'): direction=item['row']['value']
             if opposing: local.append('conflicting_observations')
             directions=('A_to_B','B_to_A') if direction=='both' else (direction,)
             for direction in directions:
@@ -396,8 +440,10 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
                 if parts['aggregation_evidence'] and not isinstance(parts['aggregation_evidence']['row']['value'],str): parts['aggregation_evidence']=None
                 for key in ('window_start_evidence','window_end_evidence'):
                     if parts[key] and _date(parts[key]) is None: parts[key]=None; local.append('test_window_mismatch')
+                instrument_supplied=result['instrument_evidence'] is not None
                 instrument=_read(result['instrument_evidence'],actual,'instrument_id')
                 if instrument and (not _same_actual_operation(measurement,instrument) or not _controlled_string(instrument)): instrument=None
+                if instrument_supplied and instrument is None: local.append('missing_test_evidence')
                 if not _physical(values['metric_evidence'],measurement['row']['value']) or measurement['row']['unit']!=data['threshold_evidence']['row']['unit'] or measurement['row']['sample_count']<values['minimum_samples_evidence']: local.append('test_measurement_mismatch')
                 if any(not item for item in parts.values()): local.append('missing_test_evidence')
                 for item in [measurement,mapping]+[item for item in parts.values() if item]+([instrument] if instrument else []): opposing.extend(_opposing(item,actual))
@@ -427,6 +473,10 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
                     elif any(_opposing(item,static,True) for item in (calibrated,cstart,cend)):
                         local.append('conflicting_observations')
                         for item in (calibrated,cstart,cend): opposing.extend(_opposing(item,static,True))
+                else:
+                    calibrated,cstart,cend=_optional_calibration_refs(result,static,authorities,measurement,instrument)
+                    for item in (calibrated,cstart,cend):
+                        if item: opposing.extend(_opposing(item,static,True))
                 if not local and measurement is not None:
                     value=measurement['row']['value']; threshold=values['threshold_evidence']; comparator=values['comparator_evidence']
                     passed={'gte':value>=threshold,'lte':value<=threshold,'eq':value==threshold}[comparator]; status='pass' if passed else 'fail'

@@ -256,3 +256,53 @@ restart and its sparse tail is incomplete; it is not recorded as a pass. No new 
 builds, or post-correction review have run for this correction authoring. No final release pass is
 claimed. Actual M7 MobileWork, native Windows, and external security acceptance remain deferred to
 their user-owned gate.
+
+## Sol R3 findings and resumed pre-review gates
+
+Both independent Sol R3 axes reviewed frozen source
+`25da34bc5b2f5b552fb338996e1c19564535b7a0` and released review ownership. The Standards axis passed:
+it found the R2 actual-observation interval correction, categorical checks, and missing/invalid
+postcheck-reference suppression compliant with the documented contracts. The Spec axis reported
+two P2 boundary findings, so the Standards pass does not constitute an overall review pass:
+
+- The incomplete-criterion path could still cite a checked but role-invalid `criterion_method` such
+  as numeric `7`. Validate every cited fact under its existing role rule on both complete and
+  incomplete paths, omit invalid refs, and preserve other independently valid criterion/direction
+  facts. The existing gap is `missing_criterion_evidence`.
+- A supplied numeric `instrument_id` could be nulled without making a test with
+  `criterion_calibration_policy=not_required` incomplete. An absent optional instrument remains
+  absent; an invalid supplied identity makes the affected test unverified with the existing
+  `missing_test_evidence` gap. Valid optional instrument/calibration metadata is handled under its
+  own role and association checks. Under `not_required`, retain only independently checked, current,
+  role-valid status/date facts associated with a valid instrument; do not require
+  `calibration_status=valid` or test-window validity coverage, or imply calibration is valid.
+  Missing/unusable optional calibration refs do not alone create a required-calibration gap.
+
+The two boundary reproductions and outputs are retained in
+`.tools/carrier-m5/sol-spec-r3-boundary.py` and `.tools/carrier-m5/sol-spec-r3-boundary.json`;
+the full reports remain `.tools/carrier-m5/sol-standards-r3.md` and
+`.tools/carrier-m5/sol-spec-r3.md`. All earlier reports and probes remain preserved. Static review
+of the current runtime correction against the provider and manual references confirms the documented
+behavior; no new gap codes or output fields were added. The parent still owns source freeze and
+renewed gate sequencing.
+
+The actual gates completed before R3 review at frozen source
+`25da34bc5b2f5b552fb338996e1c19564535b7a0` were:
+
+- Focused service check: 20 tests in 119.913 seconds, passed, in
+  `.tools/carrier-m5/service-check-r3.log`.
+- Full suite: 230 tests in 318.608 seconds, passed with no skips, in
+  `.tools/carrier-m5/full-suite-25da34b.log`.
+- Resumed delivery's extracted suite: 151 tests in 282.733 seconds, passed with no skips, in
+  `.tools/carrier-m5/25da34b-delivery/extracted-tests.log`.
+- The suite archive has 61 files, 693441 bytes, SHA-256
+  `c68f3c4de0a159ab109cd142b3d851ee40d9a61b58e1169fde25e6fea6ebbf78`. Two builds and manifests
+  matched; all member hashes and eight individual Skill packages passed, as did the managed offline
+  PCAP check. The original 16-file collector remains SHA-256
+  `f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`.
+- Eight validators, Python 3.10 grammar validation, 80 fixture hashes, and 17 unique scenarios
+  passed; evidence is in `.tools/carrier-m5/auxiliary-25da34b.log`.
+
+These are pre-R3-review gates, not post-correction results. No renewed checks have run for the R3
+findings, and no final review/release pass is claimed. Actual M7 MobileWork, native Windows, and
+security acceptance remain user-deferred.
