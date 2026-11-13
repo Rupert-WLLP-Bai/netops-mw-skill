@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import io
+import importlib.util
 import json
 import os
 import sqlite3
@@ -46,6 +47,49 @@ class CaseTests(unittest.TestCase):
 
     def event(self, event_id, revision):
         return dict(event_id=event_id, actor='operator', occurred_at='2026-01-01T00:01:00Z', expected_revision=revision)
+
+    def case_cli_module(self):
+        sys.path.insert(0, str(CLI.parent))
+        spec = importlib.util.spec_from_file_location('incident_case_cli', CLI)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_legacy_cli_input_does_not_require_nofollow(self):
+        cli = self.case_cli_module()
+        input_path = self.root / 'legacy.json'
+        input_path.write_text(json.dumps(self.create))
+        args = [str(CLI), 'create', '--case', str(self.case), '--input', str(input_path)]
+        output = io.StringIO()
+        with mock.patch.dict(os.__dict__, {}), mock.patch.object(sys, 'argv', args), redirect_stdout(output):
+            os.__dict__.pop('O_NOFOLLOW', None)
+            self.assertEqual(cli.main(), 0)
+        self.assertEqual(json.loads(output.getvalue())['case_id'], 'case1')
+        self.assertEqual(self.call('get')['case_id'], 'case1')
+
+    def test_input_rejects_symlink_and_file_changed_during_read(self):
+        cli = self.case_cli_module()
+        path = self.root / 'input-source.json'
+        path.write_text(json.dumps(self.create))
+        link = self.root / 'input-link.json'
+        try:
+            link.symlink_to(path)
+        except (OSError, NotImplementedError):
+            pass
+        else:
+            with self.assertRaises(cli.CaseError): cli.read_input(link)
+        original_read = os.read
+        changed = False
+        def changing_read(fd, size):
+            nonlocal changed
+            data = original_read(fd, size)
+            if not changed:
+                changed = True
+                with path.open('ab') as stream: stream.write(b' ')
+            return data
+        with mock.patch.object(os, 'read', side_effect=changing_read):
+            with self.assertRaises(cli.CaseError): cli.read_input(path)
+        self.assertFalse(self.case.exists())
 
     def test_reused_decision_cannot_spawn_another_run(self):
         provider, marker, event = self.prepare_run()

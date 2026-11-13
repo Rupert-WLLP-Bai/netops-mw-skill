@@ -24,16 +24,21 @@ def bounded(value):
         if depth > 16 or count > 20000:
             raise CaseError('carrier metadata depth or count exceeded')
         if isinstance(item, dict):
+            if count + len(stack) + 2 * len(item) > 20000:
+                raise CaseError('carrier metadata depth or count exceeded')
             for key, child in item.items():
                 if not isinstance(key, str):
                     raise CaseError('invalid carrier metadata key')
                 stack.append((key, depth + 1)); stack.append((child, depth + 1))
         elif isinstance(item, list):
+            if count + len(stack) + len(item) > 20000:
+                raise CaseError('carrier metadata depth or count exceeded')
             stack.extend((child, depth + 1) for child in item)
         elif isinstance(item, str):
             if len(item) > 2048:
                 raise CaseError('carrier metadata string too long')
             size += len(item.encode('utf-8'))
+            if size > 1024 * 1024: raise CaseError('carrier metadata size exceeded')
         elif isinstance(item, (int, float)) and not isinstance(item, bool):
             try:
                 if not math.isfinite(item): raise CaseError('invalid carrier number')
@@ -58,7 +63,7 @@ def _schema(value, schema, root):
         if isinstance(types, str): types = [types]
         checks = {'null': value is None, 'object': isinstance(value, dict), 'array': isinstance(value, list),
                   'string': isinstance(value, str), 'number': isinstance(value, (int, float)) and not isinstance(value, bool),
-                  'integer': isinstance(value, int) and not isinstance(value, bool)}
+                  'integer': not isinstance(value, bool) and (isinstance(value, int) or (isinstance(value, float) and math.isfinite(value) and value.is_integer()))}
         if not any(checks[t] for t in types): raise CaseError('invalid carrier schema type')
     if isinstance(value, dict):
         props = schema.get('properties', {})

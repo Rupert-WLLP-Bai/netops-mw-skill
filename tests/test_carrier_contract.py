@@ -2,12 +2,13 @@
 import copy
 import json
 import sys
+import tracemalloc
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/netops-incident/scripts'))
-from case_runtime.carrier import validate_context, validate_envelope, comparison_gaps
+from case_runtime.carrier import bounded, validate_context, validate_envelope, comparison_gaps
 from case_runtime.store import CaseError
 
 FIXTURES = ROOT / 'tests/fixtures/carrier'
@@ -103,5 +104,44 @@ class CarrierContractTests(unittest.TestCase):
         with self.assertRaises(CaseError): validate_envelope(envelope, self.context, self.records)
         envelope['records'][0]['measurement']['value'] = float('nan')
         with self.assertRaises(CaseError): validate_envelope(envelope, self.context, self.records)
+
+    def test_large_input_is_rejected_before_expanding_work_stack(self):
+        large = {'objects': [None] * 500000}
+        tracemalloc.start()
+        try:
+            with self.assertRaises(CaseError): bounded(large)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        self.assertLess(peak, 8 * 1024 * 1024)
+
+    def test_integral_json_number_runtime_and_schema_parity(self):
+        context = copy.deepcopy(self.context); context['schema_version'] = 1.0
+        envelope = copy.deepcopy(self.envelope); envelope['schema_version'] = 1.0
+        measurement = envelope['records'][0]['measurement']; measurement['sample_count'] = 1.0
+        validate_context(context)
+        validate_envelope(envelope, context, self.records)
+        self.assertIsInstance(measurement['sample_count'], float)
+        for invalid in (True, 1.5, -1, float('nan'), float('inf')):
+            measurement['sample_count'] = invalid
+            with self.subTest(value=invalid), self.assertRaises(CaseError):
+                validate_envelope(envelope, context, self.records)
+        try:
+            import jsonschema
+        except ImportError:
+            return
+        schema_dir = ROOT / 'skills/netops-incident/schemas'
+        context_schema = json.loads((schema_dir / 'service-context.schema.json').read_text())
+        evidence_schema = json.loads((schema_dir / 'carrier-evidence.schema.json').read_text())
+        measurement['sample_count'] = 1.0
+        jsonschema.validate(context, context_schema)
+        jsonschema.validate(envelope, evidence_schema)
+        for invalid in (True, 1.5, -1):
+            measurement['sample_count'] = invalid
+            with self.subTest(schema_value=invalid), self.assertRaises(jsonschema.ValidationError):
+                jsonschema.validate(envelope, evidence_schema)
+        context['schema_version'] = 1.5
+        with self.assertRaises(jsonschema.ValidationError): jsonschema.validate(context, context_schema)
+        with self.assertRaises(CaseError): validate_context(context)
 
 if __name__ == '__main__': unittest.main()
