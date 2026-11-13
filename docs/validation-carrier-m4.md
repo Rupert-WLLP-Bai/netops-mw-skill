@@ -30,3 +30,18 @@ source and evaluator answers are excluded from product archives. These developer
 OS oracle isolation, live LLM quality, vendor interoperability, native Windows, MobileWork or external
 security acceptance. Actual M7 client/platform/security execution remains user-deferred.
 
+## Second gate and reference correction
+
+After the link/config correction at `1e025c5`, the full suite ran 204 tests in 121.396 seconds and
+the extracted suite ran 125 tests in 88.269 seconds; each retained three failures in queue/QoS checks.
+Parsing succeeded, but intended source rows 10 and 11 were referenced using decimal-looking IDs.
+The existing M2 producer uses `format(index, '012x')`: those records actually have IDs ending `00a`
+and `00b`. Their unresolved declarations correctly withheld service-pass counterevidence and class
+association. The request bindings, oracle reference metadata and focused-test references now identify
+the same intended source records by their actual IDs. Semantic statuses, codes, localization levels,
+gaps and source values were preserved; the runtime was not weakened to accept nonexistent references.
+
+The failed logs remain `.tools/carrier-m4/full-suite-corrected.log` and `delivery-corrected.log`.
+Fixture hashes were refreshed after the reference correction, and all owned changes froze before
+the next gate. Corrected final results and independent review remain pending.
+

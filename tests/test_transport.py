@@ -215,7 +215,7 @@ class TransportTests(unittest.TestCase):
         initial=self.analyze(request)
         condition=next(item for item in initial['findings'] if item['code']=='queue_condition')
         self.assertIn('does not establish customer impact',' '.join(condition['limitations']))
-        self.assertIn(dict(run_id='m4-observations',evidence_id='ev-000000000010'),condition['counterevidence'])
+        self.assertIn(dict(run_id='m4-observations',evidence_id='ev-00000000000a'),condition['counterevidence'])
         missing=copy.deepcopy(request); missing['measurement_windows']=[]
         result=self.analyze(missing)
         self.assertNotIn('queue_condition',{item['code'] for item in result['findings']})
@@ -231,7 +231,7 @@ class TransportTests(unittest.TestCase):
 
     def test_missing_qos_class_blocks_class_condition(self):
         request=self.materialize_fixture('case-006')
-        request['bindings']=[binding for binding in request['bindings'] if binding['record'] != dict(run_id='m4-observations',evidence_id='ev-000000000010')]
+        request['bindings']=[binding for binding in request['bindings'] if binding['record'] != dict(run_id='m4-observations',evidence_id='ev-00000000000a')]
         result=self.analyze(request)
         self.assertNotIn('qos_class_condition',{item['code'] for item in result['findings']})
         self.assertIn('missing_qos_class',result['gaps'])
