@@ -1,0 +1,19 @@
+{
+  "format": "telemetry-json-v1",
+  "version": 1,
+  "records": [
+    {
+      "metric": "unclassified_counter",
+      "value": 2048,
+      "unit": "octet",
+      "direction": "egress",
+      "denominator": null,
+      "sample_interval_seconds": 30,
+      "sample_count": 1,
+      "counter_semantics": "unknown",
+      "reset_state": "unknown",
+      "event_time": "2026-11-13T00:00:00Z",
+      "object_id": null
+    }
+  ]
+}

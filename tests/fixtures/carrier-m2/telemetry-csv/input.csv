@@ -1,0 +1,2 @@
+metric,value,unit,direction,denominator,sample_interval_seconds,sample_count,counter_semantics,reset_state,event_time,object_id
+generic_span_length,2.4,km,unknown,,60,1,gauge,none,2026-11-13T00:08:00Z,

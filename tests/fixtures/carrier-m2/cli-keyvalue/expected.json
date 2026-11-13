@@ -1,0 +1,9 @@
+{
+  "parse_status": "complete",
+  "quality": ["clock_uncertain", "incomplete_topology", "unknown_counter_semantics"],
+  "records": [
+    {"metric": "sample_count", "value": 3, "unit": null, "direction": "unknown", "denominator": null, "sample_interval_seconds": null, "sample_count": null, "counter_semantics": "unknown", "reset_state": "unknown", "event_time": null, "object_id": null},
+    {"metric": "alarm_state", "value": "active", "unit": null, "direction": "unknown", "denominator": null, "sample_interval_seconds": null, "sample_count": null, "counter_semantics": "unknown", "reset_state": "unknown", "event_time": null, "object_id": null}
+  ],
+  "service_context": null
+}

@@ -1,0 +1,12 @@
+{
+  "format": "topology-json-v1",
+  "version": 1,
+  "service_id": "source-service-031",
+  "objects": [
+    {"id": "source-service-031", "type": "service", "layer": null},
+    {"id": "source-device-032", "type": "device", "layer": "access"}
+  ],
+  "links": [
+    {"from_id": "source-service-031", "to_id": "source-device-032", "relation": "serves", "state": "verified", "confidence": "high"}
+  ]
+}

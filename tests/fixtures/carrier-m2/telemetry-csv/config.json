@@ -1,0 +1,18 @@
+{
+  "format": "telemetry-csv-v1",
+  "run_id": "synthetic-telemetry-csv",
+  "source": "synthetic-source",
+  "actor": "synthetic-operator",
+  "authorization_ref": "synthetic-authorization",
+  "collected_at": "2026-11-13T00:09:00Z",
+  "reference_time": "2026-11-13T00:10:00Z",
+  "max_age_seconds": 3600,
+  "timezone": "UTC",
+  "clock_quality": "synchronized",
+  "clock_uncertainty_seconds": 1,
+  "metric_allowlist": ["generic_span_length"],
+  "unit_allowlist": ["km"],
+  "relation_allowlist": ["serves"],
+  "value_allowlists": {},
+  "pseudonyms": {}
+}

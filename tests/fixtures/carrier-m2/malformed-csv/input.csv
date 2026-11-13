@@ -1,0 +1,2 @@
+metric,value,unit,direction,denominator,sample_interval_seconds,sample_count,counter_semantics,reset_state,event_time,object_id
+sample_metric,1,1,unknown,,1,1,gauge,none,2026-11-13T00:08:00Z,source-object-041,unexpected-extra-column

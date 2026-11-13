@@ -27,7 +27,21 @@ diagnostics, vendor parsers, service acceptance, and live platform integration a
 See the [M1 implementation plan](docs/implementation/carrier-m1-plan.md) for scope and validation order.
 The [M1 validation record](docs/validation-carrier-m1.md) records 141 passing tests, 62 tests against
 an independent package extraction, reproducible package hashes and [final Sol review](docs/review-carrier-m1.md).
-The milestone awaits maintainer review; it does not establish vendor, MobileWork or native Windows support.
+M1 was merged through [PR #12](https://github.com/Rupert-WLLP-Bai/netops-mw-skill/pull/12).
+It does not establish vendor, MobileWork or native Windows support. Subsequent work is tracked in the
+[carrier milestone tracker](docs/implementation/carrier-completion-tracker.md).
+
+### Offline carrier evidence ingestion (M2)
+
+The incident bundle includes `scripts/ingest.py` for explicitly selected, versioned JSON/CSV telemetry,
+topology and optical exports, generic CLI key/value records, and a safe syslog-header subset. Its
+[ingestion contract](skills/netops-incident/references/offline-ingestion.md) defines format detection,
+budgets, private raw storage, allowlisted visible derivatives and import into existing cases.
+Unknown vendor text and binary OTDR/SOR are not interpreted as supported formats. Import does not
+establish service health, source authenticity or a fault cause. See the
+[M2 plan](docs/implementation/carrier-m2-plan.md) for implementation and verification scope. The
+[M2 validation record](docs/validation-carrier-m2.md) records final regression and reproducible packages;
+[Sol review](docs/review-carrier-m2.md) passed both review axes.
 
 The historical [final scoped independent re-review](docs/review-v0.1-2026-11-12.md) passed at source commit `87df280e33c204e5dd85151a45b570b8adcfbaae`. All 68 tests passed, and the reproducible package SHA-256 is `3395dea80c52d312259215096136f253115d10dc500876c778dcb3789f5f9088`. The [validation record](docs/validation-v0.1-review-fixes-2026-11-12.md) records the checks and limitations; the original discovery checks remain separate.
 

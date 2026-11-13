@@ -1,0 +1,20 @@
+{
+  "parse_status": "complete",
+  "quality": ["incomplete_topology"],
+  "records": [
+    {
+      "metric": "generic_span_length",
+      "value": 2.4,
+      "unit": "km",
+      "direction": "unknown",
+      "denominator": null,
+      "sample_interval_seconds": 60,
+      "sample_count": 1,
+      "counter_semantics": "gauge",
+      "reset_state": "none",
+      "event_time": "2026-11-13T00:08:00Z",
+      "object_id": null
+    }
+  ],
+  "service_context": null
+}
