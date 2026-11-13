@@ -15,7 +15,9 @@ superseded by that explicit authorization. Offline/device/production boundaries 
 | M6 / #10 | Open | At least 36 scenarios, independent scoring, hidden/visible isolation and experiment validity |
 | M7 / #11 | Open; user-owned validation execution deferred | Prepare versioned packages/hashes, prompts, acceptance criteria and evidence/document handoff; PR and merge |
 
-Terra/Luna implement. Code, fixtures and contract documents freeze before any tests/builds or new
+Terra/Luna implemented the earlier milestones. After the environment restart, the user explicitly
+approved Luna implementation and independent Sol review for the remaining work because Terra is
+unavailable in the resumed model list. Code, fixtures and contract documents freeze before any tests/builds or new
 runtime checks; Sol reviews only after final verification. A review finding starts a new correction
 phase, followed by complete relevant final checks and re-review. No passing result is inferred from
 intent, a test inventory, a schema, or a package manifest alone.

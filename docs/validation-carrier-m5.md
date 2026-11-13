@@ -210,3 +210,49 @@ checks, tests, package builds, or post-correction review results are recorded he
 `.tools/carrier-m5/sol-spec.md`. Earlier gate failures and the successful pre-review R6 record
 remain preserved. Actual M7 MobileWork, native Windows, production interoperability, and
 external-security validation remain user-deferred.
+
+## Sol R2 findings and resumed pre-review gates
+
+Both independent Sol R2 axes reviewed frozen source `c358bdd` and released review ownership. The
+Standards axis identified one P2 gap: the complete uncertainty interval was not checked for every
+actual supporting observation in a test or postcheck window. The Spec axis identified three P2
+categories: that same interval gap; numeric values accepted in categorical method/change roles; and
+unrelated method, direction, or window refs emitted when a postcheck measurement was absent. The
+original reports and probes remain unchanged in `.tools/carrier-m5/sol-standards-r2.md`,
+`.tools/carrier-m5/sol-spec-r2.md`, and their probe directories.
+
+Correction authors are addressing these cases using the existing contracts and result vocabulary.
+For tests, the measurement and each actual supporting method, aggregation, window-boundary,
+direction-mapping, and instrument observation must have its complete event-time uncertainty interval
+inside the applicable test window. Calibration authority and validity-date records remain static
+source facts; check their authority and interval coverage separately. For postchecks, apply interval
+containment to the measurement and actual method, direction-mapping, and window-boundary observations
+in the existing postcheck contract. Required categorical roles must use source-backed string labels
+or aliases; numeric `7` is not a method, impact, approval reference, rollback trigger/owner, or
+residual risk. A missing or invalid postcheck must not expose unassociated method, direction, or
+window refs. These clarifications add no gap codes or output fields. The three maintained references
+are being updated alongside the runtime correction; static code/document agreement and renewed gates
+remain pending.
+
+The actual resumed gates recorded before R2 review were:
+
+- Focused service check: 16 tests in 78.280 seconds, passed, in
+  `.tools/carrier-m5/service-check-resumed.log`.
+- Full suite: 226 tests in 272.154 seconds, passed with no skips, in
+  `.tools/carrier-m5/full-suite-resumed.log`.
+- Resumed delivery's extracted suite: 147 tests in 242.386 seconds, passed with no skips, in
+  `.tools/carrier-m5/resumed-delivery/extracted-tests.log`.
+- The suite archive has 61 files, 687432 bytes, SHA-256
+  `3e8478d2ad3ba0ba430a5c0c2994045b88770f6c04ca09b2d9644d2c300254c1`. Two archives/manifests
+  matched; all member hashes and eight individual Skill packages passed, as did the managed offline
+  PCAP check. The original 16-file collector remains SHA-256
+  `f42abc06ffb1d020f037b6984eccce25cb80378aa0823a998d415bc445964a5a`.
+- Eight validators, Python 3.10 grammar validation, 80 fixture hashes, and 17 unique scenarios
+  passed; evidence is in `.tools/carrier-m5/auxiliary-resumed.log`.
+
+The resumed focused/full/delivery checks are pre-R2-review evidence, not post-correction results.
+The earlier `.tools/carrier-m5/service-check-reviewed.log` process was interrupted by an environment
+restart and its sparse tail is incomplete; it is not recorded as a pass. No new tests, validators,
+builds, or post-correction review have run for this correction authoring. No final release pass is
+claimed. Actual M7 MobileWork, native Windows, and external security acceptance remain deferred to
+their user-owned gate.

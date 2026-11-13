@@ -460,6 +460,140 @@ class ServiceReviewTests(unittest.TestCase):
                 request,_=self.materialize(scenario,{'change':extend_window},{'change':uncertain})
                 self.assertEqual(self.review(request)['change_review']['status'],'ready_for_human_review')
 
+    def test_actual_test_roles_fit_the_complete_window_interval(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        baseline,_=self.materialize(scenario)
+        self.assertEqual(next(row for row in self.review(baseline)['test_matrix'] if row['criterion_id']=='criterion-throughput' and row['absolute_direction']=='A_to_B')['status'],'pass')
+        role_to_ref={'measured_throughput':'measurement_ref','test_method':'method_ref','test_window_start':'window_refs','test_window_end':'window_refs','direction_mapping':'direction_mapping_ref','instrument_id':'instrument_ref'}
+        aggregation_is_reported='test_aggregation'
+        for metric in (*role_to_ref,aggregation_is_reported):
+            with self.subTest(actual_role=metric):
+                def escapes_window(data):
+                    operation=next(row['object_id'] for row in data['records'] if row['metric']=='measured_throughput' and row['direction']=='egress')
+                    for row in data['records']:
+                        if row['object_id']==operation and row['metric']==metric: row['event_time']='2026-11-13T00:08:01Z'
+                        if row['object_id']==operation and row['metric']=='test_window_end': row['value']=1794528481
+                    return data
+                def uncertainty(config): config['clock_uncertainty_seconds']=1; return config
+                request,_=self.materialize(scenario,{'actual-tests':escapes_window},{'actual-tests':uncertainty})
+                result=self.review(request); row=next(item for item in result['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+                self.assertNotEqual(row['status'],'pass'); self.assertIn('test_window_mismatch',row['gaps'])
+                if metric in role_to_ref:
+                    ref=row[role_to_ref[metric]]
+                    declaration=request['test_results'][0]
+                    selected={'measured_throughput':declaration['measurement_evidence'],'test_method':declaration['method_evidence'],'test_window_start':declaration['window_start_evidence'],'test_window_end':declaration['window_end_evidence'],'direction_mapping':next(item['mapping_evidence'] for item in request['direction_mappings'] if item['absolute_direction']=='A_to_B' and item['point_id']=='point-a-m5'),'instrument_id':declaration['instrument_evidence']}[metric]
+                    selected_id=selected['evidence_id']
+                    if isinstance(ref,list): self.assertNotIn(selected_id,{item['evidence_id'] for item in ref})
+                    else: self.assertIsNone(ref)
+        def contained(data):
+            for row in data['records']:
+                if row['metric']=='test_window_end': row['value']=1794528481
+            return data
+        def uncertain(config): config['clock_uncertainty_seconds']=1; return config
+        request,_=self.materialize(scenario,{'actual-tests':contained},{'actual-tests':uncertain})
+        row=next(item for item in self.review(request)['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+        self.assertEqual(row['status'],'pass')
+
+    def test_actual_postcheck_roles_fit_the_complete_window_interval(self):
+        scenario=json.loads((FIXTURES/'cases/case-011/scenario.json').read_text())
+        baseline,_=self.materialize(scenario); self.assertEqual(self.review(baseline)['change_review']['status'],'ready_for_human_review')
+        for metric in ('measured_throughput','postcheck_method','postcheck_direction','postcheck_window_start','postcheck_window_end','direction_mapping'):
+            with self.subTest(actual_role=metric):
+                def escapes_window(data):
+                    operation=next(row['object_id'] for row in data['records'] if row['metric']=='measured_throughput' and row['direction']=='egress')
+                    for row in data['records']:
+                        if row['object_id']==operation and row['metric']==metric: row['event_time']='2026-11-13T00:08:01Z'
+                        if row['object_id']==operation and row['metric']=='postcheck_window_end': row['value']=1794528481
+                    return data
+                def uncertainty(config): config['clock_uncertainty_seconds']=1; return config
+                request,_=self.materialize(scenario,{'change':escapes_window},{'change':uncertainty})
+                result=self.review(request); check=result['change_review']['checks'][0]
+                self.assertEqual(result['change_review']['status'],'blocked'); self.assertIn('change_review_incomplete',check['gaps'])
+                if metric=='measured_throughput': self.assertIsNone(check['postcheck_ref'])
+                elif metric=='postcheck_method': self.assertIsNone(check['postcheck_method_ref'])
+                elif metric=='postcheck_direction': self.assertIsNone(check['postcheck_direction_ref'])
+                elif metric in ('postcheck_window_start','postcheck_window_end'):
+                    selected=next(item['postcheck_window_'+('start' if metric.endswith('start') else 'end')+'_evidence']['evidence_id'] for item in request['change_review']['checks'])
+                    self.assertNotIn(selected,{item['evidence_id'] for item in check['postcheck_window_refs']})
+        def contained(data):
+            for row in data['records']:
+                if row['metric']=='postcheck_window_end': row['value']=1794528481
+            return data
+        def uncertain(config): config['clock_uncertainty_seconds']=1; return config
+        request,_=self.materialize(scenario,{'change':contained},{'change':uncertain})
+        self.assertEqual(self.review(request)['change_review']['status'],'ready_for_human_review')
+
+    def test_categorical_roles_reject_numeric_values_and_keep_string_controls(self):
+        scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text())
+        def numeric_methods(data):
+            for row in data['records']:
+                if row['metric']=='criterion_method': row['value']=7
+            return data
+        def numeric_test_methods(data):
+            for row in data['records']:
+                if row['metric']=='test_method': row['value']=7
+            return data
+        request,_=self.materialize(scenario,{'criteria':numeric_methods,'actual-tests':numeric_test_methods})
+        result=self.review(request)
+        self.assertNotEqual(result['technical_status'],'conformant'); self.assertIn('missing_criterion_evidence',result['gaps'])
+        def numeric_actual_methods(data):
+            for row in data['records']:
+                if row['metric']=='test_method': row['value']=7
+            return data
+        request,_=self.materialize(scenario,{'actual-tests':numeric_actual_methods})
+        row=next(item for item in self.review(request)['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+        self.assertIsNone(row['method_ref']); self.assertNotEqual(row['status'],'pass')
+        def numeric_instruments(data):
+            for row in data['records']:
+                if row['metric']=='instrument_id': row['value']=7
+            return data
+        request,_=self.materialize(scenario,{'actual-tests':numeric_instruments})
+        row=next(item for item in self.review(request)['test_matrix'] if item['criterion_id']=='criterion-throughput' and item['absolute_direction']=='A_to_B')
+        self.assertIsNone(row['instrument_ref']); self.assertNotEqual(row['status'],'pass')
+        for case_id in ('case-010','case-011'):
+            with self.subTest(change_case=case_id):
+                scenario=json.loads((FIXTURES/'cases'/case_id/'scenario.json').read_text())
+                categorical=('change_impact','change_approval_reference','rollback_trigger','rollback_owner','residual_risk')
+                def numeric_change_facts(data):
+                    for row in data['records']:
+                        if row['metric'] in categorical: row['value']=7
+                    return data
+                request,_=self.materialize(scenario,{'change':numeric_change_facts})
+                result=self.review(request); self.assertEqual(result['change_review']['status'],'blocked')
+                refs=result['change_review']['evidence_refs']
+                self.assertIsNone(refs['impact_evidence']); self.assertIsNone(refs['approval_reference_evidence'])
+                self.assertIsNone(refs['rollback_trigger_evidence']); self.assertIsNone(refs['rollback_owner_evidence'])
+                self.assertEqual(refs['residual_risk_evidence'],[])
+        scenario=json.loads((FIXTURES/'cases/case-011/scenario.json').read_text())
+        def numeric_postcheck_method(data):
+            for row in data['records']:
+                if row['metric']=='postcheck_method': row['value']=7
+            return data
+        request,_=self.materialize(scenario,{'change':numeric_postcheck_method})
+        check=self.review(request)['change_review']['checks'][0]
+        self.assertIsNone(check['postcheck_method_ref']); self.assertEqual(check['status'],'unverified')
+
+    def test_missing_postcheck_suppresses_foreign_actual_support_refs(self):
+        scenario=json.loads((FIXTURES/'cases/case-011/scenario.json').read_text())
+        source=next(item for item in scenario['sources'] if item['run_key']=='change')
+        source['row_keys'].append('foreign_postcheck_method')
+        def foreign_method(data):
+            method=next(row for row in data['records'] if row['metric']=='postcheck_method')
+            foreign=dict(method); foreign['object_id']='fixture-foreign-check'; data['records'].append(foreign)
+            return data
+        def alias(config): config['pseudonyms']['fixture-foreign-check']='foreign-check'; return config
+        request,ids=self.materialize(scenario,{'change':foreign_method},{'change':alias})
+        check=request['change_review']['checks'][0]; check['postcheck_evidence']=None
+        original_method_ref=check['postcheck_method_evidence']
+        foreign_ref=dict(run_id='m5-change-post',evidence_id=ids['change']['foreign_postcheck_method'])
+        check['postcheck_method_evidence']=foreign_ref
+        binding=copy.deepcopy(next(item for item in request['bindings'] if item['record']==original_method_ref))
+        binding['record']=foreign_ref; binding['source_native_id']='foreign-check'; request['bindings'].append(binding)
+        result=self.review(request); emitted=result['change_review']['checks'][0]
+        self.assertEqual(result['change_review']['status'],'blocked'); self.assertIsNone(emitted['postcheck_ref'])
+        self.assertIsNone(emitted['postcheck_method_ref']); self.assertIsNone(emitted['postcheck_direction_ref'])
+        self.assertEqual(emitted['postcheck_window_refs'],[])
+
     def test_unavailable_method_is_not_cited_or_confused_with_static_clock_gaps(self):
         scenario=json.loads((FIXTURES/'cases/case-009/scenario.json').read_text()); request,_=self.materialize(scenario)
         request['test_results'][0]['method_evidence']=dict(request['test_results'][0]['measurement_evidence'],evidence_id='ev-ffffffffffff')

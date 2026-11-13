@@ -86,6 +86,22 @@ def _number(value):
     return not isinstance(value,bool) and isinstance(value,(int,float)) and math.isfinite(value)
 
 
+def _controlled_string(item):
+    return bool(item and isinstance(item['row']['value'],str) and item['row']['value'])
+
+
+def _event_fits_window(item,begin,end):
+    """Require an actual observation's full clock interval inside its check window."""
+    if not item or not begin or not end or begin>end: return False
+    carrier=item['carrier']
+    if carrier['event_time'] is None or carrier['clock_uncertainty_seconds'] is None: return False
+    try:
+        event=timestamp(carrier['event_time'])
+        uncertainty=timedelta(seconds=carrier['clock_uncertainty_seconds'])
+        return begin<=event-uncertainty and event+uncertainty<=end
+    except (OverflowError,ValueError): return False
+
+
 def _physical(metric,value):
     if not _number(value) or value<0: return False
     return metric!='measured_ip_mtu' or (value>0 and int(value)==value)
@@ -310,6 +326,7 @@ def _criterion_data(entry,static,authorities):
     if any(_opposing(item,static,True) for item in result.values()): return None
     values={key:item['row']['value'] for key,item in result.items()}
     if CAPABILITIES.get(values['capability_evidence'])!=values['metric_evidence'] or values['aggregation_evidence'] not in ('mean','min','max','p95','p99','single') or values['comparator_evidence'] not in ('gte','lte','eq') or values['direction_evidence'] not in ('A_to_B','B_to_A','both') or values['calibration_policy_evidence'] not in ('required','not_required'): return None
+    if not _controlled_string(result['method_evidence']): return None
     count=values['minimum_samples_evidence']
     if not _number(count) or count<=0 or int(count)!=count or not _physical(values['metric_evidence'],values['threshold_evidence']): return None
     if result['threshold_evidence']['row']['unit'] in (None,'unknown') or (values['capability_evidence']=='l3_mtu' and result['threshold_evidence']['row']['unit']!='bytes'): return None
@@ -375,34 +392,44 @@ def _test_matrix(request,context,static,actual,authorities,inventory,gaps,start,
                 roles={'method_evidence':'test_method','aggregation_evidence':'test_aggregation','window_start_evidence':'test_window_start','window_end_evidence':'test_window_end'}
                 parts={name:_read(result[name],actual,metric) for name,metric in roles.items()}
                 parts={name:item if item and _same_actual_operation(measurement,item) else None for name,item in parts.items()}
+                if parts['method_evidence'] and not _controlled_string(parts['method_evidence']): parts['method_evidence']=None
+                if parts['aggregation_evidence'] and not isinstance(parts['aggregation_evidence']['row']['value'],str): parts['aggregation_evidence']=None
                 for key in ('window_start_evidence','window_end_evidence'):
                     if parts[key] and _date(parts[key]) is None: parts[key]=None; local.append('test_window_mismatch')
                 instrument=_read(result['instrument_evidence'],actual,'instrument_id')
-                if instrument and not _same_actual_operation(measurement,instrument): instrument=None
+                if instrument and (not _same_actual_operation(measurement,instrument) or not _controlled_string(instrument)): instrument=None
                 if not _physical(values['metric_evidence'],measurement['row']['value']) or measurement['row']['unit']!=data['threshold_evidence']['row']['unit'] or measurement['row']['sample_count']<values['minimum_samples_evidence']: local.append('test_measurement_mismatch')
                 if any(not item for item in parts.values()): local.append('missing_test_evidence')
+                for item in [measurement,mapping]+[item for item in parts.values() if item]+([instrument] if instrument else []): opposing.extend(_opposing(item,actual))
+                if opposing: local.append('conflicting_observations')
+                begin,until=_date(parts['window_start_evidence']),_date(parts['window_end_evidence'])
+                approved_begin,approved_end=_date(data['window_start_evidence']),_date(data['window_end_evidence'])
+                window_valid=bool(begin and until and start<=begin<=until<=end and approved_begin<=begin<=until<=approved_end)
+                if not window_valid:
+                    local.append('test_window_mismatch')
+                    parts={name:None for name in parts}; mapping=None; instrument=None; measurement=None
                 else:
-                    for item in [measurement,mapping]+list(parts.values()): opposing.extend(_opposing(item,actual))
-                    if opposing: local.append('conflicting_observations')
-                    begin,until=_date(parts['window_start_evidence']),_date(parts['window_end_evidence'])
-                    approved_begin,approved_end=_date(data['window_start_evidence']),_date(data['window_end_evidence'])
-                    event=timestamp(measurement['carrier']['event_time'])
-                    uncertainty=timedelta(seconds=measurement['carrier']['clock_uncertainty_seconds'])
-                    if not begin or not until or not (start<=begin<=event-uncertainty and event+uncertainty<=until<=end and approved_begin<=begin<=until<=approved_end): local.append('test_window_mismatch')
-                    if parts['method_evidence']['row']['value']!=values['method_evidence'] or parts['aggregation_evidence']['row']['value']!=values['aggregation_evidence']: local.append('test_method_mismatch')
-                    if values['calibration_policy_evidence']=='required':
-                        calibrated=_static_read(result['calibration_evidence'],static,authorities,'calibration_status')
-                        cstart=_static_read(result['calibration_start_evidence'],static,authorities,'calibration_start'); cend=_static_read(result['calibration_end_evidence'],static,authorities,'calibration_end')
-                        if instrument:
-                            calibrated,cstart,cend=(item if item and item['resource']==measurement['resource'] and _source(item)==(measurement['carrier']['source'],instrument['row']['value']) else None for item in (calibrated,cstart,cend))
-                        else: calibrated=cstart=cend=None
-                        if not all((instrument,calibrated,cstart,cend)) or calibrated['row']['value']!='valid' or not _date(cstart) or not _date(cend) or not begin or not until or not (_date(cstart)<=begin<=until<=_date(cend)): local.append('missing_calibration')
-                        elif any(_opposing(item,static,True) for item in (calibrated,cstart,cend)):
-                            local.append('conflicting_observations')
-                            for item in (calibrated,cstart,cend): opposing.extend(_opposing(item,static,True))
-                    if not local:
-                        value=measurement['row']['value']; threshold=values['threshold_evidence']; comparator=values['comparator_evidence']
-                        passed={'gte':value>=threshold,'lte':value<=threshold,'eq':value==threshold}[comparator]; status='pass' if passed else 'fail'
+                    for name,item in list(parts.items()):
+                        if item and not _event_fits_window(item,begin,until):
+                            parts[name]=None; local.append('test_window_mismatch')
+                    if mapping and not _event_fits_window(mapping,begin,until): mapping=None; local.append('test_window_mismatch')
+                    if instrument and not _event_fits_window(instrument,begin,until): instrument=None; local.append('test_window_mismatch')
+                    if not _event_fits_window(measurement,begin,until): measurement=None; local.append('test_window_mismatch')
+                if not parts.get('method_evidence') or parts['method_evidence']['row']['value']!=values['method_evidence'] or not parts.get('aggregation_evidence') or parts['aggregation_evidence']['row']['value']!=values['aggregation_evidence']: local.append('test_method_mismatch')
+                if not all((measurement,mapping)) or any(not item for item in parts.values()): local.append('missing_test_evidence')
+                if values['calibration_policy_evidence']=='required':
+                    calibrated=_static_read(result['calibration_evidence'],static,authorities,'calibration_status')
+                    cstart=_static_read(result['calibration_start_evidence'],static,authorities,'calibration_start'); cend=_static_read(result['calibration_end_evidence'],static,authorities,'calibration_end')
+                    if instrument and measurement and _controlled_string(instrument):
+                        calibrated,cstart,cend=(item if item and item['resource']==measurement['resource'] and _source(item)==(measurement['carrier']['source'],instrument['row']['value']) else None for item in (calibrated,cstart,cend))
+                    else: calibrated=cstart=cend=None
+                    if not all((instrument,calibrated,cstart,cend)) or calibrated['row']['value']!='valid' or not _date(cstart) or not _date(cend) or not begin or not until or not (_date(cstart)<=begin<=until<=_date(cend)): local.append('missing_calibration')
+                    elif any(_opposing(item,static,True) for item in (calibrated,cstart,cend)):
+                        local.append('conflicting_observations')
+                        for item in (calibrated,cstart,cend): opposing.extend(_opposing(item,static,True))
+                if not local and measurement is not None:
+                    value=measurement['row']['value']; threshold=values['threshold_evidence']; comparator=values['comparator_evidence']
+                    passed={'gte':value>=threshold,'lte':value<=threshold,'eq':value==threshold}[comparator]; status='pass' if passed else 'fail'
             gaps.update(local)
             matrix.append(dict(criterion_id=cid,absolute_direction=direction,status=status,measurement_point=measurement['resource'] if measurement and mapping else None,measurement_ref=_qualified(measurement['key']) if measurement else None,criterion_refs=[_qualified(item['key']) for item in data.values()],method_ref=_qualified(parts['method_evidence']['key']) if parts.get('method_evidence') else None,window_refs=[_qualified(parts[key]['key']) for key in ('window_start_evidence','window_end_evidence') if parts.get(key)],instrument_ref=_qualified(instrument['key']) if instrument else None,calibration_refs=[_qualified(item['key']) for item in (calibrated,cstart,cend) if item],topology_ref=_qualified(measurement['topology_key']) if measurement else None,direction_mapping_ref=_qualified(mapping['key']) if mapping else None,counterevidence=[_qualified(item['key']) for item in opposing],gaps=local))
     if any(directions!={'A_to_B','B_to_A'} for directions in capability.values()): gaps.add('criterion_inventory_incomplete')
@@ -428,6 +455,9 @@ def _change(request,context,static,actual,evidence,authorities,reference):
             scope=None; items={name:None for name in roles}; risks=[None for _ in risks]
     else:
         items={name:None for name in roles}; risks=[None for _ in risks]
+    for name in ('impact_evidence','approval_reference_evidence','rollback_trigger_evidence','rollback_owner_evidence'):
+        if items[name] is not None and not _controlled_string(items[name]): items[name]=None
+    risks=[item if _controlled_string(item) else None for item in risks]
     if any(item is None for item in items.values()) or not risks or any(item is None for item in risks): local.append('change_review_incomplete')
     begin=_date(items['planned_start_evidence']); end=_date(items['planned_end_evidence'])
     if not begin or not end or begin>end: local.append('change_review_incomplete')
@@ -458,9 +488,9 @@ def _change(request,context,static,actual,evidence,authorities,reference):
         if not pre_valid or pre['row']['value']!='pass': check_gaps.append('change_review_incomplete')
         if scope and all(plans.values()) and (not pre or _source(plans['planned_metric_evidence'])[0]!=_source(scope)[0] or any(item['resource']!=pre['resource'] for item in plans.values())): check_gaps.append('change_review_incomplete')
         if all(plans.values()):
-            metric=plans['planned_metric_evidence']['row']['value']; method_value=plans['planned_method_evidence']['row']['value']; expected=plans['planned_criterion_evidence']['row']['value']; cmp=plans['planned_comparator_evidence']['row']['value']; direction_value=plans['planned_direction_evidence']['row']['value']
+            metric=plans['planned_metric_evidence']['row']['value']; expected=plans['planned_criterion_evidence']['row']['value']; cmp=plans['planned_comparator_evidence']['row']['value']; direction_value=plans['planned_direction_evidence']['row']['value']
             valid_value=(_number(expected) and plans['planned_criterion_evidence']['row']['unit'] not in (None,'unknown')) or (isinstance(expected,str) and cmp=='eq')
-            if not isinstance(metric,str) or not isinstance(method_value,str) or cmp not in ('eq','gte','lte') or direction_value not in ('A_to_B','B_to_A') or not valid_value or (cmp in ('gte','lte') and not _number(expected)) or (metric in CAPABILITIES.values() and not _physical(metric,expected)) or (metric=='measured_ip_mtu' and plans['planned_criterion_evidence']['row']['unit']!='bytes'): check_gaps.append('change_review_incomplete')
+            if not isinstance(metric,str) or not _controlled_string(plans['planned_method_evidence']) or cmp not in ('eq','gte','lte') or direction_value not in ('A_to_B','B_to_A') or not valid_value or (cmp in ('gte','lte') and not _number(expected)) or (metric in CAPABILITIES.values() and not _physical(metric,expected)) or (metric=='measured_ip_mtu' and plans['planned_criterion_evidence']['row']['unit']!='bytes'): check_gaps.append('change_review_incomplete')
         observed=method=direction=left=right=None
         if change['phase']=='post_change' and not check_gaps:
             metric=plans['planned_metric_evidence']['row']['value']; observed=_read(check['postcheck_evidence'],actual,metric)
@@ -469,16 +499,40 @@ def _change(request,context,static,actual,evidence,authorities,reference):
             if observed and (not pre or not _same_scope(pre,observed)): observed=None
             if observed:
                 method,direction,left,right=(item if item and _same_actual_operation(observed,item) else None for item in (method,direction,left,right))
+                if method and not _controlled_string(method): method=None
+                if direction and not isinstance(direction['row']['value'],str): direction=None
                 if left and _date(left) is None: left=None
                 if right and _date(right) is None: right=None
-            if not all((observed,method,direction,left,right)) or _source(observed)[1]!=ident: check_gaps.append('change_review_incomplete')
+            if observed and _source(observed)[1]!=ident: observed=None
+            mapping=None
+            if observed:
+                mapped,mapping=_mapped_direction(observed,request,context,actual)
+            if not observed:
+                method=direction=left=right=mapping=None
+                check_gaps.append('change_review_incomplete')
             else:
+                if not all((method,direction,left,right)): check_gaps.append('change_review_incomplete')
                 value=observed['row']['value']; expected=plans['planned_criterion_evidence']['row']['value']; cmp=plans['planned_comparator_evidence']['row']['value']
                 lo,hi=_date(left),_date(right); actual_event=timestamp(observed['carrier']['event_time'])
-                mapped,_=_mapped_direction(observed,request,context,actual)
-                compatible=method['row']['value']==plans['planned_method_evidence']['row']['value'] and direction['row']['value']==plans['planned_direction_evidence']['row']['value']==mapped and observed['row']['unit']==plans['planned_criterion_evidence']['row']['unit'] and _same_scope(pre,observed)
-                uncertainty=timedelta(seconds=observed['carrier']['clock_uncertainty_seconds'])
-                if not end or not lo or not hi or not end<lo<=actual_event-uncertainty or actual_event+uncertainty>hi or lo<timestamp(request['window_start']) or hi>timestamp(request['window_end']) or actual_event-uncertainty<=end or not compatible or cmp not in ('eq','gte','lte') or (metric in CAPABILITIES.values() and not _physical(metric,value)): check_gaps.append('change_review_incomplete')
+                window_valid=bool(lo and hi and end and end<lo<=hi and lo>=timestamp(request['window_start']) and hi<=timestamp(request['window_end']))
+                if not window_valid:
+                    check_gaps.append('change_review_incomplete')
+                    observed=method=direction=left=right=mapping=None
+                else:
+                    for name,item in (('method',method),('direction',direction),('window_start',left),('window_end',right)):
+                        if item and not _event_fits_window(item,lo,hi):
+                            if name=='method': method=None
+                            elif name=='direction': direction=None
+                            elif name=='window_start': left=None
+                            else: right=None
+                            check_gaps.append('change_review_incomplete')
+                    if mapping and not _event_fits_window(mapping,lo,hi): mapping=None; check_gaps.append('change_review_incomplete')
+                    if not _event_fits_window(observed,lo,hi):
+                        observed=method=direction=left=right=mapping=None
+                        check_gaps.append('change_review_incomplete')
+                compatible=bool(observed and method and _controlled_string(method) and direction and isinstance(direction['row']['value'],str) and mapping and method['row']['value']==plans['planned_method_evidence']['row']['value'] and direction['row']['value']==plans['planned_direction_evidence']['row']['value']==mapped and observed['row']['unit']==plans['planned_criterion_evidence']['row']['unit'] and _same_scope(pre,observed))
+                uncertainty=timedelta(seconds=observed['carrier']['clock_uncertainty_seconds']) if observed else timedelta(0)
+                if not end or not lo or not hi or not observed or not end<lo<=actual_event-uncertainty or actual_event+uncertainty>hi or actual_event-uncertainty<=end or not compatible or cmp not in ('eq','gte','lte') or (metric in CAPABILITIES.values() and not _physical(metric,value)): check_gaps.append('change_review_incomplete')
                 elif cmp=='eq' and value!=expected: check_gaps.append('change_review_incomplete')
                 elif cmp in ('gte','lte') and (not _number(value) or not _number(expected) or (cmp=='gte' and value<expected) or (cmp=='lte' and value>expected)): check_gaps.append('change_review_incomplete')
         local.extend(check_gaps)
