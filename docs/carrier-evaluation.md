@@ -19,7 +19,9 @@ python3 scripts/evaluate_carrier.py --replay /tmp/carrier-all --output-dir /tmp/
 Choose fresh output directories. The tool materializes checked M2 bundles, copies the provider
 code, restricts the adapter and its descendants, invokes the actual provider CLI and scores its
 bounded answer. It never supplies raw/private importer artifacts, authoring labels or truth to the
-adapter. A normal run reads the task and visible evidence; it cannot read the checkout or oracle.
+adapter. A normal run reads the task and visible evidence; it cannot read checkout or oracle
+file contents. Directory names and filesystem metadata remain visible: the existing provider's
+confined reader opens each ancestor directory from `/` to check a supplied file path safely.
 The parent retains audit output under `<output-dir>/<case-id>/report.json`.
 
 The current bootstrap targets x86-64 Linux with Landlock ABI 3 through 11 and seccomp-BPF.
@@ -80,7 +82,9 @@ experiments; they remain unexecuted until their actual evidence is recorded.
 
 The trusted evaluator and OS enforce a narrow local worker boundary. Only copied code, permitted
 inputs, necessary runtime files and a dedicated writable temporary directory are granted. The
-policy is inherited into actual provider spawn/exec workers; the parent bounds output/time and
+policy permits directory reads for that ancestor traversal and grants file-content reads only
+to the selected inputs/code/runtime files. The null device is writable for subprocess input.
+The policy is inherited into actual provider spawn/exec workers; the parent bounds output/time and
 cleans the process group. Final validation must include a working provider control and attempted
 oracle/sibling access from direct and spawned code. See [the validation record](validation-carrier-m6.md)
 for the exact tested platform and results; implementation intent is not a passing record.
