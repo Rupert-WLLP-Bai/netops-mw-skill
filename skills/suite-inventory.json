@@ -10,7 +10,8 @@
     {"name": "netops-verify-recovery", "version": "0.1.0"},
     {"name": "netops-handoff", "version": "0.1.0"},
     {"name": "telecom-access-diagnostics", "version": "0.1.0"},
-    {"name": "telecom-transport-diagnostics", "version": "0.1.0"}
+    {"name": "telecom-transport-diagnostics", "version": "0.1.0"},
+    {"name": "telecom-service-acceptance", "version": "0.1.0"}
   ],
   "provider": {
     "name": "internet-access-triage",

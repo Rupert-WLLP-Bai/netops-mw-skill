@@ -1,0 +1,527 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "case-001",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "missing_field_inventory",
+        "missing_criterion_inventory"
+      ],
+      "required_field_results": [],
+      "required_test_results": [],
+      "required_support": []
+    },
+    {
+      "case_id": "case-002",
+      "technical_status": "nonconformant",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [],
+      "required_field_results": [
+        {
+          "field": "vlan",
+          "target": "endpoint_a",
+          "status": "mismatch"
+        }
+      ],
+      "required_test_results": [],
+      "required_support": [
+        {
+          "run_id": "m5-design",
+          "evidence_id": {
+            "$row": "design/expected_vlan_endpoint_a"
+          }
+        },
+        {
+          "run_id": "m5-actual-fields",
+          "evidence_id": {
+            "$row": "actual-fields/actual_vlan_endpoint_a"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case-003",
+      "technical_status": "nonconformant",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [],
+      "required_field_results": [
+        {
+          "field": "vrf",
+          "target": "endpoint_a",
+          "status": "mismatch"
+        }
+      ],
+      "required_test_results": [],
+      "required_support": [
+        {
+          "run_id": "m5-design",
+          "evidence_id": {
+            "$row": "design/expected_vrf_endpoint_a"
+          }
+        },
+        {
+          "run_id": "m5-actual-fields",
+          "evidence_id": {
+            "$row": "actual-fields/actual_vrf_endpoint_a"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case-004",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [],
+      "required_field_results": [
+        {
+          "field": "endpoint",
+          "target": "endpoint_a",
+          "status": "unverified"
+        }
+      ],
+      "required_test_results": [],
+      "required_support": []
+    },
+    {
+      "case_id": "case-005",
+      "technical_status": "nonconformant",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "fail"
+        }
+      ],
+      "required_support": [
+        {
+          "run_id": "m5-actual-tests",
+          "evidence_id": {
+            "$row": "actual-tests/measure_throughput_a_to_b"
+          }
+        },
+        {
+          "run_id": "m5-criteria",
+          "evidence_id": {
+            "$row": "criteria/threshold_throughput"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case-006",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "missing_direction_mapping"
+      ],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        }
+      ],
+      "required_support": []
+    },
+    {
+      "case_id": "case-007",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "missing_criterion_evidence"
+      ],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "unverified"
+        }
+      ],
+      "required_support": []
+    },
+    {
+      "case_id": "case-008",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "blocked",
+      "required_gaps": [
+        "change_review_incomplete",
+        "missing_test_evidence"
+      ],
+      "required_field_results": [],
+      "required_test_results": [],
+      "required_support": []
+    },
+    {
+      "case_id": "case-009",
+      "technical_status": "conformant",
+      "acceptance_status": "awaiting_human_signoff",
+      "change_status": "not_requested",
+      "required_gaps": [],
+      "required_field_results": [
+        {
+          "field": "circuit",
+          "target": "service",
+          "status": "match"
+        },
+        {
+          "field": "bandwidth",
+          "target": "service",
+          "status": "match"
+        },
+        {
+          "field": "sla_profile",
+          "target": "service",
+          "status": "match"
+        },
+        {
+          "field": "endpoint",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "vlan",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "vrf",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "ip_prefix",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "bandwidth",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "mtu",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "qos",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "routing",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "security",
+          "target": "endpoint_a",
+          "status": "match"
+        },
+        {
+          "field": "endpoint",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "vlan",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "vrf",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "ip_prefix",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "bandwidth",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "mtu",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "qos",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "routing",
+          "target": "endpoint_b",
+          "status": "match"
+        },
+        {
+          "field": "security",
+          "target": "endpoint_b",
+          "status": "match"
+        }
+      ],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "B_to_A",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-delay",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-delay",
+          "absolute_direction": "B_to_A",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-loss",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-loss",
+          "absolute_direction": "B_to_A",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-jitter",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-jitter",
+          "absolute_direction": "B_to_A",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-l3_mtu",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        },
+        {
+          "criterion_id": "criterion-l3_mtu",
+          "absolute_direction": "B_to_A",
+          "status": "pass"
+        }
+      ],
+      "required_support": [
+        {
+          "run_id": "m5-actual-tests",
+          "evidence_id": {
+            "$row": "actual-tests/measure_throughput_a_to_b"
+          }
+        },
+        {
+          "run_id": "m5-actual-tests",
+          "evidence_id": {
+            "$row": "actual-tests/measure_throughput_b_to_a"
+          }
+        },
+        {
+          "run_id": "m5-design",
+          "evidence_id": {
+            "$row": "design/required_vlan_endpoint_a"
+          }
+        },
+        {
+          "run_id": "m5-design",
+          "evidence_id": {
+            "$row": "design/required_vlan_endpoint_b"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case-010",
+      "technical_status": "conformant",
+      "acceptance_status": "awaiting_human_signoff",
+      "change_status": "ready_for_human_review",
+      "required_gaps": [],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        }
+      ],
+      "required_support": []
+    },
+    {
+      "case_id": "case-011",
+      "technical_status": "conformant",
+      "acceptance_status": "awaiting_human_signoff",
+      "change_status": "ready_for_human_review",
+      "required_gaps": [],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        }
+      ],
+      "required_support": [
+        {
+          "run_id": "m5-change-post",
+          "evidence_id": {
+            "$row": "change/approval"
+          }
+        },
+        {
+          "run_id": "m5-change-post",
+          "evidence_id": {
+            "$row": "change/post_metric"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case-012",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "missing_field_evidence"
+      ],
+      "required_field_results": [
+        {
+          "field": "vlan",
+          "target": "endpoint_b",
+          "status": "unverified"
+        },
+        {
+          "field": "endpoint",
+          "target": "endpoint_b",
+          "status": "unverified"
+        }
+      ],
+      "required_test_results": [],
+      "required_support": []
+    },
+    {
+      "case_id": "case-013",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "criterion_inventory_incomplete"
+      ],
+      "required_field_results": [],
+      "required_test_results": [],
+      "required_support": [],
+      "required_missing_requirements": [
+        {
+          "kind": "criterion",
+          "id": "criterion-l3_mtu",
+          "required_ref": {
+            "run_id": "m5-criteria",
+            "evidence_id": {
+              "$row": "criteria/required_l3_mtu"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case-014",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "stale_or_outside_window",
+        "missing_test_evidence"
+      ],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "unverified"
+        }
+      ],
+      "required_support": []
+    },
+    {
+      "case_id": "case-015",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "missing_field_evidence"
+      ],
+      "required_field_results": [
+        {
+          "field": "vlan",
+          "target": "endpoint_a",
+          "status": "unverified"
+        }
+      ],
+      "required_test_results": [],
+      "required_support": []
+    },
+    {
+      "case_id": "case-016",
+      "technical_status": "unverified",
+      "acceptance_status": "blocked",
+      "change_status": "not_requested",
+      "required_gaps": [
+        "missing_calibration"
+      ],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "unverified"
+        }
+      ],
+      "required_support": []
+    },
+    {
+      "case_id": "case-017",
+      "technical_status": "conformant",
+      "acceptance_status": "blocked",
+      "change_status": "blocked",
+      "required_gaps": [
+        "change_review_incomplete"
+      ],
+      "required_field_results": [],
+      "required_test_results": [
+        {
+          "criterion_id": "criterion-throughput",
+          "absolute_direction": "A_to_B",
+          "status": "pass"
+        }
+      ],
+      "required_support": []
+    }
+  ]
+}
